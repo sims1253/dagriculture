@@ -10,3 +10,9 @@
 ^\.lintr$
 ^air\.toml$
 ^jarl\.toml$
+^doc$
+^Meta$
+^CODE_OF_CONDUCT\.md$
+^CONTRIBUTING\.md$
+^_pkgdown\.yml$
+^design$

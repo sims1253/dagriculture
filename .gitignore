@@ -10,3 +10,5 @@ tests/testthat/_snaps/
 .DS_Store
 Thumbs.db
 .vscode/
+/doc/
+/Meta/
