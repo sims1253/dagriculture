@@ -6,7 +6,7 @@ Authors@R:
 Description: Helpers and workflows for groots. Replace this placeholder
     with a package-specific description before publishing.
 License: MIT + file LICENSE
-URL: https://github.com/sims1253/groots
+URL: https://github.com/sims1253/groots, https://sims1253.github.io/groots/
 BugReports: https://github.com/sims1253/groots/issues
 Depends: 
     R (>= 4.3.0)

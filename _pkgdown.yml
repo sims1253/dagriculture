@@ -1,58 +1,54 @@
 url: https://sims1253.github.io/groots/
-
 template:
   bootstrap: 5
-
 reference:
-  - title: "Constructors"
-    desc: "Functions to create and initialize graphs and registries."
-    contents:
-      - groots_kind
-      - groots_registry
-      - groots_graph
-  - title: "Graph Editing"
-    desc: "Functions to structurally modify nodes, edges, and gates."
-    contents:
-      - groots_add_node
-      - groots_update_node
-      - groots_remove_node
-      - groots_add_edge
-      - groots_remove_edge
-      - groots_add_gate
-      - groots_resolve_gate
-      - groots_reopen_gate
-      - groots_remove_gate
-  - title: "Queries and Topology"
-    desc: "Accessors and topological traversal functions."
-    contents:
-      - groots_node
-      - groots_edge
-      - groots_gate
-      - groots_nodes
-      - groots_edges
-      - groots_gates
-      - groots_upstream
-      - groots_downstream
-      - groots_ancestors
-      - groots_descendants
-      - groots_has_path
-      - groots_roots
-      - groots_leaves
-      - groots_topo_order
-  - title: "State and Planning"
-    desc: "Functions to resolve structural conditions and produce graph execution plans."
-    contents:
-      - groots_recompute_state
-      - groots_eligible
-      - groots_blocked
-      - groots_terminal
-      - groots_plan
-  - title: "Internals"
-    desc: "Package internal utilities."
-    contents:
-      - abort_groots
-
+- title: Constructors
+  desc: Functions to create and initialize graphs and registries.
+  contents:
+  - groots_kind
+  - groots_registry
+  - groots_graph
+- title: Graph Editing
+  desc: Functions to structurally modify nodes, edges, and gates.
+  contents:
+  - groots_add_node
+  - groots_update_node
+  - groots_remove_node
+  - groots_add_edge
+  - groots_remove_edge
+  - groots_add_gate
+  - groots_resolve_gate
+  - groots_reopen_gate
+  - groots_remove_gate
+- title: Queries and Topology
+  desc: Accessors and topological traversal functions.
+  contents:
+  - groots_node
+  - groots_edge
+  - groots_gate
+  - groots_nodes
+  - groots_edges
+  - groots_gates
+  - groots_upstream
+  - groots_downstream
+  - groots_ancestors
+  - groots_descendants
+  - groots_has_path
+  - groots_roots
+  - groots_leaves
+  - groots_topo_order
+- title: State and Planning
+  desc: Functions to resolve structural conditions and produce graph execution plans.
+  contents:
+  - groots_recompute_state
+  - groots_eligible
+  - groots_blocked
+  - groots_terminal
+  - groots_plan
+- title: Internals
+  desc: Package internal utilities.
+  contents: abort_groots
 articles:
-  - title: "Getting Started"
-    contents:
-      - getting-started
+- title: Getting Started
+  contents: getting-started
+

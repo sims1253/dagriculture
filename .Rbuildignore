@@ -16,3 +16,4 @@
 ^CONTRIBUTING\.md$
 ^_pkgdown\.yml$
 ^design$
+^pkgdown$
