@@ -7,8 +7,7 @@
 
 [![R-CMD-check](https://github.com/sims1253/dagriculture/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sims1253/dagriculture/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/sims1253/dagriculture/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/sims1253/dagriculture/actions/workflows/pkgdown.yaml)
-[![Codecov test
-coverage](https://codecov.io/gh/sims1253/dagriculture/branch/main/graph/badge.svg)](https://app.codecov.io/gh/sims1253/dagriculture)
+[![codecov](https://codecov.io/gh/sims1253/dagriculture/graph/badge.svg?token=BY1xv5aQSR)](https://codecov.io/gh/sims1253/dagriculture)
 <!-- badges: end -->
 
 `dagriculture` is a pure, value-oriented graph library for R. It is
