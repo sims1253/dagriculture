@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   getting-started: getting-started.html
-last_built: 2026-03-06T21:21Z
+last_built: 2026-03-06T21:26Z
 urls:
   reference: https://sims1253.github.io/dagriculture/reference
   article: https://sims1253.github.io/dagriculture/articles
