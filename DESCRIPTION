@@ -1,6 +1,6 @@
 Package: dagriculture
 Title: Tools for dagriculture
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     person("Maximilian Scholz", , , "dev.scholz@mailbox.org", role = c("aut", "cre"))
 Description: Helpers and workflows for dagriculture. Replace this placeholder

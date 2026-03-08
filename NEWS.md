@@ -1,3 +1,9 @@
+# dagriculture 0.1.2
+
+## Fixes
+
+- **Node deletion cleanup**: `dagri_remove_node()` now removes incident edges and any gates attached to those edges, preventing dangling references after structural deletes.
+
 # dagriculture 0.1.1
 
 ## Features

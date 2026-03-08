@@ -68,6 +68,23 @@ dagri_remove_node <- function(graph, node_id) {
   if (!node_id %in% names(graph$nodes)) {
     abort_dagri("dagri_error_not_found", "Node not found.")
   }
+
+  incident_edge_ids <- names(Filter(
+    function(edge) identical(edge$from, node_id) || identical(edge$to, node_id),
+    graph$edges %||% list()
+  ))
+  if (length(incident_edge_ids) > 0) {
+    graph$edges[incident_edge_ids] <- NULL
+
+    gate_ids <- names(Filter(
+      function(gate) gate$edge_id %in% incident_edge_ids,
+      graph$gates %||% list()
+    ))
+    if (length(gate_ids) > 0) {
+      graph$gates[gate_ids] <- NULL
+    }
+  }
+
   graph$nodes[[node_id]] <- NULL
   graph$version <- graph$version + 1L
   graph

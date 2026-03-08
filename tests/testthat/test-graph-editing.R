@@ -57,6 +57,19 @@ describe("graph editing operations", {
       expect_identical(g2$version, g1$version + 1L)
       expect_false("n1" %in% names(g2$nodes))
     })
+
+    it("removes incident edges and their gates", {
+      g1 <- dagri_add_node(g0, "n1", "source")
+      g2 <- dagri_add_node(g1, "n2", "process")
+      g3 <- dagri_add_edge(g2, "n1", "n2", id = "e1")
+      g4 <- dagri_add_gate(g3, "e1", id = "gate1")
+
+      g5 <- dagri_remove_node(g4, "n1")
+
+      expect_false("n1" %in% names(g5$nodes))
+      expect_false("e1" %in% names(g5$edges))
+      expect_false("gate1" %in% names(g5$gates))
+    })
   })
 
   describe("dagri_add_edge()", {
