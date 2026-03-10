@@ -72,13 +72,77 @@ dagri_blocked <- function(graph) {
 #' Get terminal nodes
 #'
 #' @param graph A \code{dagri_graph}.
+#' @param targets Optional target nodes.
 #' @export
-dagri_terminal <- function(graph) {
-  dagri_leaves(graph)
+dagri_terminal <- function(graph, targets = NULL) {
+  scoped_targets <- dagri_target_closure(graph, targets)
+  if (length(scoped_targets) == 0) {
+    return(character(0))
+  }
+
+  terminal_nodes <- character(0)
+  for (node_id in scoped_targets) {
+    down <- intersect(dagri_downstream(graph, node_id), scoped_targets)
+    if (length(down) == 0) {
+      terminal_nodes <- c(terminal_nodes, node_id)
+    }
+  }
+
+  unique(terminal_nodes)
 }
 
 dagri_empty_named_list <- function() {
   stats::setNames(list(), character(0))
+}
+
+dagri_validate_node_ids <- function(graph, node_ids, arg = "node_ids") {
+  if (!is.character(node_ids)) {
+    abort_dagri(
+      "dagri_error_invalid_argument",
+      sprintf("`%s` must be a character vector of node ids.", arg)
+    )
+  }
+
+  if (length(node_ids) == 0) {
+    return(character(0))
+  }
+
+  if (anyNA(node_ids) || any(node_ids == "")) {
+    abort_dagri(
+      "dagri_error_invalid_argument",
+      sprintf("`%s` must be a character vector of node ids.", arg)
+    )
+  }
+
+  unknown_ids <- setdiff(node_ids, names(graph$nodes))
+  if (length(unknown_ids) > 0) {
+    abort_dagri(
+      "dagri_error_not_found",
+      "Missing node.",
+      details = list(node_ids = unknown_ids)
+    )
+  }
+
+  unique(node_ids)
+}
+
+#' Get the structural closure of target nodes
+#'
+#' @param graph A \code{dagri_graph}.
+#' @param targets Optional target nodes.
+#' @export
+dagri_target_closure <- function(graph, targets = NULL) {
+  if (is.null(targets)) {
+    return(names(graph$nodes))
+  }
+
+  targets <- dagri_validate_node_ids(graph, targets, arg = "targets")
+  all_targets <- character(0)
+  for (target in targets) {
+    all_targets <- unique(c(all_targets, target, dagri_ancestors(graph, target)))
+  }
+
+  all_targets
 }
 
 dagri_validate_external_holds <- function(graph, external_holds) {
@@ -161,7 +225,41 @@ dagri_external_blocked <- function(graph, targets, topo_order, external_holds) {
   external_blocked
 }
 
-#' Create an execution plan
+#' Get pending gates
+#'
+#' @param graph A \code{dagri_graph}.
+#' @param targets Optional target nodes.
+#' @export
+dagri_pending_gates <- function(graph, targets = NULL) {
+  scoped_targets <- dagri_target_closure(graph, targets)
+  if (length(scoped_targets) == 0 || length(graph$gates) == 0) {
+    return(character(0))
+  }
+
+  pending_gates <- character(0)
+  for (gate in graph$gates) {
+    if (gate$status != "pending") {
+      next
+    }
+
+    edge <- graph$edges[[gate$edge_id]]
+    if (is.null(edge)) {
+      abort_dagri(
+        "dagri_error_not_found",
+        "Missing edge.",
+        details = list(edge_ids = gate$edge_id)
+      )
+    }
+
+    if (edge$to %in% scoped_targets) {
+      pending_gates <- c(pending_gates, gate$id)
+    }
+  }
+
+  pending_gates
+}
+
+#' Create a structural plan
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Optional target nodes.
@@ -171,15 +269,7 @@ dagri_external_blocked <- function(graph, targets, topo_order, external_holds) {
 dagri_plan <- function(graph, targets = NULL, external_holds = list()) {
   external_holds <- dagri_validate_external_holds(graph, external_holds)
 
-  if (is.null(targets)) {
-    targets <- names(graph$nodes)
-  } else {
-    all_targets <- character(0)
-    for (t in targets) {
-      all_targets <- unique(c(all_targets, t, dagri_ancestors(graph, t)))
-    }
-    targets <- all_targets
-  }
+  targets <- dagri_target_closure(graph, targets)
 
   topo <- dagri_topo_order(graph, subset = targets)
 
@@ -198,31 +288,13 @@ dagri_plan <- function(graph, targets = NULL, external_holds = list()) {
 
   external_blocked <- dagri_external_blocked(graph, targets, topo, external_holds)
 
-  target_leaves <- character(0)
-  for (t in targets) {
-    down <- dagri_downstream(graph, t)
-    if (length(intersect(down, targets)) == 0) {
-      target_leaves <- c(target_leaves, t)
-    }
-  }
-
-  pending_gates <- character(0)
-  for (g in graph$gates) {
-    if (g$status == "pending") {
-      e <- graph$edges[[g$edge_id]]
-      if (e$to %in% targets) {
-        pending_gates <- c(pending_gates, g$id)
-      }
-    }
-  }
-
   list(
     targets = targets,
     topo_order = topo,
     eligible = eligible_nodes,
     blocked = blocked_list,
     external_blocked = external_blocked,
-    terminal = target_leaves,
-    pending_gates = pending_gates
+    terminal = dagri_terminal(graph, targets = targets),
+    pending_gates = dagri_pending_gates(graph, targets = targets)
   )
 }

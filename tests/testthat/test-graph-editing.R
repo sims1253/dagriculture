@@ -94,6 +94,14 @@ describe("graph editing operations", {
       )
     })
 
+    it("rejects duplicate edge ids", {
+      g_edge <- dagri_add_edge(g2, from = "n1", to = "n2", id = "e1")
+      expect_error(
+        dagri_add_edge(g_edge, from = "n1", to = "n2", id = "e1"),
+        class = "dagri_error_duplicate_id"
+      )
+    })
+
     it("rejects edges between missing nodes", {
       expect_error(
         dagri_add_edge(g2, from = "n1", to = "n_missing"),
@@ -110,6 +118,17 @@ describe("graph editing operations", {
       g_removed <- dagri_remove_edge(g_edge, "e1")
       expect_identical(g_removed$version, g_edge$version + 1L)
       expect_false("e1" %in% names(g_removed$edges))
+    })
+
+    it("removes gates attached to the edge", {
+      g2 <- dagri_add_node(g0, "n1", "source") |> dagri_add_node("n2", "process")
+      g_edge <- dagri_add_edge(g2, "n1", "n2", id = "e1") |>
+        dagri_add_gate(edge_id = "e1", id = "gate1")
+
+      g_removed <- dagri_remove_edge(g_edge, "e1")
+
+      expect_false("e1" %in% names(g_removed$edges))
+      expect_false("gate1" %in% names(g_removed$gates))
     })
   })
 
@@ -129,6 +148,14 @@ describe("graph editing operations", {
       expect_error(
         dagri_add_gate(g_edge, edge_id = "e_missing", id = "gate2"),
         class = "dagri_error_not_found"
+      )
+    })
+
+    it("rejects duplicate gate ids", {
+      g_gate <- dagri_add_gate(g_edge, edge_id = "e1", id = "gate1")
+      expect_error(
+        dagri_add_gate(g_gate, edge_id = "e1", id = "gate1"),
+        class = "dagri_error_duplicate_id"
       )
     })
   })

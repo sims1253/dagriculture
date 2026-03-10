@@ -106,6 +106,9 @@ dagri_add_edge <- function(graph, from, to, type = "data", id = NULL, metadata =
   if (!from %in% names(graph$nodes) || !to %in% names(graph$nodes)) {
     abort_dagri("dagri_error_not_found", "Missing node.")
   }
+  if (id %in% names(graph$edges)) {
+    abort_dagri("dagri_error_duplicate_id", "Duplicate edge id.")
+  }
 
   if (dagri_has_path(graph, to, from)) {
     abort_dagri("dagri_error_cycle", "Cycle detected.")
@@ -133,6 +136,15 @@ dagri_remove_edge <- function(graph, edge_id) {
   if (!edge_id %in% names(graph$edges)) {
     abort_dagri("dagri_error_not_found", "Missing edge.")
   }
+
+  gate_ids <- names(Filter(
+    function(gate) identical(gate$edge_id, edge_id),
+    graph$gates %||% list()
+  ))
+  if (length(gate_ids) > 0) {
+    graph$gates[gate_ids] <- NULL
+  }
+
   graph$edges[[edge_id]] <- NULL
   graph$version <- graph$version + 1L
   graph
@@ -151,6 +163,9 @@ dagri_add_gate <- function(graph, edge_id, id = NULL, metadata = list()) {
   }
   if (!edge_id %in% names(graph$edges)) {
     abort_dagri("dagri_error_not_found", "Missing edge.")
+  }
+  if (id %in% names(graph$gates)) {
+    abort_dagri("dagri_error_duplicate_id", "Duplicate gate id.")
   }
 
   gate <- list(
