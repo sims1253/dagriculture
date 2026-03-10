@@ -1,4 +1,4 @@
-# API Contracts: `dagriculture` and `bayesguide`
+# API Contracts: `dagriculture` and `bayesgrove`
 
 **Status:** Draft
 **Date:** 2026-03-03
@@ -8,9 +8,9 @@
 Define the public API surface and contract rules for the greenfield rewrite.
 
 Conceptual package ownership belongs in
-[boundary-contract.md](/home/m0hawk/Documents/bayesguide/design/boundary-contract.md).
+[boundary-contract.md](./boundary-contract.md).
 Persistence and schema rules belong in
-[persistence-spec.md](/home/m0hawk/Documents/bayesguide/design/persistence-spec.md).
+[persistence-spec.md](./persistence-spec.md).
 
 ## Contract Conventions
 
@@ -79,7 +79,7 @@ Invariants:
 - `version` increases by exactly `1` in the returned graph for each successful
   `dagri_*` mutator call
 - divergent copies may legitimately reach the same numeric version; only
-  `bayesguide` may use persisted compare-and-swap checks to detect conflicts
+  `bayesgrove` may use persisted compare-and-swap checks to detect conflicts
 
 #### `dagri_registry`
 
@@ -111,15 +111,13 @@ Fields:
 - `kind`: scalar string
 - `label`: `NULL` or scalar string
 - `params`: named list
-- `state`: `new`, `ready`, `blocked`, or `invalid`
-- `block_reason`: `none`, `gate`, `invalid_input`, `missing_edge`, or `upstream_blocked`
+- `state`: `new`, `ready`, or `blocked`
+- `block_reason`: `none`, `gate`, or `upstream_blocked`
 - `metadata`: named list
 
 Rules:
 
-- `missing_edge` is structural only and must not be used for missing artifacts
-  or source files
-- `upstream_blocked` means an upstream node is structurally blocked or invalid
+- `upstream_blocked` means an upstream node is structurally blocked
 
 #### `dagri_edge`
 
@@ -148,10 +146,11 @@ Fields:
 - `topo_order`: character vector
 - `eligible`: character vector
 - `blocked`: named list mapping node id to block reason
+- `external_blocked`: named list mapping node id to opaque external hold reason
 - `terminal`: character vector
 - `pending_gates`: character vector
 
-### `bayesguide`
+### `bayesgrove`
 
 #### `bg_handle`
 
@@ -304,7 +303,7 @@ Fields:
 Rules:
 
 - `eligible` is the structurally eligible set from `dagri_plan`
-- `cache_hits` and `missing_results` are `bayesguide` overlays on top of that
+- `cache_hits` and `missing_results` are `bayesgrove` overlays on top of that
   structural set
 - `cache_hits` are determined by computing predicted intent-based fingerprints
   for eligible nodes and looking those fingerprints up in the artifact index
@@ -411,8 +410,10 @@ dagri_topo_order(graph, subset = NULL)
 dagri_recompute_state(graph)
 dagri_eligible(graph)
 dagri_blocked(graph)
-dagri_terminal(graph)
-dagri_plan(graph, targets = NULL)
+dagri_target_closure(graph, targets = NULL)
+dagri_terminal(graph, targets = NULL)
+dagri_pending_gates(graph, targets = NULL)
+dagri_plan(graph, targets = NULL, external_holds = list())
 ```
 
 ### `dagriculture` Behavioral Contract
@@ -421,12 +422,16 @@ dagri_plan(graph, targets = NULL)
 - No `dagriculture` function performs I/O or depends on global state.
 - `dagri_recompute_state()` returns a new `dagri_graph` with recomputed
   structural state only.
+- `dagri_target_closure()`, `dagri_terminal()`, and `dagri_pending_gates()` are
+  graph-generic structural helpers.
 - `dagri_plan()` must not encode cache or execution assumptions.
-- A structurally `ready` node may still be skipped by `bayesguide` when a
+- `external_holds` and `external_blocked` are opaque planning overlays only and
+  must not mutate structural node state.
+- A structurally `ready` node may still be skipped by `bayesgrove` when a
   reusable result exists; completion lives in artifact/result overlays, not in
   `dagri_node$state`.
 
-## `bayesguide` Public API
+## `bayesgrove` Public API
 
 ### Project Lifecycle
 
@@ -572,7 +577,7 @@ bg_gc(project, days = NULL)
 - `dagri_error_not_eligible`
 - `dagri_error_state_conflict`
 
-### `bayesguide` Errors
+### `bayesgrove` Errors
 
 - `bg_error_invalid_handle`
 - `bg_error_project_invalid`

@@ -1,4 +1,4 @@
-# Persistence Specification: `bayesguide` / `dagriculture`
+# Persistence Specification: `bayesgrove` / `dagriculture`
 
 **Status:** Draft
 **Date:** 2026-03-03
@@ -10,8 +10,8 @@ rewrite.
 
 This document is subordinate to:
 
-- [boundary-contract.md](/home/m0hawk/Documents/bayesguide/design/boundary-contract.md)
-- [api-contracts.md](/home/m0hawk/Documents/bayesguide/design/api-contracts.md)
+- [boundary-contract.md](./boundary-contract.md)
+- [api-contracts.md](./api-contracts.md)
 
 If the conceptual boundary or public API changes, this document must follow
 them rather than silently preserving outdated storage shapes.
@@ -83,14 +83,11 @@ Readers should validate in this order:
 - `new`
 - `ready`
 - `blocked`
-- `invalid`
 
 ### Node Block Reason
 
 - `none`
 - `gate`
-- `invalid_input`
-- `missing_edge`
 - `upstream_blocked`
 
 ### Gate Status
@@ -520,11 +517,11 @@ Required fields:
   "project_name": "Pilot Prior Sensitivity",
   "created_at": "2026-03-03T14:05:09Z",
   "updated_at": "2026-03-03T14:42:11Z",
-  "graph_ref": ".bayesguide/graph/current.json",
-  "gate_specs_ref": ".bayesguide/gates/current.json",
-  "decision_log_ref": ".bayesguide/logs/decisions.jsonl",
-  "job_log_ref": ".bayesguide/logs/jobs.jsonl",
-  "config_ref": ".bayesguide/config.json",
+  "graph_ref": ".bayesgrove/graph/current.json",
+  "gate_specs_ref": ".bayesgrove/gates/current.json",
+  "decision_log_ref": ".bayesgrove/logs/decisions.jsonl",
+  "job_log_ref": ".bayesgrove/logs/jobs.jsonl",
+  "config_ref": ".bayesgrove/config.json",
   "state": "idle",
   "last_run_id": "run_01JNB5R4J5ATW0VVBEM6D3J8TW"
 }

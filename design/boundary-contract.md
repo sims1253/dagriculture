@@ -1,4 +1,4 @@
-# Boundary Contract: `dagriculture` and `bayesguide`
+# Boundary Contract: `dagriculture`, `bayesgrove`, and `glade`
 
 **Status:** Draft
 **Date:** 2026-03-03
@@ -8,13 +8,17 @@
 Define the conceptual boundary for the greenfield rewrite:
 
 1. `dagriculture`: a pure, value-oriented graph library
-2. `bayesguide`: a project-oriented workflow orchestrator built on top of `dagriculture`
+2. `bayesgrove`: a project-oriented workflow orchestrator built on top of `dagriculture`
+3. `glade`: a GUI for `bayesgrove`
 
 This document is about ownership and behavioral boundaries, not storage layout.
+It focuses primarily on the `dagriculture` / `bayesgrove` contract; `glade`
+should consume orchestrator-facing views rather than redefining graph
+semantics.
 Persistence details belong in
-[persistence-spec.md](/home/m0hawk/Documents/bayesguide/design/persistence-spec.md).
+[persistence-spec.md](./persistence-spec.md).
 Concrete public signatures belong in
-[api-contracts.md](/home/m0hawk/Documents/bayesguide/design/api-contracts.md).
+[api-contracts.md](./api-contracts.md).
 
 ## Core Decision
 
@@ -22,7 +26,7 @@ The split is:
 
 - `dagriculture` owns graph structure, graph validity, structural readiness, and
   generic blockers on edges.
-- `bayesguide` owns projects, execution, persistence, artifact/result
+- `bayesgrove` owns projects, execution, persistence, artifact/result
   lifecycle, invalidation, recovery, exports, and domain semantics.
 
 The rewrite should preserve that split even if implementation details change.
@@ -32,7 +36,7 @@ The rewrite should preserve that split even if implementation details change.
 - `dagriculture` is value-oriented: no globals, no file I/O, no async workers, no
   project handles.
 - `dagriculture` must remain serializable as plain data.
-- `bayesguide` may be stateful and persistent, but the core API should use
+- `bayesgrove` may be stateful and persistent, but the core API should use
   explicit handles rather than an implicit global current project.
 - The alpha should optimize for four user stories:
   - branching and backtracking
@@ -50,31 +54,31 @@ The rewrite should preserve that split even if implementation details change.
   - `new`
   - `ready`
   - `blocked`
-  - `invalid`
 - structural block reasons:
   - `none`
   - `gate`
-  - `invalid_input`
-  - `missing_edge`
   - `upstream_blocked`
 - structural planning:
   - target closure
   - topological order
   - structurally eligible nodes
   - blocked nodes
-  - unresolved gates
+  - terminal targets within a target closure
+  - unresolved gates within a target closure
+  - optional opaque external-hold overlays in planning output
 
 `dagriculture` does not own freshness. It does not know whether a previously computed
 result is reusable, stale, superseded, missing, or cached.
 
 In particular:
 
-- `missing_edge` is structural only: it means required graph connectivity is
-  absent, not that an artifact or source file is missing
 - `upstream_blocked` is structural only: it means an upstream node is
-  structurally blocked or invalid
+  structurally blocked
+- planner-visible external holds are opaque overlays only: they may affect
+  planning output, but they do not become node state or structural block
+  reasons
 - a fully executed workflow may still appear entirely `ready` in `dagriculture`
-  because "completed" is a `bayesguide` result-layer concept, not a graph state
+  because "completed" is a `bayesgrove` result-layer concept, not a graph state
 
 ## What `dagriculture` Must Not Own
 
@@ -90,9 +94,9 @@ In particular:
 - reports, bundles, or handoff formats
 - Bayesian semantics such as priors, fits, diagnostics, or citations
 
-## What `bayesguide` Owns
+## What `bayesgrove` Owns
 
-`bayesguide` owns:
+`bayesgrove` owns:
 
 - project lifecycle
 - persistence and locking
@@ -113,7 +117,7 @@ The gate split is intentionally two-layered:
 - `dagriculture` gate:
   - generic blocker attached to an edge
   - only `id`, `edge_id`, `status`, and structural metadata
-- `bayesguide` gate spec:
+- `bayesgrove` gate spec:
   - semantic payload keyed by `id`
   - prompt
   - options
@@ -125,7 +129,7 @@ semantics into the graph library.
 
 `bg_answer_gate()` is the bridge operation:
 
-- it validates and records the semantic answer in `bayesguide`
+- it validates and records the semantic answer in `bayesgrove`
 - it must also invoke `dagri_resolve_gate()` internally so the structural
   blocker is cleared in the graph before persistence completes
 
@@ -151,15 +155,15 @@ This is the core orchestration model:
 - executors receive upstream values in deterministic plan order
 - successful execution updates artifact/result overlays, not structural graph
   state
-- a structurally `ready` node may be skipped by `bayesguide` when `bg_plan()`
+- a structurally `ready` node may be skipped by `bayesgrove` when `bg_plan()`
   classifies it as a cache hit
 
-That makes `dagriculture` structurally pure while still giving `bayesguide` an explicit
+That makes `dagriculture` structurally pure while still giving `bayesgrove` an explicit
 execution contract.
 
 ## Fingerprint Contract
 
-`bayesguide` uses intent-based fingerprinting so `bg_plan()` can predict cache
+`bayesgrove` uses intent-based fingerprinting so `bg_plan()` can predict cache
 status before any execution starts.
 
 Rules:
@@ -192,7 +196,7 @@ There are two related registries:
   - persisted with the graph snapshot
   - declarative only
   - authoritative for structural validation
-- runtime `bayesguide` registries:
+- runtime `bayesgrove` registries:
   - attached at `bg_open()`
   - may include executors, backends, and richer domain metadata
   - must be compatible with the persisted graph
@@ -207,7 +211,7 @@ The default runtime compatibility policy should be:
 
 ## Handle Model
 
-The primary `bayesguide` contract is explicit handles:
+The primary `bayesgrove` contract is explicit handles:
 
 - `bg_init()` and `bg_open()` return a `bg_handle`
 - mutating `bg_*` functions update the supplied handle in place
@@ -270,7 +274,7 @@ Persistence writes must also be atomic:
 
 - the graph `version` counter is not itself a cross-process compare-and-swap
   primitive
-- `bayesguide` must pair version checks with an atomic persistence mechanism
+- `bayesgrove` must pair version checks with an atomic persistence mechanism
   such as write-to-temp plus atomic rename inside the active write lock
 - in-place overwrites must not be treated as a valid committed write path
 
@@ -386,12 +390,12 @@ The current draft resolves these previously open choices:
 7. Ship pipe-friendly convenience wrappers in alpha as ergonomic sugar, while
    keeping the low-level return contracts canonical.
 8. Use a shared cross-package contract fixture suite to validate `dagriculture` /
-   `bayesguide` boundary assumptions.
+   `bayesgrove` / `glade` boundary assumptions.
 
 ## Open Questions
 
 1. Where should the shared cross-package contract fixture suite live
-   (`bayesguide` test helpers, a dedicated support package, or generated test
+   (`bayesgrove` test helpers, a dedicated support package, or generated test
    fixtures checked into both repos)?
 2. Should alpha implement renewable lock leases automatically, or require
    explicit/manual stale-lock recovery until heartbeat infrastructure exists?
