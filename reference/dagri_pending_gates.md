@@ -1,11 +1,11 @@
-# Get terminal nodes
+# Get pending gates
 
-Get terminal nodes
+Get pending gates
 
 ## Usage
 
 ``` r
-dagri_terminal(graph, targets = NULL)
+dagri_pending_gates(graph, targets = NULL)
 ```
 
 ## Arguments

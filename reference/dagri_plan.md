@@ -1,6 +1,6 @@
-# Create an execution plan
+# Create a structural plan
 
-Create an execution plan
+Create a structural plan
 
 ## Usage
 

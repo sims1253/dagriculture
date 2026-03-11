@@ -80,8 +80,12 @@ plans.
   : Get blocked nodes
 - [`dagri_terminal()`](https://sims1253.github.io/dagriculture/reference/dagri_terminal.md)
   : Get terminal nodes
+- [`dagri_target_closure()`](https://sims1253.github.io/dagriculture/reference/dagri_target_closure.md)
+  : Get the structural closure of target nodes
+- [`dagri_pending_gates()`](https://sims1253.github.io/dagriculture/reference/dagri_pending_gates.md)
+  : Get pending gates
 - [`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)
-  : Create an execution plan
+  : Create a structural plan
 
 ## Internals
 

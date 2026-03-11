@@ -1,5 +1,19 @@
 # Changelog
 
+## dagriculture 0.1.3
+
+### Fixes
+
+- **CI and structural helper linting**: fixed `.lintr` snapshot
+  exclusions for current `lintr`, documented
+  [`dagri_target_closure()`](https://sims1253.github.io/dagriculture/reference/dagri_target_closure.md)
+  and
+  [`dagri_pending_gates()`](https://sims1253.github.io/dagriculture/reference/dagri_pending_gates.md),
+  updated
+  [`dagri_terminal()`](https://sims1253.github.io/dagriculture/reference/dagri_terminal.md)
+  docs for scoped targets, and shortened structural test fixture names
+  to satisfy CI lint checks.
+
 ## dagriculture 0.1.2
 
 ### Fixes
