@@ -44,6 +44,8 @@ reference:
   - dagri_eligible
   - dagri_blocked
   - dagri_terminal
+  - dagri_target_closure
+  - dagri_pending_gates
   - dagri_plan
 - title: Internals
   desc: Package internal utilities.
