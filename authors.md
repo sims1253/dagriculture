@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/sims1253/dagriculture/blob/master/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/sims1253/dagriculture/blob/v0.1.3/DESCRIPTION)
 
 Maximilian Scholz (2026). *dagriculture: Tools for dagriculture*. R
 package version 0.1.3, <https://github.com/sims1253/dagriculture>.
