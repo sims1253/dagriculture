@@ -1,6 +1,8 @@
-#' dagriculture: a modern R package starter
+#' dagriculture: A pure, value-oriented DAG library
 #'
-#' Replace the package title, description, and example code with project-specific
-#' content before release.
+#' A directed acyclic graph library for managing structural dependencies,
+#' topological validity, and task planning. Graphs are immutable — every
+#' mutating function returns a new graph instance and bumps the internal
+#' version counter.
 #' @keywords internal
 "_PACKAGE"

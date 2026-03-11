@@ -27,10 +27,7 @@ describe("graph state and planning", {
       expect_identical(dagri_node(g_state, "n3")$block_reason, "upstream_blocked")
     })
 
-    it("identifies invalid configurations", {
-      # Missing required inputs based on dagri_kind$input_contract could lead to missing_edge
-      # But since we have a simple registry without contracts here, let's just test
-      # structural readiness flows properly.
+    it("identifies structural readiness flows after gate resolution", {
       g_resolved <- dagri_resolve_gate(g, "gate1") |> dagri_recompute_state()
 
       expect_identical(dagri_node(g_resolved, "n2")$state, "ready")
@@ -169,6 +166,38 @@ describe("graph state and planning", {
         list(n1 = "manual_pause", n2 = "manual_pause", n3 = "manual_pause")
       )
       expect_setequal(plan$eligible, "n1")
+    })
+  })
+
+  describe("graph validation in state functions", {
+    bad_graph <- list(nodes = list())
+
+    it("dagri_recompute_state rejects invalid graph", {
+      expect_error(dagri_recompute_state(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_eligible rejects invalid graph", {
+      expect_error(dagri_eligible(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_blocked rejects invalid graph", {
+      expect_error(dagri_blocked(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_terminal rejects invalid graph", {
+      expect_error(dagri_terminal(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_target_closure rejects invalid graph", {
+      expect_error(dagri_target_closure(bad_graph, "n1"), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_pending_gates rejects invalid graph", {
+      expect_error(dagri_pending_gates(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_plan rejects invalid graph", {
+      expect_error(dagri_plan(bad_graph), class = "dagri_error_invalid_argument")
     })
   })
 })

@@ -1,3 +1,10 @@
+# dagriculture 0.1.4
+
+## Features
+
+- **Graph validation**: all public functions now validate that the `graph` argument has the required structure (`dagri_validate_graph()`), producing a clear error instead of cryptic R failures on malformed input.
+- **Input contract enforcement**: `dagri_kind()` validates that `input_contract` is a named list with character or `NULL` values. `dagri_add_node()` checks that node `params` satisfy the kind's `input_contract` at creation time.
+
 # dagriculture 0.1.3
 
 ## Fixes

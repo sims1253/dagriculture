@@ -1,10 +1,11 @@
 Package: dagriculture
 Title: Tools for dagriculture
-Version: 0.1.3
+Version: 0.1.4
 Authors@R: 
     person("Maximilian Scholz", , , "dev.scholz@mailbox.org", role = c("aut", "cre"))
-Description: Helpers and workflows for dagriculture. Replace this placeholder
-    with a package-specific description before publishing.
+Description: A pure, value-oriented directed acyclic graph library for managing
+    graph structures, topological dependencies, structural validity, and task
+    planning. All operations are immutable and return new graph instances.
 License: MIT + file LICENSE
 URL: https://github.com/sims1253/dagriculture, https://sims1253.github.io/dagriculture/
 BugReports: https://github.com/sims1253/dagriculture/issues

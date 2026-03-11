@@ -3,6 +3,8 @@
 #' @param graph A \code{dagri_graph}.
 #' @export
 dagri_recompute_state <- function(graph) {
+  dagri_validate_graph(graph)
+
   topo <- dagri_topo_order(graph)
 
   for (n_id in topo) {
@@ -47,9 +49,14 @@ dagri_recompute_state <- function(graph) {
 
 #' Get eligible nodes
 #'
+#' Returns IDs of nodes whose state is "ready". Call \code{dagri_recompute_state()}
+#' before using this function to ensure node states are current.
+#'
 #' @param graph A \code{dagri_graph}.
 #' @export
 dagri_eligible <- function(graph) {
+  dagri_validate_graph(graph)
+
   if (length(graph$nodes) == 0) {
     return(character(0))
   }
@@ -58,9 +65,15 @@ dagri_eligible <- function(graph) {
 
 #' Get blocked nodes
 #'
+#' Returns a named list of blocked nodes mapped to their block reasons. Call
+#' \code{dagri_recompute_state()} before using this function to ensure node
+#' states are current.
+#'
 #' @param graph A \code{dagri_graph}.
 #' @export
 dagri_blocked <- function(graph) {
+  dagri_validate_graph(graph)
+
   blocked_nodes <- Filter(function(n) n$state == "blocked", graph$nodes)
   res <- lapply(blocked_nodes, function(n) n$block_reason)
   if (length(res) == 0) {
@@ -75,6 +88,8 @@ dagri_blocked <- function(graph) {
 #' @param targets Optional target nodes.
 #' @export
 dagri_terminal <- function(graph, targets = NULL) {
+  dagri_validate_graph(graph)
+
   scoped_targets <- dagri_target_closure(graph, targets)
   if (length(scoped_targets) == 0) {
     return(character(0))
@@ -91,10 +106,25 @@ dagri_terminal <- function(graph, targets = NULL) {
   unique(terminal_nodes)
 }
 
+#' Create an empty named list
+#'
+#' Utility for initializing empty named list results.
+#'
+#' @return An empty named list.
+#' @keywords internal
 dagri_empty_named_list <- function() {
   stats::setNames(list(), character(0))
 }
 
+#' Validate node IDs against a graph
+#'
+#' Checks that node IDs are valid character strings and exist in the graph.
+#'
+#' @param graph A \code{dagri_graph}.
+#' @param node_ids Character vector of node IDs.
+#' @param arg Argument name for error messages.
+#' @return Unique, validated node IDs.
+#' @keywords internal
 dagri_validate_node_ids <- function(graph, node_ids, arg = "node_ids") {
   if (!is.character(node_ids)) {
     abort_dagri(
@@ -132,6 +162,8 @@ dagri_validate_node_ids <- function(graph, node_ids, arg = "node_ids") {
 #' @param targets Optional target nodes.
 #' @export
 dagri_target_closure <- function(graph, targets = NULL) {
+  dagri_validate_graph(graph)
+
   if (is.null(targets)) {
     return(names(graph$nodes))
   }
@@ -145,6 +177,15 @@ dagri_target_closure <- function(graph, targets = NULL) {
   all_targets
 }
 
+#' Validate external holds
+#'
+#' Checks that external holds is a valid named list mapping node IDs to
+#' single-character reason strings.
+#'
+#' @param graph A \code{dagri_graph}.
+#' @param external_holds Named list mapping node IDs to reason strings.
+#' @return Validated external holds list.
+#' @keywords internal
 dagri_validate_external_holds <- function(graph, external_holds) {
   if (!is.list(external_holds)) {
     abort_dagri(
@@ -190,6 +231,17 @@ dagri_validate_external_holds <- function(graph, external_holds) {
   external_holds
 }
 
+#' Compute external block propagation
+#'
+#' Propagates external holds through the topological order, marking downstream
+#' nodes as blocked by the nearest upstream hold.
+#'
+#' @param graph A \code{dagri_graph}.
+#' @param targets Target node IDs.
+#' @param topo_order Topological ordering of nodes.
+#' @param external_holds Named list mapping node IDs to hold reasons.
+#' @return Named list of externally blocked nodes and their reasons.
+#' @keywords internal
 dagri_external_blocked <- function(graph, targets, topo_order, external_holds) {
   if (length(targets) == 0) {
     return(dagri_empty_named_list())
@@ -231,6 +283,8 @@ dagri_external_blocked <- function(graph, targets, topo_order, external_holds) {
 #' @param targets Optional target nodes.
 #' @export
 dagri_pending_gates <- function(graph, targets = NULL) {
+  dagri_validate_graph(graph)
+
   scoped_targets <- dagri_target_closure(graph, targets)
   if (length(scoped_targets) == 0 || length(graph$gates) == 0) {
     return(character(0))
@@ -267,6 +321,8 @@ dagri_pending_gates <- function(graph, targets = NULL) {
 #'   reason strings. These affect planning output without mutating graph state.
 #' @export
 dagri_plan <- function(graph, targets = NULL, external_holds = list()) {
+  dagri_validate_graph(graph)
+
   external_holds <- dagri_validate_external_holds(graph, external_holds)
 
   targets <- dagri_target_closure(graph, targets)
@@ -275,13 +331,8 @@ dagri_plan <- function(graph, targets = NULL, external_holds = list()) {
 
   eligible_nodes <- intersect(targets, dagri_eligible(graph))
 
-  blocked_list <- list()
   all_blocked <- dagri_blocked(graph)
-  for (t in targets) {
-    if (t %in% names(all_blocked)) {
-      blocked_list[[t]] <- all_blocked[[t]]
-    }
-  }
+  blocked_list <- all_blocked[intersect(targets, names(all_blocked))]
   if (length(blocked_list) == 0) {
     blocked_list <- dagri_empty_named_list()
   }
