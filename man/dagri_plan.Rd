@@ -2,7 +2,7 @@
 % Please edit documentation in R/graph_state.R
 \name{dagri_plan}
 \alias{dagri_plan}
-\title{Create an execution plan}
+\title{Create a structural plan}
 \usage{
 dagri_plan(graph, targets = NULL, external_holds = list())
 }
@@ -15,5 +15,5 @@ dagri_plan(graph, targets = NULL, external_holds = list())
 reason strings. These affect planning output without mutating graph state.}
 }
 \description{
-Create an execution plan
+Create a structural plan
 }

@@ -1,4 +1,4 @@
-dagri_fixture_linear_gated_chain <- function() {
+dagri_fixture_gated_chain <- function() {
   reg <- dagri_registry(dagri_kind("source"), dagri_kind("process"))
   graph <- dagri_graph(reg) |>
     dagri_add_node("n1", "source") |>
@@ -15,7 +15,7 @@ dagri_fixture_linear_gated_chain <- function() {
   )
 }
 
-dagri_fixture_branching_topology <- function() {
+dagri_fixture_branching_graph <- function() {
   reg <- dagri_registry(dagri_kind("source"), dagri_kind("process"))
   graph <- dagri_graph(reg) |>
     dagri_add_node("n1", "source") |>

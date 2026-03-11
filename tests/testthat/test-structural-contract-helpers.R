@@ -1,6 +1,6 @@
 describe("structural helper contract", {
   it("dagri_target_closure() returns the structural target closure", {
-    fixture <- dagri_fixture_linear_gated_chain()
+    fixture <- dagri_fixture_gated_chain()
 
     expect_setequal(
       dagri_target_closure(fixture$graph, fixture$targets),
@@ -9,7 +9,7 @@ describe("structural helper contract", {
   })
 
   it("dagri_target_closure() rejects missing targets", {
-    fixture <- dagri_fixture_linear_gated_chain()
+    fixture <- dagri_fixture_gated_chain()
 
     expect_error(
       dagri_target_closure(fixture$graph, "missing"),
@@ -18,7 +18,7 @@ describe("structural helper contract", {
   })
 
   it("dagri_terminal() returns leaves within the scoped target closure", {
-    fixture <- dagri_fixture_branching_topology()
+    fixture <- dagri_fixture_branching_graph()
 
     expect_setequal(
       dagri_terminal(fixture$graph, targets = fixture$targets),
@@ -27,7 +27,7 @@ describe("structural helper contract", {
   })
 
   it("dagri_pending_gates() scopes pending gates to the structural target closure", {
-    fixture <- dagri_fixture_linear_gated_chain()
+    fixture <- dagri_fixture_gated_chain()
 
     expect_setequal(
       dagri_pending_gates(fixture$graph, targets = fixture$targets),
@@ -40,7 +40,7 @@ describe("structural helper contract", {
   })
 
   it("dagri_plan() remains aligned with the explicit structural helpers", {
-    fixture <- dagri_fixture_linear_gated_chain()
+    fixture <- dagri_fixture_gated_chain()
     graph <- dagri_recompute_state(fixture$graph)
     plan <- dagri_plan(graph, targets = fixture$targets)
 
@@ -52,7 +52,7 @@ describe("structural helper contract", {
 
 describe("structural fixtures", {
   it("remain plain-data named maps suitable for cross-repo compatibility checks", {
-    fixture <- dagri_fixture_branching_topology()
+    fixture <- dagri_fixture_branching_graph()
     graph <- fixture$graph
 
     expect_identical(
