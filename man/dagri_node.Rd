@@ -4,12 +4,12 @@
 \alias{dagri_node}
 \title{Get a node from a dagriculture graph}
 \usage{
-dagri_node(graph, node_id)
+dagri_node(graph, id)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
-\item{node_id}{Node ID.}
+\item{id}{Node ID.}
 }
 \description{
 Get a node from a dagriculture graph

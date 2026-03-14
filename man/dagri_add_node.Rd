@@ -27,5 +27,6 @@ dagri_add_node(
 \item{metadata}{Node metadata.}
 }
 \description{
-Add a node to a dagriculture graph
+Nodes are created with state "new". Call \code{dagri_recompute_state()} to
+compute structural readiness (state becomes "ready" or "blocked").
 }

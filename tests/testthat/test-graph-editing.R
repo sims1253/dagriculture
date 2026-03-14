@@ -23,6 +23,13 @@ describe("graph editing operations", {
       )
     })
 
+    it("rejects non-string kind parameter", {
+      expect_error(
+        dagri_add_node(g0, "n1", kind = 123),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
     it("rejects duplicate ids", {
       g1 <- dagri_add_node(g0, "n1", "source")
       expect_error(
@@ -35,10 +42,28 @@ describe("graph editing operations", {
   describe("dagri_update_node()", {
     it("updates a node and increments graph version", {
       g1 <- dagri_add_node(g0, id = "n1", kind = "source")
-      g2 <- dagri_update_node(g1, node_id = "n1", label = "Updated Source")
+      g2 <- dagri_update_node(g1, id = "n1", label = "Updated Source")
 
       expect_identical(g2$version, g1$version + 1L)
       expect_identical(g2$nodes[["n1"]]$label, "Updated Source")
+    })
+
+    it("updates params only, preserving other fields", {
+      g1 <- dagri_add_node(g0, id = "n1", kind = "source", label = "Original")
+      g2 <- dagri_update_node(g1, id = "n1", params = list(key = "val"))
+
+      expect_identical(g2$nodes[["n1"]]$params, list(key = "val"))
+      expect_identical(g2$nodes[["n1"]]$label, "Original")
+      expect_identical(g2$nodes[["n1"]]$metadata, list())
+    })
+
+    it("updates metadata only, preserving other fields", {
+      g1 <- dagri_add_node(g0, id = "n1", kind = "source", label = "Original")
+      g2 <- dagri_update_node(g1, id = "n1", metadata = list(tag = "test"))
+
+      expect_identical(g2$nodes[["n1"]]$metadata, list(tag = "test"))
+      expect_identical(g2$nodes[["n1"]]$label, "Original")
+      expect_identical(g2$nodes[["n1"]]$params, list())
     })
 
     it("errors if node is not found", {
@@ -108,6 +133,20 @@ describe("graph editing operations", {
         class = "dagri_error_not_found"
       )
     })
+
+    it("rejects edges with missing from node", {
+      expect_error(
+        dagri_add_edge(g2, from = "n_missing", to = "n2"),
+        class = "dagri_error_not_found"
+      )
+    })
+
+    it("rejects invalid type parameter", {
+      expect_error(
+        dagri_add_edge(g2, "n1", "n2", type = 123),
+        class = "dagri_error_invalid_argument"
+      )
+    })
   })
 
   describe("dagri_remove_edge()", {
@@ -123,7 +162,7 @@ describe("graph editing operations", {
     it("removes gates attached to the edge", {
       g2 <- dagri_add_node(g0, "n1", "source") |> dagri_add_node("n2", "process")
       g_edge <- dagri_add_edge(g2, "n1", "n2", id = "e1") |>
-        dagri_add_gate(edge_id = "e1", id = "gate1")
+        dagri_add_gate(edge = "e1", id = "gate1")
 
       g_removed <- dagri_remove_edge(g_edge, "e1")
 
@@ -138,7 +177,7 @@ describe("graph editing operations", {
     g_edge <- dagri_add_edge(g2, from = "n1", to = "n2", id = "e1")
 
     it("adds a gate targeting an existing edge", {
-      g_gate <- dagri_add_gate(g_edge, edge_id = "e1", id = "gate1")
+      g_gate <- dagri_add_gate(g_edge, edge = "e1", id = "gate1")
       expect_identical(g_gate$version, g_edge$version + 1L)
       expect_true("gate1" %in% names(g_gate$gates))
       expect_identical(g_gate$gates[["gate1"]]$status, "pending")
@@ -146,15 +185,15 @@ describe("graph editing operations", {
 
     it("rejects gates for missing edges", {
       expect_error(
-        dagri_add_gate(g_edge, edge_id = "e_missing", id = "gate2"),
+        dagri_add_gate(g_edge, edge = "e_missing", id = "gate2"),
         class = "dagri_error_not_found"
       )
     })
 
     it("rejects duplicate gate ids", {
-      g_gate <- dagri_add_gate(g_edge, edge_id = "e1", id = "gate1")
+      g_gate <- dagri_add_gate(g_edge, edge = "e1", id = "gate1")
       expect_error(
-        dagri_add_gate(g_gate, edge_id = "e1", id = "gate1"),
+        dagri_add_gate(g_gate, edge = "e1", id = "gate1"),
         class = "dagri_error_duplicate_id"
       )
     })
@@ -164,7 +203,7 @@ describe("graph editing operations", {
     it("resolves a pending gate", {
       g2 <- dagri_add_node(g0, "n1", "source") |> dagri_add_node("n2", "process")
       g_gate <- dagri_add_edge(g2, "n1", "n2", id = "e1") |>
-        dagri_add_gate(edge_id = "e1", id = "gate1")
+        dagri_add_gate(edge = "e1", id = "gate1")
 
       g_resolved <- dagri_resolve_gate(g_gate, "gate1")
       expect_identical(g_resolved$version, g_gate$version + 1L)
@@ -176,12 +215,98 @@ describe("graph editing operations", {
     it("reopens a resolved gate", {
       g2 <- dagri_add_node(g0, "n1", "source") |> dagri_add_node("n2", "process")
       g_gate <- dagri_add_edge(g2, "n1", "n2", id = "e1") |>
-        dagri_add_gate(edge_id = "e1", id = "gate1") |>
+        dagri_add_gate(edge = "e1", id = "gate1") |>
         dagri_resolve_gate("gate1")
 
       g_reopened <- dagri_reopen_gate(g_gate, "gate1")
       expect_identical(g_reopened$version, g_gate$version + 1L)
       expect_identical(g_reopened$gates[["gate1"]]$status, "pending")
+    })
+  })
+
+  describe("dagri_remove_gate()", {
+    it("removes a gate and increments version", {
+      g2 <- dagri_add_node(g0, "n1", "source") |> dagri_add_node("n2", "process")
+      g_gate <- dagri_add_edge(g2, "n1", "n2", id = "e1") |>
+        dagri_add_gate(edge = "e1", id = "gate1")
+
+      g_removed <- dagri_remove_gate(g_gate, "gate1")
+      expect_identical(g_removed$version, g_gate$version + 1L)
+      expect_false("gate1" %in% names(g_removed$gates))
+    })
+
+    it("errors if gate is not found", {
+      expect_error(
+        dagri_remove_gate(g0, "nonexistent"),
+        class = "dagri_error_not_found"
+      )
+    })
+  })
+
+  describe("graph validation in editing functions", {
+    bad_graph <- list(nodes = list())
+
+    it("dagri_add_node rejects invalid graph", {
+      expect_error(
+        dagri_add_node(bad_graph, "n1", "source"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_update_node rejects invalid graph", {
+      expect_error(
+        dagri_update_node(bad_graph, "n1"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_remove_node rejects invalid graph", {
+      expect_error(
+        dagri_remove_node(bad_graph, "n1"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_add_edge rejects invalid graph", {
+      expect_error(
+        dagri_add_edge(bad_graph, "n1", "n2"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_remove_edge rejects invalid graph", {
+      expect_error(
+        dagri_remove_edge(bad_graph, "e1"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_add_gate rejects invalid graph", {
+      expect_error(
+        dagri_add_gate(bad_graph, "e1"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_resolve_gate rejects invalid graph", {
+      expect_error(
+        dagri_resolve_gate(bad_graph, "gate1"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_reopen_gate rejects invalid graph", {
+      expect_error(
+        dagri_reopen_gate(bad_graph, "gate1"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_remove_gate rejects invalid graph", {
+      expect_error(
+        dagri_remove_gate(bad_graph, "gate1"),
+        class = "dagri_error_invalid_argument"
+      )
     })
   })
 })

@@ -1,3 +1,19 @@
+# dagriculture 0.1.5
+
+## Fixes
+
+- **`param_schema` validation**: `dagri_kind()` now validates that `param_schema` is a named list or `NULL` before scanning it for closures, rejecting non-lists and unnamed inputs early.
+- **DFS re-validation**: `dagri_dfs()` and `dagri_topo_order()` no longer re-validate the graph on every iteration, improving performance for large reachability queries.
+- **Subset validation in `dagri_topo_order()`**: the `subset` argument is now validated and de-duplicated via `dagri_validate_node_ids()` before building the topological sort.
+- **Documentation**: fixed `edge_id` parameter name to `edge` in `dagri_add_gate()` calls in README and doc vignette. Expanded `dagri_validate_graph()` description to document full validation scope.
+
+# dagriculture 0.1.4
+
+## Features
+
+- **Graph validation**: all public functions now validate that the `graph` argument has the required structure (`dagri_validate_graph()`), producing a clear error instead of cryptic R failures on malformed input.
+- **Input contract enforcement**: `dagri_kind()` validates that `input_contract` is a named list with character or `NULL` values. `dagri_add_node()` checks that node `params` satisfy the kind's `input_contract` at creation time.
+
 # dagriculture 0.1.3
 
 ## Fixes

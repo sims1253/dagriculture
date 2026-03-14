@@ -10,5 +10,7 @@ dagri_blocked(graph)
 \item{graph}{A \code{dagri_graph}.}
 }
 \description{
-Get blocked nodes
+Returns a named list of blocked nodes mapped to their block reasons. Call
+\code{dagri_recompute_state()} before using this function to ensure node
+states are current.
 }

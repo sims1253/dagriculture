@@ -4,12 +4,12 @@
 \alias{dagri_remove_node}
 \title{Remove a node from a dagriculture graph}
 \usage{
-dagri_remove_node(graph, node_id)
+dagri_remove_node(graph, id)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
-\item{node_id}{Node ID.}
+\item{id}{Node ID.}
 }
 \description{
 Remove a node from a dagriculture graph

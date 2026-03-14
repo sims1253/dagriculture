@@ -69,5 +69,70 @@ describe("graph querying and topology", {
       expect_length(order, 2)
       expect_true(which(order == "n1") < which(order == "n3"))
     })
+
+    it("dagri_topo_order() returns empty for empty graph", {
+      empty_g <- dagri_graph(reg)
+      expect_identical(dagri_topo_order(empty_g), character(0))
+    })
+
+    it("dagri_topo_order() returns all nodes for disconnected graph", {
+      disconnected <- dagri_graph(reg) |>
+        dagri_add_node("a", "a") |>
+        dagri_add_node("b", "b")
+      order <- dagri_topo_order(disconnected)
+      expect_setequal(order, c("a", "b"))
+    })
+  })
+
+  describe("graph validation in query functions", {
+    bad_graph <- list(nodes = list())
+
+    it("dagri_node rejects invalid graph", {
+      expect_error(dagri_node(bad_graph, "n1"), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_edge rejects invalid graph", {
+      expect_error(dagri_edge(bad_graph, "e1"), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_gate rejects invalid graph", {
+      expect_error(dagri_gate(bad_graph, "g1"), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_nodes rejects invalid graph", {
+      expect_error(dagri_nodes(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_edges rejects invalid graph", {
+      expect_error(dagri_edges(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_gates rejects invalid graph", {
+      expect_error(dagri_gates(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_upstream rejects invalid graph", {
+      expect_error(dagri_upstream(bad_graph, "n1"), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_downstream rejects invalid graph", {
+      expect_error(dagri_downstream(bad_graph, "n1"), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_has_path rejects invalid graph", {
+      expect_error(dagri_has_path(bad_graph, "n1", "n2"), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_roots rejects invalid graph", {
+      expect_error(dagri_roots(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_leaves rejects invalid graph", {
+      expect_error(dagri_leaves(bad_graph), class = "dagri_error_invalid_argument")
+    })
+
+    it("dagri_topo_order rejects invalid graph", {
+      expect_error(dagri_topo_order(bad_graph), class = "dagri_error_invalid_argument")
+    })
   })
 })

@@ -1,25 +1,29 @@
 #' Get a node from a dagriculture graph
 #'
 #' @param graph A \code{dagri_graph}.
-#' @param node_id Node ID.
+#' @param id Node ID.
 #' @export
-dagri_node <- function(graph, node_id) {
-  if (!node_id %in% names(graph$nodes)) {
-    abort_dagri("dagri_error_not_found", "Missing node.")
+dagri_node <- function(graph, id) {
+  dagri_validate_graph(graph)
+
+  if (!id %in% names(graph$nodes)) {
+    abort_dagri("dagri_error_not_found", sprintf("Node %s not found.", id))
   }
-  graph$nodes[[node_id]]
+  graph$nodes[[id]]
 }
 
 #' Get an edge from a dagriculture graph
 #'
 #' @param graph A \code{dagri_graph}.
-#' @param edge_id Edge ID.
+#' @param id Edge ID.
 #' @export
-dagri_edge <- function(graph, edge_id) {
-  if (!edge_id %in% names(graph$edges)) {
-    abort_dagri("dagri_error_not_found", "Missing edge.")
+dagri_edge <- function(graph, id) {
+  dagri_validate_graph(graph)
+
+  if (!id %in% names(graph$edges)) {
+    abort_dagri("dagri_error_not_found", sprintf("Edge %s not found.", id))
   }
-  graph$edges[[edge_id]]
+  graph$edges[[id]]
 }
 
 #' Get a gate from a dagriculture graph
@@ -28,8 +32,10 @@ dagri_edge <- function(graph, edge_id) {
 #' @param id Gate ID.
 #' @export
 dagri_gate <- function(graph, id) {
+  dagri_validate_graph(graph)
+
   if (!id %in% names(graph$gates)) {
-    abort_dagri("dagri_error_not_found", "Missing gate.")
+    abort_dagri("dagri_error_not_found", sprintf("Gate %s not found.", id))
   }
   graph$gates[[id]]
 }
@@ -38,19 +44,31 @@ dagri_gate <- function(graph, id) {
 #'
 #' @param graph A \code{dagri_graph}.
 #' @export
-dagri_nodes <- function(graph) graph$nodes
+dagri_nodes <- function(graph) {
+  dagri_validate_graph(graph)
+
+  graph$nodes
+}
 
 #' Get all edges
 #'
 #' @param graph A \code{dagri_graph}.
 #' @export
-dagri_edges <- function(graph) graph$edges
+dagri_edges <- function(graph) {
+  dagri_validate_graph(graph)
+
+  graph$edges
+}
 
 #' Get all gates
 #'
 #' @param graph A \code{dagri_graph}.
 #' @export
-dagri_gates <- function(graph) graph$gates
+dagri_gates <- function(graph) {
+  dagri_validate_graph(graph)
+
+  graph$gates
+}
 
 #' Get upstream nodes
 #'
@@ -58,6 +76,8 @@ dagri_gates <- function(graph) graph$gates
 #' @param node_id Node ID.
 #' @export
 dagri_upstream <- function(graph, node_id) {
+  dagri_validate_graph(graph)
+
   up_edges <- Filter(function(e) e$to == node_id, graph$edges)
   unique(vapply(up_edges, function(e) e$from, character(1)))
 }
@@ -68,8 +88,37 @@ dagri_upstream <- function(graph, node_id) {
 #' @param node_id Node ID.
 #' @export
 dagri_downstream <- function(graph, node_id) {
+  dagri_validate_graph(graph)
+
   down_edges <- Filter(function(e) e$from == node_id, graph$edges)
   unique(vapply(down_edges, function(e) e$to, character(1)))
+}
+
+dagri_dfs <- function(graph, start, neighbor_fn) {
+  dagri_validate_graph(graph)
+  visited <- character(0)
+  stack <- dagri_neighbor_lookup(graph, start, neighbor_fn)
+  while (length(stack) > 0) {
+    curr <- stack[1]
+    stack <- stack[-1]
+    if (!curr %in% visited) {
+      visited <- c(visited, curr)
+      stack <- c(stack, dagri_neighbor_lookup(graph, curr, neighbor_fn))
+    }
+  }
+  visited
+}
+
+dagri_neighbor_lookup <- function(graph, node_id, neighbor_fn) {
+  if (identical(neighbor_fn, dagri_upstream)) {
+    up_edges <- Filter(function(e) e$to == node_id, graph$edges)
+    unique(vapply(up_edges, function(e) e$from, character(1)))
+  } else if (identical(neighbor_fn, dagri_downstream)) {
+    down_edges <- Filter(function(e) e$from == node_id, graph$edges)
+    unique(vapply(down_edges, function(e) e$to, character(1)))
+  } else {
+    neighbor_fn(graph, node_id)
+  }
 }
 
 #' Get all ancestors
@@ -78,17 +127,7 @@ dagri_downstream <- function(graph, node_id) {
 #' @param node_id Node ID.
 #' @export
 dagri_ancestors <- function(graph, node_id) {
-  visited <- character(0)
-  stack <- dagri_upstream(graph, node_id)
-  while (length(stack) > 0) {
-    curr <- stack[1]
-    stack <- stack[-1]
-    if (!curr %in% visited) {
-      visited <- c(visited, curr)
-      stack <- c(stack, dagri_upstream(graph, curr))
-    }
-  }
-  visited
+  dagri_dfs(graph, node_id, dagri_upstream)
 }
 
 #' Get all descendants
@@ -97,17 +136,7 @@ dagri_ancestors <- function(graph, node_id) {
 #' @param node_id Node ID.
 #' @export
 dagri_descendants <- function(graph, node_id) {
-  visited <- character(0)
-  stack <- dagri_downstream(graph, node_id)
-  while (length(stack) > 0) {
-    curr <- stack[1]
-    stack <- stack[-1]
-    if (!curr %in% visited) {
-      visited <- c(visited, curr)
-      stack <- c(stack, dagri_downstream(graph, curr))
-    }
-  }
-  visited
+  dagri_dfs(graph, node_id, dagri_downstream)
 }
 
 #' Check path existence
@@ -117,6 +146,8 @@ dagri_descendants <- function(graph, node_id) {
 #' @param to Target Node ID.
 #' @export
 dagri_has_path <- function(graph, from, to) {
+  dagri_validate_graph(graph)
+
   to %in% dagri_descendants(graph, from)
 }
 
@@ -125,6 +156,8 @@ dagri_has_path <- function(graph, from, to) {
 #' @param graph A \code{dagri_graph}.
 #' @export
 dagri_roots <- function(graph) {
+  dagri_validate_graph(graph)
+
   all_nodes <- names(graph$nodes)
   if (length(all_nodes) == 0) {
     return(character(0))
@@ -138,6 +171,8 @@ dagri_roots <- function(graph) {
 #' @param graph A \code{dagri_graph}.
 #' @export
 dagri_leaves <- function(graph) {
+  dagri_validate_graph(graph)
+
   all_nodes <- names(graph$nodes)
   if (length(all_nodes) == 0) {
     return(character(0))
@@ -152,7 +187,13 @@ dagri_leaves <- function(graph) {
 #' @param subset Optional subset of nodes.
 #' @export
 dagri_topo_order <- function(graph, subset = NULL) {
-  nodes_to_consider <- if (is.null(subset)) names(graph$nodes) else subset
+  dagri_validate_graph(graph)
+
+  nodes_to_consider <- if (is.null(subset)) {
+    names(graph$nodes)
+  } else {
+    dagri_validate_node_ids(graph, subset, arg = "subset")
+  }
   if (length(nodes_to_consider) == 0) {
     return(character(0))
   }
@@ -172,7 +213,7 @@ dagri_topo_order <- function(graph, subset = NULL) {
     queue <- queue[-1]
     order <- c(order, u)
 
-    for (v in dagri_downstream(graph, u)) {
+    for (v in dagri_neighbor_lookup(graph, u, dagri_downstream)) {
       if (v %in% nodes_to_consider) {
         in_degree[v] <- in_degree[v] - 1L
         if (in_degree[v] == 0) {
