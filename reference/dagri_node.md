@@ -5,7 +5,7 @@ Get a node from a dagriculture graph
 ## Usage
 
 ``` r
-dagri_node(graph, node_id)
+dagri_node(graph, id)
 ```
 
 ## Arguments
@@ -14,6 +14,6 @@ dagri_node(graph, node_id)
 
   A `dagri_graph`.
 
-- node_id:
+- id:
 
   Node ID.

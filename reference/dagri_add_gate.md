@@ -5,7 +5,7 @@ Add a gate to a dagriculture graph
 ## Usage
 
 ``` r
-dagri_add_gate(graph, edge_id, id = NULL, metadata = list())
+dagri_add_gate(graph, edge, id = NULL, metadata = list())
 ```
 
 ## Arguments
@@ -14,7 +14,7 @@ dagri_add_gate(graph, edge_id, id = NULL, metadata = list())
 
   A `dagri_graph`.
 
-- edge_id:
+- edge:
 
   Edge ID.
 

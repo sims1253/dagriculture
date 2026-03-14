@@ -29,4 +29,5 @@ dagri_kind(
 
 - param_schema:
 
-  Parameter schema.
+  A named list describing expected parameters. Arbitrary nested list
+  structure is allowed, but executable closures are rejected for safety.

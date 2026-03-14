@@ -5,7 +5,7 @@ Update a node in a dagriculture graph
 ## Usage
 
 ``` r
-dagri_update_node(graph, node_id, label = NULL, params = NULL, metadata = NULL)
+dagri_update_node(graph, id, label = NULL, params = NULL, metadata = NULL)
 ```
 
 ## Arguments
@@ -14,7 +14,7 @@ dagri_update_node(graph, node_id, label = NULL, params = NULL, metadata = NULL)
 
   A `dagri_graph`.
 
-- node_id:
+- id:
 
   Node ID.
 

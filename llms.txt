@@ -36,7 +36,7 @@ graph <- graph |>
   dagri_add_edge(from = "raw_data", to = "cleaned_data", id = "edge_1")
 
 # 4. Add a structural blocker (gate) to an edge
-graph <- dagri_add_gate(graph, edge_id = "edge_1", id = "review_gate")
+graph <- dagri_add_gate(graph, edge = "edge_1", id = "review_gate")
 
 # 5. Compute the structural state
 graph <- dagri_recompute_state(graph)

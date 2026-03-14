@@ -1,6 +1,8 @@
 # Add a node to a dagriculture graph
 
-Add a node to a dagriculture graph
+Nodes are created with state "new". Call
+[`dagri_recompute_state()`](https://sims1253.github.io/dagriculture/reference/dagri_recompute_state.md)
+to compute structural readiness (state becomes "ready" or "blocked").
 
 ## Usage
 

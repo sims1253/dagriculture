@@ -71,7 +71,7 @@ block—for instance, requiring human approval before the statistical fit
 proceeds.
 
 ``` r
-g <- dagri_add_gate(g, edge_id = "e_data_fit", id = "approval_gate")
+g <- dagri_add_gate(g, edge = "e_data_fit", id = "approval_gate")
 ```
 
 ### 4. Compute State and Plan

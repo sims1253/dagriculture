@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dagriculture</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,7 +54,7 @@
       <h1>Getting Started with dagriculture</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/sims1253/dagriculture/blob/v0.1.3/vignettes/getting-started.Rmd" class="external-link"><code>vignettes/getting-started.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/sims1253/dagriculture/blob/master/vignettes/getting-started.Rmd" class="external-link"><code>vignettes/getting-started.Rmd</code></a></small>
       <div class="d-none name"><code>getting-started.Rmd</code></div>
     </div>
 
@@ -139,7 +139,7 @@ returns a new updated graph instance.</p>
 block—for instance, requiring human approval before the statistical fit
 proceeds.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagri_add_gate.html">dagri_add_gate</a></span><span class="op">(</span><span class="va">g</span>, edge_id <span class="op">=</span> <span class="st">"e_data_fit"</span>, id <span class="op">=</span> <span class="st">"approval_gate"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagri_add_gate.html">dagri_add_gate</a></span><span class="op">(</span><span class="va">g</span>, edge <span class="op">=</span> <span class="st">"e_data_fit"</span>, id <span class="op">=</span> <span class="st">"approval_gate"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="compute-state-and-plan">4. Compute State and Plan<a class="anchor" aria-label="anchor" href="#compute-state-and-plan"></a>

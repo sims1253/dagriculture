@@ -1,5 +1,46 @@
 # Changelog
 
+## dagriculture 0.1.5
+
+### Fixes
+
+- **`param_schema` validation**:
+  [`dagri_kind()`](https://sims1253.github.io/dagriculture/reference/dagri_kind.md)
+  now validates that `param_schema` is a named list or `NULL` before
+  scanning it for closures, rejecting non-lists and unnamed inputs
+  early.
+- **DFS re-validation**: `dagri_dfs()` and
+  [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)
+  no longer re-validate the graph on every iteration, improving
+  performance for large reachability queries.
+- **Subset validation in
+  [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)**:
+  the `subset` argument is now validated and de-duplicated via
+  [`dagri_validate_node_ids()`](https://sims1253.github.io/dagriculture/reference/dagri_validate_node_ids.md)
+  before building the topological sort.
+- **Documentation**: fixed `edge_id` parameter name to `edge` in
+  [`dagri_add_gate()`](https://sims1253.github.io/dagriculture/reference/dagri_add_gate.md)
+  calls in README and doc vignette. Expanded
+  [`dagri_validate_graph()`](https://sims1253.github.io/dagriculture/reference/dagri_validate_graph.md)
+  description to document full validation scope.
+
+## dagriculture 0.1.4
+
+### Features
+
+- **Graph validation**: all public functions now validate that the
+  `graph` argument has the required structure
+  ([`dagri_validate_graph()`](https://sims1253.github.io/dagriculture/reference/dagri_validate_graph.md)),
+  producing a clear error instead of cryptic R failures on malformed
+  input.
+- **Input contract enforcement**:
+  [`dagri_kind()`](https://sims1253.github.io/dagriculture/reference/dagri_kind.md)
+  validates that `input_contract` is a named list with character or
+  `NULL` values.
+  [`dagri_add_node()`](https://sims1253.github.io/dagriculture/reference/dagri_add_node.md)
+  checks that node `params` satisfy the kind’s `input_contract` at
+  creation time.
+
 ## dagriculture 0.1.3
 
 ### Fixes

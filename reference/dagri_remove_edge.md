@@ -5,7 +5,7 @@ Remove an edge from a dagriculture graph
 ## Usage
 
 ``` r
-dagri_remove_edge(graph, edge_id)
+dagri_remove_edge(graph, id)
 ```
 
 ## Arguments
@@ -14,6 +14,6 @@ dagri_remove_edge(graph, edge_id)
 
   A `dagri_graph`.
 
-- edge_id:
+- id:
 
   Edge ID.
