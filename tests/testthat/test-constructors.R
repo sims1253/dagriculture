@@ -52,6 +52,27 @@ describe("dagri_kind()", {
     )
   })
 
+  it("rejects NA_character_ in input_contract", {
+    expect_error(
+      dagri_kind("bad", input_contract = list(path = NA_character_)),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("rejects character(0) in input_contract", {
+    expect_error(
+      dagri_kind("bad", input_contract = list(path = character(0))),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("rejects multi-element character in input_contract", {
+    expect_error(
+      dagri_kind("bad", input_contract = list(path = c("a", "b"))),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
   it("rejects executable closures in param_schema", {
     expect_error(
       dagri_kind("bad", param_schema = list(fn = function() 1)),
@@ -116,6 +137,39 @@ describe("dagri_validate_graph()", {
         gates = list(),
         version = "zero",
         metadata = list()
+      )),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("rejects a data.frame", {
+    expect_error(
+      dagri_validate_graph(data.frame()),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("rejects a list with scalar components", {
+    expect_error(
+      dagri_validate_graph(list(
+        registry = 1,
+        nodes = 1,
+        edges = 1,
+        gates = 1,
+        version = 0L
+      )),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("rejects a list with NA version", {
+    expect_error(
+      dagri_validate_graph(list(
+        registry = list(),
+        nodes = list(),
+        edges = list(),
+        gates = list(),
+        version = NA_integer_
       )),
       class = "dagri_error_invalid_argument"
     )

@@ -1,7 +1,7 @@
 #' Get a node from a dagriculture graph
 #'
 #' @param graph A \code{dagri_graph}.
-#' @param node_id Node ID.
+#' @param id Node ID.
 #' @export
 dagri_node <- function(graph, id) {
   dagri_validate_graph(graph)
@@ -15,7 +15,7 @@ dagri_node <- function(graph, id) {
 #' Get an edge from a dagriculture graph
 #'
 #' @param graph A \code{dagri_graph}.
-#' @param edge_id Edge ID.
+#' @param id Edge ID.
 #' @export
 dagri_edge <- function(graph, id) {
   dagri_validate_graph(graph)

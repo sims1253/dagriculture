@@ -4,12 +4,12 @@
 \alias{dagri_edge}
 \title{Get an edge from a dagriculture graph}
 \usage{
-dagri_edge(graph, edge_id)
+dagri_edge(graph, id)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
-\item{edge_id}{Edge ID.}
+\item{id}{Edge ID.}
 }
 \description{
 Get an edge from a dagriculture graph

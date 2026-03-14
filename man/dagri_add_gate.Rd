@@ -4,12 +4,12 @@
 \alias{dagri_add_gate}
 \title{Add a gate to a dagriculture graph}
 \usage{
-dagri_add_gate(graph, edge_id, id = NULL, metadata = list())
+dagri_add_gate(graph, edge, id = NULL, metadata = list())
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
-\item{edge_id}{Edge ID.}
+\item{edge}{Edge ID.}
 
 \item{id}{Optional Gate ID.}
 

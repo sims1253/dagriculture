@@ -18,7 +18,8 @@ dagri_kind(
 
 \item{output_type}{Output type string.}
 
-\item{param_schema}{Parameter schema.}
+\item{param_schema}{A named list describing expected parameters. Arbitrary nested
+list structure is allowed, but executable closures are rejected for safety.}
 }
 \description{
 Define a dagriculture kind

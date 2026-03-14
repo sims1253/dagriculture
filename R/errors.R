@@ -16,7 +16,7 @@ abort_dagri <- function(class, message, details = list()) {
 #' @return The graph, invisibly, if valid.
 #' @keywords internal
 dagri_validate_graph <- function(graph) {
-  if (!is.list(graph)) {
+  if (!is.list(graph) || inherits(graph, "data.frame")) {
     abort_dagri(
       "dagri_error_invalid_argument",
       "`graph` must be a list created by dagri_graph()."
@@ -33,7 +33,23 @@ dagri_validate_graph <- function(graph) {
       )
     )
   }
-  if (!is.integer(graph$version) || length(graph$version) != 1) {
+  component_ok <- c(
+    registry = is.list(graph$registry) && !inherits(graph$registry, "data.frame"),
+    nodes = is.list(graph$nodes) && !inherits(graph$nodes, "data.frame"),
+    edges = is.list(graph$edges) && !inherits(graph$edges, "data.frame"),
+    gates = is.list(graph$gates) && !inherits(graph$gates, "data.frame")
+  )
+  invalid_components <- names(component_ok)[!component_ok]
+  if (length(invalid_components) > 0) {
+    abort_dagri(
+      "dagri_error_invalid_argument",
+      sprintf(
+        "`graph` has invalid components: %s.",
+        paste(invalid_components, collapse = ", ")
+      )
+    )
+  }
+  if (!is.integer(graph$version) || length(graph$version) != 1 || is.na(graph$version)) {
     abort_dagri(
       "dagri_error_invalid_argument",
       "`graph$version` must be a single integer."

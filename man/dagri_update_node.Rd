@@ -4,12 +4,12 @@
 \alias{dagri_update_node}
 \title{Update a node in a dagriculture graph}
 \usage{
-dagri_update_node(graph, node_id, label = NULL, params = NULL, metadata = NULL)
+dagri_update_node(graph, id, label = NULL, params = NULL, metadata = NULL)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
-\item{node_id}{Node ID.}
+\item{id}{Node ID.}
 
 \item{label}{Node label.}
 

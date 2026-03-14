@@ -4,12 +4,12 @@
 \alias{dagri_remove_edge}
 \title{Remove an edge from a dagriculture graph}
 \usage{
-dagri_remove_edge(graph, edge_id)
+dagri_remove_edge(graph, id)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
-\item{edge_id}{Edge ID.}
+\item{id}{Edge ID.}
 }
 \description{
 Remove an edge from a dagriculture graph

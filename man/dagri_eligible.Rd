@@ -10,5 +10,6 @@ dagri_eligible(graph)
 \item{graph}{A \code{dagri_graph}.}
 }
 \description{
-Get eligible nodes
+Returns IDs of nodes whose state is "ready". Call \code{dagri_recompute_state()}
+before using this function to ensure node states are current.
 }

@@ -33,7 +33,7 @@ dagri_kind <- function(name, input_contract = NULL, output_type = NULL, param_sc
     }
     invalid_entries <- !vapply(
       input_contract,
-      function(x) is.character(x) || is.null(x),
+      function(x) is.null(x) || (is.character(x) && length(x) == 1L && !is.na(x)),
       logical(1)
     )
     if (any(invalid_entries)) {
