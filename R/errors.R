@@ -10,7 +10,9 @@ abort_dagri <- function(class, message, details = list()) {
 
 #' Validate a dagriculture graph object
 #'
-#' Ensures the graph has all required top-level fields.
+#' Ensures the graph has all required top-level fields, validates component types
+#' for \code{registry}, \code{nodes}, \code{edges}, and \code{gates}, and checks
+#' that \code{version} is a single integer.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @return The graph, invisibly, if valid.

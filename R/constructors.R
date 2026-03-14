@@ -48,6 +48,22 @@ dagri_kind <- function(name, input_contract = NULL, output_type = NULL, param_sc
   }
 
   if (!is.null(param_schema)) {
+    if (!is.list(param_schema) || inherits(param_schema, "data.frame")) {
+      abort_dagri(
+        "dagri_error_invalid_argument",
+        "`param_schema` must be a named list or NULL."
+      )
+    }
+    schema_names <- names(param_schema)
+    if (
+      length(param_schema) > 0L &&
+        (is.null(schema_names) || anyNA(schema_names) || any(schema_names == ""))
+    ) {
+      abort_dagri(
+        "dagri_error_invalid_argument",
+        "`param_schema` must be a named list."
+      )
+    }
     if (dagri_has_closure(param_schema)) {
       abort_dagri(
         "dagri_error_invalid_argument",

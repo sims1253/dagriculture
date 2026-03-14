@@ -13,6 +13,8 @@ dagri_validate_graph(graph)
 The graph, invisibly, if valid.
 }
 \description{
-Ensures the graph has all required top-level fields.
+Ensures the graph has all required top-level fields, validates component types
+for \code{registry}, \code{nodes}, \code{edges}, and \code{gates}, and checks
+that \code{version} is a single integer.
 }
 \keyword{internal}

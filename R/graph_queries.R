@@ -95,17 +95,30 @@ dagri_downstream <- function(graph, node_id) {
 }
 
 dagri_dfs <- function(graph, start, neighbor_fn) {
+  dagri_validate_graph(graph)
   visited <- character(0)
-  stack <- neighbor_fn(graph, start)
+  stack <- dagri_neighbor_lookup(graph, start, neighbor_fn)
   while (length(stack) > 0) {
     curr <- stack[1]
     stack <- stack[-1]
     if (!curr %in% visited) {
       visited <- c(visited, curr)
-      stack <- c(stack, neighbor_fn(graph, curr))
+      stack <- c(stack, dagri_neighbor_lookup(graph, curr, neighbor_fn))
     }
   }
   visited
+}
+
+dagri_neighbor_lookup <- function(graph, node_id, neighbor_fn) {
+  if (identical(neighbor_fn, dagri_upstream)) {
+    up_edges <- Filter(function(e) e$to == node_id, graph$edges)
+    unique(vapply(up_edges, function(e) e$from, character(1)))
+  } else if (identical(neighbor_fn, dagri_downstream)) {
+    down_edges <- Filter(function(e) e$from == node_id, graph$edges)
+    unique(vapply(down_edges, function(e) e$to, character(1)))
+  } else {
+    neighbor_fn(graph, node_id)
+  }
 }
 
 #' Get all ancestors
@@ -176,7 +189,11 @@ dagri_leaves <- function(graph) {
 dagri_topo_order <- function(graph, subset = NULL) {
   dagri_validate_graph(graph)
 
-  nodes_to_consider <- if (is.null(subset)) names(graph$nodes) else subset
+  nodes_to_consider <- if (is.null(subset)) {
+    names(graph$nodes)
+  } else {
+    dagri_validate_node_ids(graph, subset, arg = "subset")
+  }
   if (length(nodes_to_consider) == 0) {
     return(character(0))
   }
@@ -196,7 +213,7 @@ dagri_topo_order <- function(graph, subset = NULL) {
     queue <- queue[-1]
     order <- c(order, u)
 
-    for (v in dagri_downstream(graph, u)) {
+    for (v in dagri_neighbor_lookup(graph, u, dagri_downstream)) {
       if (v %in% nodes_to_consider) {
         in_degree[v] <- in_degree[v] - 1L
         if (in_degree[v] == 0) {

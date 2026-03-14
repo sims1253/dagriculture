@@ -79,6 +79,31 @@ describe("dagri_kind()", {
       class = "dagri_error_invalid_argument"
     )
   })
+
+  it("rejects non-list param_schema", {
+    expect_error(
+      dagri_kind("bad", param_schema = "not a list"),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("rejects unnamed param_schema", {
+    expect_error(
+      dagri_kind("bad", param_schema = list("a", "b")),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("accepts empty param_schema", {
+    kind <- dagri_kind("ok", param_schema = list())
+    expect_identical(kind$param_schema, list())
+  })
+
+  it("accepts named param_schema", {
+    schema <- list(required = c("path"), optional = list())
+    kind <- dagri_kind("ok", param_schema = schema)
+    expect_identical(kind$param_schema, schema)
+  })
 })
 
 describe("dagri_registry()", {
@@ -156,7 +181,8 @@ describe("dagri_validate_graph()", {
         nodes = 1,
         edges = 1,
         gates = 1,
-        version = 0L
+        version = 0L,
+        metadata = 1
       )),
       class = "dagri_error_invalid_argument"
     )

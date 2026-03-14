@@ -1,6 +1,6 @@
 Package: dagriculture
 Title: Tools for dagriculture
-Version: 0.1.4
+Version: 0.1.5
 Authors@R: 
     person("Maximilian Scholz", , , "dev.scholz@mailbox.org", role = c("aut", "cre"))
 Description: A pure, value-oriented directed acyclic graph library for managing
