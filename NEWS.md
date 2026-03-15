@@ -1,3 +1,11 @@
+# dagriculture 0.1.6
+
+## Fixes
+
+- **Error message consistency**: `dagri_validate_node_ids()`, `dagri_validate_external_holds()`, and `dagri_pending_gates()` now use `sprintf` to embed missing IDs in error messages, matching the pattern used by all other not-found errors.
+- **Package metadata**: added explicit `Author` and `Maintainer` fields to `DESCRIPTION` for bare `R CMD check` compatibility alongside the existing `Authors@R` field.
+- **Build ignore cleanup**: added `.desloppify`, `.factory`, `.Rcheck`, and `..Rcheck` to `.Rbuildignore`.
+
 # dagriculture 0.1.5
 
 ## Fixes
