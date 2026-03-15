@@ -17,3 +17,7 @@
 ^_pkgdown\.yml$
 ^design$
 ^pkgdown$
+^\.desloppify$
+^\.factory$
+^\.Rcheck$
+^..Rcheck$
