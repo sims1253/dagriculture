@@ -148,7 +148,7 @@ dagri_validate_node_ids <- function(graph, node_ids, arg = "node_ids") {
   if (length(unknown_ids) > 0) {
     abort_dagri(
       "dagri_error_not_found",
-      "Missing node.",
+      sprintf("Missing node(s): %s.", paste(unknown_ids, collapse = ", ")),
       details = list(node_ids = unknown_ids)
     )
   }
@@ -210,7 +210,7 @@ dagri_validate_external_holds <- function(graph, external_holds) {
   if (length(unknown_ids) > 0) {
     abort_dagri(
       "dagri_error_not_found",
-      "Missing node.",
+      sprintf("Missing node(s): %s.", paste(unknown_ids, collapse = ", ")),
       details = list(node_ids = unknown_ids)
     )
   }
@@ -300,8 +300,8 @@ dagri_pending_gates <- function(graph, targets = NULL) {
     if (is.null(edge)) {
       abort_dagri(
         "dagri_error_not_found",
-        "Missing edge.",
-        details = list(edge_ids = gate$edge_id)
+        sprintf("Missing edge: %s.", gate$edge_id),
+        details = list(edge_id = gate$edge_id)
       )
     }
 

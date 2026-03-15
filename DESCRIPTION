@@ -1,8 +1,10 @@
 Package: dagriculture
 Title: Tools for dagriculture
-Version: 0.1.5
-Authors@R: 
+Version: 0.1.6
+Authors@R:
     person("Maximilian Scholz", , , "dev.scholz@mailbox.org", role = c("aut", "cre"))
+Author: Maximilian Scholz [aut, cre]
+Maintainer: Maximilian Scholz <dev.scholz@mailbox.org>
 Description: A pure, value-oriented directed acyclic graph library for managing
     graph structures, topological dependencies, structural validity, and task
     planning. Graph-modifying operations are immutable and return new graph
