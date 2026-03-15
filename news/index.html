@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dagriculture</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,9 +30,21 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/sims1253/dagriculture/blob/v0.1.5/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/sims1253/dagriculture/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.6" id="dagriculture-016">dagriculture 0.1.6<a class="anchor" aria-label="anchor" href="#dagriculture-016"></a></h2>
+<div class="section level3">
+<h3 id="fixes-0-1-6">Fixes<a class="anchor" aria-label="anchor" href="#fixes-0-1-6"></a></h3>
+<ul><li>
+<strong>Error message consistency</strong>: <code><a href="../reference/dagri_validate_node_ids.html">dagri_validate_node_ids()</a></code>, <code><a href="../reference/dagri_validate_external_holds.html">dagri_validate_external_holds()</a></code>, and <code><a href="../reference/dagri_pending_gates.html">dagri_pending_gates()</a></code> now use <code>sprintf</code> to embed missing IDs in error messages, matching the pattern used by all other not-found errors.</li>
+<li>
+<strong>Package metadata</strong>: added explicit <code>Author</code> and <code>Maintainer</code> fields to <code>DESCRIPTION</code> for bare <code>R CMD check</code> compatibility alongside the existing <code>Authors@R</code> field.</li>
+<li>
+<strong>Build ignore cleanup</strong>: added <code>.desloppify</code>, <code>.factory</code>, <code>.Rcheck</code>, and <code>..Rcheck</code> to <code>.Rbuildignore</code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.5" id="dagriculture-015">dagriculture 0.1.5<a class="anchor" aria-label="anchor" href="#dagriculture-015"></a></h2>
 <div class="section level3">
