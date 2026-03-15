@@ -20,4 +20,4 @@
 ^\.desloppify$
 ^\.factory$
 ^\.Rcheck$
-^..Rcheck$
+^\.\.Rcheck$
