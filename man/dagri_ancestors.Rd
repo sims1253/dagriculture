@@ -12,5 +12,10 @@ dagri_ancestors(graph, node_id)
 \item{node_id}{Node ID.}
 }
 \description{
-Get all ancestors
+Returns all node ids reachable from \code{node_id} by following edges upstream.
+}
+\details{
+Builds a single O(V+E) adjacency index via \code{\link[=dagri_adjacency]{dagri_adjacency()}} and
+threads it through the traversal, so the walk is O(V+E) overall rather than
+O(V*E) from a per-step edge scan.
 }

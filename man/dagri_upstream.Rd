@@ -12,5 +12,10 @@ dagri_upstream(graph, node_id)
 \item{node_id}{Node ID.}
 }
 \description{
-Get upstream nodes
+Returns the unique node ids with an edge into \code{node_id}. This is a
+single-neighbor query and uses a linear scan over \code{graph$edges}, so it is
+O(E) per call. Traversal internals (\code{dagri_ancestors()},
+\code{dagri_descendants()}, \code{dagri_has_path()}, planning) instead build a single
+O(V+E) adjacency index via \code{\link[=dagri_adjacency]{dagri_adjacency()}} and thread it through the
+walk.
 }

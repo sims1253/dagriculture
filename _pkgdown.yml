@@ -37,6 +37,16 @@ reference:
   - dagri_roots
   - dagri_leaves
   - dagri_topo_order
+- title: Graph Boundary Helpers
+  desc: |
+    Graph-generic edge and diff helpers migrated from bayesgrove. They operate
+    on edge objects and structural ids without workflow semantics.
+  contents:
+  - dagri_incoming_edges
+  - dagri_outgoing_edges
+  - dagri_order_edges
+  - dagri_edge_ids
+  - dagri_graph_diff
 - title: State and Planning
   desc: Functions to resolve structural conditions and produce graph execution plans.
   contents:
@@ -47,6 +57,15 @@ reference:
   - dagri_target_closure
   - dagri_pending_gates
   - dagri_plan
+- title: Visualization
+  desc: Graph-to-text renderers.
+  contents:
+  - dagri_mermaid
+- title: Printing
+  desc: S3 print methods for dagriculture's value-oriented result types.
+  contents:
+  - print.dagri_graph
+  - print.dagri_plan
 - title: Internals
   desc: Package internal utilities.
   contents: abort_dagri

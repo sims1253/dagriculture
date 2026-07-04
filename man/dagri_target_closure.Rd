@@ -4,13 +4,22 @@
 \alias{dagri_target_closure}
 \title{Get the structural closure of target nodes}
 \usage{
-dagri_target_closure(graph, targets = NULL)
+dagri_target_closure(graph, targets = NULL, index = NULL)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
 \item{targets}{Optional target nodes.}
+
+\item{index}{Optional pre-built adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
 }
 \description{
 Get the structural closure of target nodes
+}
+\details{
+When \code{index} is \code{NULL} and \code{targets} is non-NULL, an adjacency index
+is built once via \code{\link[=dagri_adjacency]{dagri_adjacency()}} and reused across the per-target
+ancestor walks, so the closure is O(V+E + k\emph{V) rather than O(k}(V+E)) from
+rebuilding the index per target. Callers that already hold an index (e.g.
+\code{\link[=dagri_plan]{dagri_plan()}}) may pass it to share one index across the whole plan.
 }

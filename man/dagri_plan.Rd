@@ -14,6 +14,23 @@ dagri_plan(graph, targets = NULL, external_holds = list())
 \item{external_holds}{Optional named list mapping node ids to external hold
 reason strings. These affect planning output without mutating graph state.}
 }
+\value{
+A \code{dagri_plan} (a named list with S3 class
+\code{c("dagri_plan", "list")}) with components \code{targets},
+\code{topo_order}, \code{eligible}, \code{blocked}, \code{external_blocked},
+\code{terminal}, and \code{pending_gates}.
+}
 \description{
 Create a structural plan
+}
+\details{
+Builds one O(V+E) adjacency index via \code{\link[=dagri_adjacency]{dagri_adjacency()}} near the
+top and shares it across \code{\link[=dagri_topo_order]{dagri_topo_order()}} and
+\code{\link[=dagri_external_blocked]{dagri_external_blocked()}}, so a single \code{dagri_plan()} call builds the
+index once and scans the edge list once per call.
+
+The result carries S3 class \code{c("dagri_plan", "list")} so
+\code{\link[=print.dagri_plan]{print.dagri_plan()}} dispatches; underneath it remains a plain named list
+with the fields documented below. Field access (\code{plan$targets}, etc.) and
+serialization are unchanged.
 }

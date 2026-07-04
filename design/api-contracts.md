@@ -71,6 +71,12 @@ Fields:
 - `version`: scalar integer
 - `metadata`: named list
 
+Carries S3 class `c("dagri_graph", "list")` so
+[print.dagri_graph()] dispatches; underneath it is a plain named list and
+serializes identically to a bare list. A graph built by `dagri_graph()` (and
+returned by every `dagri_*` mutator) carries the class; a hand-built bare list
+does not, and the validator does not require it.
+
 Invariants:
 
 - graph is acyclic
@@ -139,6 +145,9 @@ Fields:
 - `metadata`: named list
 
 #### `dagri_plan`
+
+Carries S3 class `c("dagri_plan", "list")` so [print.dagri_plan()] dispatches;
+underneath it is a plain named list and serializes identically to a bare list.
 
 Fields:
 
@@ -404,6 +413,36 @@ dagri_leaves(graph)
 dagri_topo_order(graph, subset = NULL)
 ```
 
+### Graph Boundary Helpers
+
+These graph-generic edge and diff operations are the first tranche of the
+bayesgrove-to-dagriculture boundary migration (Milestone 1). They previously
+lived in bayesgrove's `R/dagri-adapters.R` as `bg_dagri_*` migration
+candidates; they are pure value-oriented topology helpers and belong here,
+where the graph lives. bayesgrove pins `dagriculture (>= 0.2.0)` and thins its
+adapters to pass-throughs.
+
+```r
+dagri_incoming_edges(graph, node_id)
+dagri_outgoing_edges(graph, node_id)
+dagri_order_edges(edges)
+dagri_edge_ids(edges)
+dagri_graph_diff(before, after)
+```
+
+Rules:
+
+- `dagri_incoming_edges()` / `dagri_outgoing_edges()` return the edge objects
+  (not just neighbor ids — `dagri_upstream()` / `dagri_downstream()` already
+  cover neighbor ids), preserving container names.
+- `dagri_order_edges()` is deterministic by embedded `edge$id`, used by
+  consumers that need a stable fingerprint of multi-input nodes.
+- `dagri_edge_ids()` prefers container names when all are non-empty, falling
+  back to embedded `edge$id` fields so both the canonical named-map storage
+  shape and unnamed edge lists remain diffable; it aborts with
+  `dagri_error_invalid_argument` when neither yields complete ids.
+- `dagri_graph_diff()` is a pure structural diff with no workflow semantics.
+
 ### State And Planning
 
 ```r
@@ -415,6 +454,87 @@ dagri_terminal(graph, targets = NULL)
 dagri_pending_gates(graph, targets = NULL)
 dagri_plan(graph, targets = NULL, external_holds = list())
 ```
+
+### Visualization
+
+```r
+dagri_mermaid(graph, node_label = NULL, node_class = NULL, direction = "TD")
+```
+
+Rules:
+
+- Pure graph-to-text renderer: emits a Mermaid flowchart block as a single
+  length-1 character scalar with embedded newlines, zero new dependencies, no
+  I/O. Validates the graph once at entry via `dagri_validate_graph()`.
+- `node_label` and `node_class` are optional `(node) -> string` injection
+  functions; defaults use `node$label %||% node$id` and `node$state %||%
+  NA_character_` (the `class` line is skipped when the class is `NA`/empty).
+- Pending gates are rendered as edge annotations: an edge carrying one or more
+  gates with `status == "pending"` is emitted as
+  `  <from> -- "gate: g1, g2" --> <to>`; resolved gates produce no annotation.
+- Labels and gate annotation text are sanitized (`"` -> `'`; `[](){}|<>` and
+  newlines -> space) because Mermaid breaks on those characters. Node ids are
+  NOT sanitized — they are Mermaid node identifiers and must be Mermaid-safe
+  (the editing API guarantees alphanumeric/underscore ids by convention).
+- bayesgrove implements `bg_graph_mermaid()` as a thin wrapper that supplies
+  branch-aware labels (via `node_label`) and run-state CSS classes (via
+  `node_class`) on top of this domain-generic renderer.
+
+### Printing
+
+```r
+print.dagri_graph(x, ...)
+print.dagri_plan(x, ...)
+```
+
+Rules:
+
+- `dagri_graph` and `dagri_plan` carry S3 class `c("<type>", "list")` so these
+  methods dispatch via `print()` / auto-printing at the console. Both remain
+  plain named lists underneath: field access (`graph$nodes`, `plan$targets`),
+  `$`/`[[` indexing, and JSON serialization are unchanged. Core correctness
+  never depends on S3 dispatch (see Object Model Policy).
+- `print.dagri_graph()` writes a concise multi-line summary to stdout via
+  `cat()`: package name and version, node/edge/gate counts, `graph$version`,
+  and the registry kind names (`(none)` when the registry is empty). It returns
+  `x` invisibly.
+- `print.dagri_plan()` writes target count, topological-order length, and the
+  eligible/blocked/terminal counts plus the pending-gate count. It returns `x`
+  invisibly.
+- These are ergonomic sugar only. Graph-mutating functions
+  (`dagri_add_node()`, `dagri_add_edge()`, `dagri_resolve_gate()`,
+  `dagri_recompute_state()`, ...) preserve the `dagri_graph` class on the
+  returned copy; `dagri_plan()` stamps the `dagri_plan` class on its return
+  value. A hand-built bare list (e.g. a test fixture or a deserialized JSON
+  payload without the class attribute) will simply print as a plain list; the
+  validator does not require the class.
+
+### Internal Adjacency Index
+
+Traversal and planning internals build a per-call adjacency index via the
+internal `dagri_adjacency()`. It is a single O(V+E) pass over `graph$edges`
+yielding four named lists keyed by every node id (each initialized to
+`character(0)`):
+
+- `forward`: node id -> unique downstream neighbor ids (`edge$from -> edge$to`)
+- `reverse`: node id -> unique upstream neighbor ids (`edge$to -> edge$from`)
+- `forward_edges`: node id -> outgoing edge ids (not uniqued)
+- `reverse_edges`: node id -> incoming edge ids (not uniqued)
+
+Rules:
+
+- The index is derived per call and is never stored on the graph. The pure
+  value-oriented, immutable public API is unchanged.
+- Public multi-node traversals (`dagri_ancestors()`, `dagri_descendants()`,
+  `dagri_has_path()`, `dagri_topo_order()`, `dagri_recompute_state()`,
+  `dagri_terminal()`, `dagri_external_blocked()`, `dagri_plan()`) validate the
+  graph once at the boundary, build the index once, and thread it through their
+  internal walks (`dagri_dfs()`, `dagri_neighbor_lookup()`).
+- Single-node public queries (`dagri_upstream()`, `dagri_downstream()`) keep
+  their linear scan and remain O(E); for one lookup the index build is not
+  worth it. Their complexity is documented in their roxygen.
+- `dagri_plan()` builds one shared index across `dagri_topo_order()` and
+  `dagri_external_blocked()`, so a single plan call scans the edge list once.
 
 ### `dagriculture` Behavioral Contract
 
