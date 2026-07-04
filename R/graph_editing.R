@@ -60,11 +60,23 @@ dagri_add_node <- function(graph, id, kind, label = NULL, params = list(), metad
 
 #' Update a node in a dagriculture graph
 #'
+#' @details `params` (when non-`NULL`) **replaces** the node's `params` outright;
+#'   it is NOT merged into the existing params. Likewise `metadata` (when
+#'   non-`NULL`) **replaces** the node's `metadata` outright. To merge partial
+#'   updates, do it in the caller, e.g.
+#'   `dagri_update_node(graph, id, params = utils::modifyList(old_params, new_params))`.
+#'   A `NULL` `params`/`metadata`/`label` leaves that field untouched. Keeping
+#'   this a primitive (replace, not merge) means consumers (e.g. bayesgrove's
+#'   `bg_update_node()`) must opt into merge explicitly, instead of silently
+#'   having their partial update destroy sibling fields.
+#'
 #' @param graph A \code{dagri_graph}.
 #' @param id Node ID.
-#' @param label Node label.
-#' @param params Node parameters.
-#' @param metadata Node metadata.
+#' @param label Node label. `NULL` leaves the field unchanged.
+#' @param params Node parameters. When non-`NULL`, **replaces** the existing
+#'   `params` outright (see Details).
+#' @param metadata Node metadata. When non-`NULL`, **replaces** the existing
+#'   `metadata` outright (see Details).
 #' @export
 dagri_update_node <- function(graph, id, label = NULL, params = NULL, metadata = NULL) {
   dagri_validate_graph(graph)

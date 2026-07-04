@@ -11,12 +11,25 @@ dagri_update_node(graph, id, label = NULL, params = NULL, metadata = NULL)
 
 \item{id}{Node ID.}
 
-\item{label}{Node label.}
+\item{label}{Node label. \code{NULL} leaves the field unchanged.}
 
-\item{params}{Node parameters.}
+\item{params}{Node parameters. When non-\code{NULL}, \strong{replaces} the existing
+\code{params} outright (see Details).}
 
-\item{metadata}{Node metadata.}
+\item{metadata}{Node metadata. When non-\code{NULL}, \strong{replaces} the existing
+\code{metadata} outright (see Details).}
 }
 \description{
 Update a node in a dagriculture graph
+}
+\details{
+\code{params} (when non-\code{NULL}) \strong{replaces} the node's \code{params} outright;
+it is NOT merged into the existing params. Likewise \code{metadata} (when
+non-\code{NULL}) \strong{replaces} the node's \code{metadata} outright. To merge partial
+updates, do it in the caller, e.g.
+\code{dagri_update_node(graph, id, params = utils::modifyList(old_params, new_params))}.
+A \code{NULL} \code{params}/\code{metadata}/\code{label} leaves that field untouched. Keeping
+this a primitive (replace, not merge) means consumers (e.g. bayesgrove's
+\code{bg_update_node()}) must opt into merge explicitly, instead of silently
+having their partial update destroy sibling fields.
 }

@@ -72,6 +72,43 @@ describe("graph editing operations", {
         class = "dagri_error_not_found"
       )
     })
+
+    it("params is replaced, not merged (replace semantics regression guard)", {
+      # A node carrying params = list(a=1, b=2); updating with params = list(c=3)
+      # must yield exactly list(c=3), NOT list(a=1, b=2, c=3). Consumers that
+      # want merge must do utils::modifyList() themselves (see ?dagri_update_node).
+      g1 <- dagri_add_node(g0, id = "n1", kind = "source", params = list(a = 1, b = 2))
+      g2 <- dagri_update_node(g1, id = "n1", params = list(c = 3))
+
+      expect_identical(g2$nodes[["n1"]]$params, list(c = 3))
+      expect_false("a" %in% names(g2$nodes[["n1"]]$params))
+      expect_false("b" %in% names(g2$nodes[["n1"]]$params))
+    })
+
+    it("metadata is replaced, not merged (replace semantics regression guard)", {
+      g1 <- dagri_add_node(g0, id = "n1", kind = "source", metadata = list(a = 1, b = 2))
+      g2 <- dagri_update_node(g1, id = "n1", metadata = list(c = 3))
+
+      expect_identical(g2$nodes[["n1"]]$metadata, list(c = 3))
+      expect_false("a" %in% names(g2$nodes[["n1"]]$metadata))
+      expect_false("b" %in% names(g2$nodes[["n1"]]$metadata))
+    })
+
+    it("NULL params/metadata/label leave the fields untouched", {
+      g1 <- dagri_add_node(
+        g0,
+        id = "n1",
+        kind = "source",
+        label = "L",
+        params = list(a = 1),
+        metadata = list(b = 2)
+      )
+      g2 <- dagri_update_node(g1, id = "n1")
+
+      expect_identical(g2$nodes[["n1"]]$label, "L")
+      expect_identical(g2$nodes[["n1"]]$params, list(a = 1))
+      expect_identical(g2$nodes[["n1"]]$metadata, list(b = 2))
+    })
   })
 
   describe("dagri_remove_node()", {
