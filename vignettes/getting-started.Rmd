@@ -72,6 +72,44 @@ You can place a "gate" on an edge to represent a manual or external block—for 
 g <- dagri_add_gate(g, edge = "e_data_fit", id = "approval_gate")
 ```
 
+## Structural State Semantics
+
+`dagriculture` tracks **structural** readiness only. It does not execute anything and
+does not know whether a node has been computed, is currently running, or has failed.
+The three structural node states, set by [dagri_recompute_state()], are:
+
+| `state`    | Meaning                                                                                  |
+|------------|------------------------------------------------------------------------------------------|
+| `new`      | Initial state of a freshly added node; `dagri_recompute_state()` overwrites it on the next pass. |
+| `ready`    | Every upstream node is `ready` and no inbound edge carries a pending gate; the node is structurally eligible to run. |
+| `blocked`  | At least one structural blocker prevents readiness. See `block_reason` below.            |
+
+When a node is `blocked`, `dagri_recompute_state()` records a `block_reason`:
+
+| `block_reason`       | Meaning                                                                                  |
+|----------------------|------------------------------------------------------------------------------------------|
+| `none`              | Not blocked (set together with `state = "ready"`).                                        |
+| `gate`              | An inbound edge carries one or more gates with `status = "pending"`.                      |
+| `upstream_blocked`  | At least one upstream node is itself `blocked`, so this node cannot become `ready` yet.   |
+
+### What `dagri_recompute_state()` does NOT track
+
+Execution state is the consumer's overlay, not part of the structural model. In
+particular, `dagriculture` never records:
+
+| Execution concept (consumer-owned) | Why it is out of scope                                                     |
+|------------------------------------|---------------------------------------------------------------------------|
+| `done` / `succeeded`               | A result existing is an artifact/cache concern (bayesgrove overlays this). |
+| `failed`                           | Failure is a runtime outcome; the graph only knows structural readiness.   |
+| `running`                          | Concurrency and scheduling live in the executor, not the graph.            |
+| `skipped` (cache hit)              | Reuse is decided from fingerprints, not from node `$state`.               |
+
+A node that is structurally `ready` may still be skipped by a consumer when a
+reusable result exists; conversely a `blocked` node will never run until its
+blocker clears. Call [dagri_recompute_state()] whenever the graph structure or
+gate statuses change, so the `state`/`block_reason` fields reflect the current
+graph before planning.
+
 ### 4. Compute State and Plan
 
 Use `dagri_recompute_state()` to evaluate the graph topologically and determine which nodes are structurally ready and which are blocked.
