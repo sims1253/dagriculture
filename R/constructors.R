@@ -17,6 +17,7 @@ dagri_has_closure <- function(x) {
 #'   list structure is allowed, but executable closures are rejected for safety.
 #' @export
 dagri_kind <- function(name, input_contract = NULL, output_type = NULL, param_schema = NULL) {
+  dagri_validate_id(name, "name")
   if (!is.null(input_contract)) {
     if (!is.list(input_contract)) {
       abort_dagri(

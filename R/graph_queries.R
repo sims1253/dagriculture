@@ -72,18 +72,14 @@ dagri_gates <- function(graph) {
 
 #' Get upstream nodes
 #'
-#' Returns the unique node ids with an edge into `node_id`. This is a
-#' single-neighbor query and uses a linear scan over `graph$edges`, so it is
-#' O(E) per call. Traversal internals (`dagri_ancestors()`,
-#' `dagri_descendants()`, `dagri_has_path()`, planning) instead build a single
-#' O(V+E) adjacency index via [dagri_adjacency()] and thread it through the
-#' walk.
+#' Returns the unique node ids with an edge into `node_id`. O(E).
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
 #' @export
 dagri_upstream <- function(graph, node_id) {
   dagri_validate_graph(graph)
+  dagri_validate_single_node(graph, node_id)
 
   up_edges <- Filter(function(e) e$to == node_id, graph$edges)
   unique(vapply(up_edges, function(e) e$from, character(1)))
@@ -91,18 +87,14 @@ dagri_upstream <- function(graph, node_id) {
 
 #' Get downstream nodes
 #'
-#' Returns the unique node ids with an edge out of `node_id`. This is a
-#' single-neighbor query and uses a linear scan over `graph$edges`, so it is
-#' O(E) per call. Traversal internals (`dagri_ancestors()`,
-#' `dagri_descendants()`, `dagri_has_path()`, planning) instead build a single
-#' O(V+E) adjacency index via [dagri_adjacency()] and thread it through the
-#' walk.
+#' Returns the unique node ids with an edge out of `node_id`. O(E).
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
 #' @export
 dagri_downstream <- function(graph, node_id) {
   dagri_validate_graph(graph)
+  dagri_validate_single_node(graph, node_id)
 
   down_edges <- Filter(function(e) e$from == node_id, graph$edges)
   unique(vapply(down_edges, function(e) e$to, character(1)))
@@ -110,104 +102,68 @@ dagri_downstream <- function(graph, node_id) {
 
 #' Depth-first traversal over a dagriculture graph
 #'
-#' Internal helper. Callers are responsible for validating the graph and for
-#' building (and passing) an adjacency `index` when traversing a large graph;
-#' without an index each neighbor lookup falls back to a linear scan over the
-#' edge list.
+#' Internal helper. Callers must validate the graph and pass a pre-built
+#' adjacency `index`. Neighbors are read from `index` (O(1) per lookup), so the
+#' walk is O(V+E).
 #'
-#' @param graph A \code{dagri_graph}.
 #' @param start Starting node ID.
-#' @param neighbor_fn Neighbor selector: `dagri_upstream` or `dagri_downstream`.
-#' @param index Optional pre-built adjacency index from [dagri_adjacency()].
+#' @param direction One of `"forward"` (downstream, via `index$forward`) or
+#'   `"reverse"` (upstream, via `index$reverse`).
+#' @param index Adjacency index from [dagri_adjacency()].
 #' @return Character vector of visited node ids (excluding `start`).
 #' @keywords internal
-dagri_dfs <- function(graph, start, neighbor_fn, index = NULL) {
+dagri_dfs <- function(start, direction = c("forward", "reverse"), index) {
+  direction <- match.arg(direction)
+  neighbors <- if (direction == "forward") index$forward else index$reverse
+
   visited <- character(0)
-  stack <- dagri_neighbor_lookup(graph, start, neighbor_fn, index)
+  stack <- neighbors[[start]]
   while (length(stack) > 0) {
     curr <- stack[1]
     stack <- stack[-1]
     if (!curr %in% visited) {
       visited <- c(visited, curr)
-      stack <- c(stack, dagri_neighbor_lookup(graph, curr, neighbor_fn, index))
+      stack <- c(stack, neighbors[[curr]])
     }
   }
   visited
-}
-
-#' Resolve a node's immediate neighbors
-#'
-#' Internal helper used by [dagri_dfs()]. When a pre-built `index` is supplied,
-#' it returns the relevant map directly (O(1)); otherwise it falls back to a
-#' linear scan over the edge list for compatibility. For a custom
-#' `neighbor_fn`, `index` is ignored and `neighbor_fn` is called.
-#'
-#' @param graph A \code{dagri_graph}.
-#' @param node_id Node ID.
-#' @param neighbor_fn Neighbor selector: `dagri_upstream` or `dagri_downstream`.
-#' @param index Optional pre-built adjacency index from [dagri_adjacency()].
-#' @return Character vector of neighbor node ids.
-#' @keywords internal
-dagri_neighbor_lookup <- function(graph, node_id, neighbor_fn, index = NULL) {
-  if (!is.null(index)) {
-    if (identical(neighbor_fn, dagri_upstream)) {
-      return(index$reverse[[node_id]])
-    } else if (identical(neighbor_fn, dagri_downstream)) {
-      return(index$forward[[node_id]])
-    }
-  }
-
-  if (identical(neighbor_fn, dagri_upstream)) {
-    up_edges <- Filter(function(e) e$to == node_id, graph$edges)
-    unique(vapply(up_edges, function(e) e$from, character(1)))
-  } else if (identical(neighbor_fn, dagri_downstream)) {
-    down_edges <- Filter(function(e) e$from == node_id, graph$edges)
-    unique(vapply(down_edges, function(e) e$to, character(1)))
-  } else {
-    neighbor_fn(graph, node_id)
-  }
 }
 
 #' Get all ancestors
 #'
 #' Returns all node ids reachable from `node_id` by following edges upstream.
 #'
-#' @details Builds a single O(V+E) adjacency index via [dagri_adjacency()] and
-#'   threads it through the traversal, so the walk is O(V+E) overall rather than
-#'   O(V*E) from a per-step edge scan.
+#' @details O(V+E).
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
 #' @export
 dagri_ancestors <- function(graph, node_id) {
   dagri_validate_graph(graph)
+  dagri_validate_single_node(graph, node_id)
   index <- dagri_adjacency(graph)
-  dagri_dfs(graph, node_id, dagri_upstream, index)
+  dagri_dfs(node_id, direction = "reverse", index)
 }
 
 #' Get all descendants
 #'
 #' Returns all node ids reachable from `node_id` by following edges downstream.
 #'
-#' @details Builds a single O(V+E) adjacency index via [dagri_adjacency()] and
-#'   threads it through the traversal, so the walk is O(V+E) overall rather than
-#'   O(V*E) from a per-step edge scan.
+#' @details O(V+E).
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
 #' @export
 dagri_descendants <- function(graph, node_id) {
   dagri_validate_graph(graph)
+  dagri_validate_single_node(graph, node_id)
   index <- dagri_adjacency(graph)
-  dagri_dfs(graph, node_id, dagri_downstream, index)
+  dagri_dfs(node_id, direction = "forward", index)
 }
 
 #' Check path existence
 #'
-#' @details Validates the graph once, builds a single O(V+E) adjacency index,
-#'   and runs the downstream walk directly, so this is O(V+E) per call. The
-#'   walk is performed inline (rather than delegating to `dagri_descendants()`)
-#'   so the graph is validated exactly once at this public boundary.
+#' @details O(V+E).
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param from Source Node ID.
@@ -215,9 +171,11 @@ dagri_descendants <- function(graph, node_id) {
 #' @export
 dagri_has_path <- function(graph, from, to) {
   dagri_validate_graph(graph)
+  dagri_validate_single_node(graph, from)
+  dagri_validate_single_node(graph, to)
   index <- dagri_adjacency(graph)
 
-  to %in% dagri_dfs(graph, from, dagri_downstream, index)
+  to %in% dagri_dfs(from, direction = "forward", index)
 }
 
 #' Get graph roots
@@ -252,11 +210,7 @@ dagri_leaves <- function(graph) {
 
 #' Get topological order
 #'
-#' @details Uses Kahn's algorithm. When `index` is `NULL` the adjacency index is
-#'   built once via [dagri_adjacency()] and threaded through the in-degree
-#'   decrement loop, so the sort is O(V+E) overall. Callers that already hold
-#'   an index (e.g. [dagri_recompute_state()], [dagri_plan()]) may pass it to
-#'   avoid a redundant rebuild.
+#' @details O(V+E).
 #'
 #'   Cycles are detected here: after the Kahn loop, any node that was not
 #'   emitted (i.e. still has non-zero in-degree) participates in a cycle, and
@@ -265,22 +219,28 @@ dagri_leaves <- function(graph) {
 #'   prevents cycles at edit time, but consumers (e.g. bayesgrove) deserialize
 #'   graphs from JSON, so a corrupted or hand-edited file can smuggle a cycle
 #'   past the editing layer; this check ensures a planner never silently drops
-#'   cycle-locked nodes from the order. This is an explicit per-call check
-#'   (O(V+E)) rather than part of [dagri_validate_graph()], because it is only
-#'   needed for topological operations.
+#'   cycle-locked nodes from the order.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param subset Optional subset of nodes.
-#' @param index Optional pre-built adjacency index from [dagri_adjacency()].
 #' @export
-dagri_topo_order <- function(graph, subset = NULL, index = NULL) {
+dagri_topo_order <- function(graph, subset = NULL) {
   dagri_validate_graph(graph)
+  dagri_topo_order_impl(graph, subset, dagri_adjacency(graph))
+}
 
-  caller_supplied_index <- !is.null(index)
-  if (is.null(index)) {
-    index <- dagri_adjacency(graph)
-  }
-
+#' Internal topological-order worker
+#'
+#' Pure worker shared by [dagri_topo_order()] and the planning/state internals.
+#' Callers must validate the graph and build (or pass) the adjacency `index`.
+#'
+#' @param graph A \code{dagri_graph}.
+#' @param subset Optional subset of nodes; validated via
+#'   [dagri_validate_node_ids()] when non-NULL.
+#' @param index Adjacency index from [dagri_adjacency()].
+#' @return Character vector of node ids in topological order.
+#' @keywords internal
+dagri_topo_order_impl <- function(graph, subset = NULL, index) {
   nodes_to_consider <- if (is.null(subset)) {
     names(graph$nodes)
   } else {
@@ -292,23 +252,15 @@ dagri_topo_order <- function(graph, subset = NULL, index = NULL) {
 
   in_degree <- stats::setNames(integer(length(nodes_to_consider)), nodes_to_consider)
   scope <- nodes_to_consider
-  if (caller_supplied_index) {
-    # Count, per node, the incoming edges whose source is also in scope.
-    # Build a from-of map once so this stays O(V+E).
-    from_of <- vapply(graph$edges, function(e) e$from, character(1))
-    for (nid in scope) {
-      rev_edges <- index$reverse_edges[[nid]]
-      if (length(rev_edges) == 0) {
-        next
-      }
-      in_degree[nid] <- sum(from_of[rev_edges] %in% scope)
+  # Count, per node, the incoming edges whose source is also in scope.
+  # Build a from-of map once so this stays O(V+E).
+  from_of <- vapply(graph$edges, function(e) e$from, character(1))
+  for (nid in scope) {
+    rev_edges <- index$reverse_edges[[nid]]
+    if (length(rev_edges) == 0) {
+      next
     }
-  } else {
-    for (e in graph$edges) {
-      if (e$to %in% scope && e$from %in% scope) {
-        in_degree[e$to] <- in_degree[e$to] + 1L
-      }
-    }
+    in_degree[nid] <- sum(from_of[rev_edges] %in% scope)
   }
 
   queue <- names(in_degree)[in_degree == 0]
@@ -319,7 +271,7 @@ dagri_topo_order <- function(graph, subset = NULL, index = NULL) {
     queue <- queue[-1]
     order <- c(order, u)
 
-    for (v in dagri_neighbor_lookup(graph, u, dagri_downstream, index)) {
+    for (v in index$forward[[u]]) {
       if (v %in% nodes_to_consider) {
         in_degree[v] <- in_degree[v] - 1L
         if (in_degree[v] == 0) {

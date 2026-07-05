@@ -1,4 +1,4 @@
-# Tests for the Mermaid flowchart export (PLAN.md Milestone 4).
+# Tests for the Mermaid flowchart export.
 
 build_small_graph <- function() {
   graph <- dagri_graph(dagri_registry())

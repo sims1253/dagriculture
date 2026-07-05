@@ -1,10 +1,3 @@
-# Graph boundary helpers migrated from bayesgrove.
-#
-# These graph-generic operations used to live in bayesgrove's
-# `R/dagri-adapters.R` as `bg_dagri_*` migration candidates. They are pure
-# value-oriented topology helpers that belong here, where the graph lives.
-# See `design/api-contracts.md` for the boundary contract.
-
 # --- Edge lookup by endpoint ---
 
 #' Incoming edges for a node
@@ -180,15 +173,7 @@ dagri_graph_diff <- function(before, after) {
 # --- Internal: single-string node-id presence check ---
 
 dagri_validate_single_node <- function(graph, node_id) {
-  if (!is.character(node_id) || length(node_id) != 1 || is.na(node_id)) {
-    abort_dagri(
-      "dagri_error_invalid_argument",
-      sprintf(
-        "`node_id` must be a single character string, got %s.",
-        paste(class(node_id), collapse = "/")
-      )
-    )
-  }
+  dagri_validate_id(node_id, "node_id")
   if (!node_id %in% names(graph$nodes)) {
     abort_dagri(
       "dagri_error_not_found",
@@ -196,4 +181,18 @@ dagri_validate_single_node <- function(graph, node_id) {
     )
   }
   invisible(node_id)
+}
+
+dagri_validate_id <- function(x, arg = "id") {
+  if (!is.character(x) || length(x) != 1 || is.na(x) || !nzchar(x)) {
+    abort_dagri(
+      "dagri_error_invalid_argument",
+      sprintf(
+        "`%s` must be a single non-empty character string, got %s.",
+        arg,
+        paste(class(x), collapse = "/")
+      )
+    )
+  }
+  invisible(x)
 }

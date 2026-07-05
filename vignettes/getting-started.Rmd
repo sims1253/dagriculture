@@ -69,7 +69,7 @@ g$version
 You can place a "gate" on an edge to represent a manual or external block—for instance, requiring human approval before the statistical fit proceeds.
 
 ```{r}
-g <- dagri_add_gate(g, edge = "e_data_fit", id = "approval_gate")
+g <- dagri_add_gate(g, edge_id = "e_data_fit", id = "approval_gate")
 ```
 
 ## Structural State Semantics
@@ -124,7 +124,9 @@ dagri_eligible(g_state)
 dagri_blocked(g_state)
 ```
 
-We can generate a structural plan to see how dependencies shake out:
+We can generate a structural plan to see how dependencies shake out. `dagri_plan()`
+derives state internally, so it does not require the recomputed graph value
+above:
 
 ```{r}
 plan <- dagri_plan(g_state)

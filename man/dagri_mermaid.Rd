@@ -46,8 +46,7 @@ and, when a non-\code{NA} class string is produced, a companion line:
 \if{html}{\out{<div class="sourceCode">}}\preformatted{  class <id> <class>
 }\if{html}{\out{</div>}}
 
-Edge lines follow all node/class lines (Mermaid accepts either order;
-node-first is conventional):
+Edge lines follow all node/class lines:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{  <from> --> <to>
 }\if{html}{\out{</div>}}
@@ -59,27 +58,20 @@ Resolved gates produce no annotation.
 \strong{Sanitization.} Mermaid breaks on \verb{"}, \code{(}, \verb{)}, \code{[}, \verb{]}, \verb{\{}, \verb{\}},
 \code{|}, \code{<}, \code{>}, and embedded newlines. Node labels and gate annotation
 text are sanitized: \verb{"} becomes \verb{'} and the other characters become
-single spaces (with runs of whitespace collapsed and trimmed). This
-keeps hostile labels on a single rendered line. A \code{node_label} /
-\code{node_class} return value that is \code{NULL}, \code{NA}, multi-element, or
-non-character is coerced to a length-1 character string (and becomes
-\code{""} if coercion yields \code{NA}); this lenient fallback is deliberate so a
-misbehaving label function never crashes rendering.
+single spaces (with runs of whitespace collapsed and trimmed). A
+\code{node_label} / \code{node_class} return value that is \code{NULL}, \code{NA},
+multi-element, or non-character is coerced to a length-1 character
+string (and becomes \code{""} if coercion yields \code{NA}).
+
+\strong{Node ids are NOT sanitized.} They are emitted verbatim as Mermaid
+node identifiers, so they MUST be Mermaid-safe (alphanumeric /
+underscore is safe). Callers building graphs from untrusted sources
+must validate ids before rendering.
 
 \strong{Direction is passed through verbatim.} Only \code{direction}'s type is
 validated (single non-NA non-empty string); the value is not checked
-against an allowlist, so \code{"TD"}, \code{"LR"}, \code{"RL"}, and \code{"BT"} work but an
-unknown value will be emitted as-is and Mermaid will fail to render it.
-
-\strong{Node ids are NOT sanitized.} They are emitted verbatim as Mermaid
-node identifiers, so they MUST be Mermaid-safe identifiers
-(alphanumeric / underscore is safe). The editing API guarantees this
-by convention; callers building graphs from untrusted sources must
-validate ids before rendering.
-
-\strong{Purity.} This function is pure string output with zero new
-dependencies and no I/O. It validates the graph once at entry via
-\code{\link[=dagri_validate_graph]{dagri_validate_graph()}}.
+against an allowlist, so an unknown value is emitted as-is and Mermaid
+will fail to render it.
 }
 \examples{
 graph <- dagri_graph(dagri_registry(dagri_kind("source"), dagri_kind("fit")))

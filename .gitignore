@@ -4,6 +4,7 @@
 .Ruserdata
 *.tar.gz
 *.Rcheck/
+README.html
 docs/
 man/figures/
 tests/testthat/_snaps/

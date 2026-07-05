@@ -39,8 +39,8 @@ reference:
   - dagri_topo_order
 - title: Graph Boundary Helpers
   desc: |
-    Graph-generic edge and diff helpers migrated from bayesgrove. They operate
-    on edge objects and structural ids without workflow semantics.
+    Graph-generic edge and diff helpers. They operate on edge objects and
+    structural ids without workflow semantics.
   contents:
   - dagri_incoming_edges
   - dagri_outgoing_edges
@@ -54,8 +54,6 @@ reference:
   - dagri_eligible
   - dagri_blocked
   - dagri_terminal
-  - dagri_target_closure
-  - dagri_pending_gates
   - dagri_plan
 - title: Visualization
   desc: Graph-to-text renderers.
@@ -66,9 +64,6 @@ reference:
   contents:
   - print.dagri_graph
   - print.dagri_plan
-- title: Internals
-  desc: Package internal utilities.
-  contents: abort_dagri
 articles:
 - title: Getting Started
   contents: getting-started

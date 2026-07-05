@@ -17,8 +17,5 @@ dagri_has_path(graph, from, to)
 Check path existence
 }
 \details{
-Validates the graph once, builds a single O(V+E) adjacency index,
-and runs the downstream walk directly, so this is O(V+E) per call. The
-walk is performed inline (rather than delegating to \code{dagri_descendants()})
-so the graph is validated exactly once at this public boundary.
+O(V+E).
 }

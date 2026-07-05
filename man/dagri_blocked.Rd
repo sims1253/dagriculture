@@ -10,7 +10,8 @@ dagri_blocked(graph)
 \item{graph}{A \code{dagri_graph}.}
 }
 \description{
-Returns a named list of blocked nodes mapped to their block reasons. Call
-\code{dagri_recompute_state()} before using this function to ensure node
-states are current.
+Returns a named list of nodes whose stored state is "blocked" mapped to their
+block reasons. Reflects the last \code{\link[=dagri_recompute_state]{dagri_recompute_state()}} pass; call it again
+after structural or gate changes. \code{\link[=dagri_plan]{dagri_plan()}} recomputes state internally
+and is always current.
 }

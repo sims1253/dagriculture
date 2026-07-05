@@ -16,3 +16,4 @@ abort_dagri(class, message, details = list())
 \description{
 Abort with a typed dagriculture error
 }
+\keyword{internal}

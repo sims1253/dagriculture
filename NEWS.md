@@ -1,48 +1,68 @@
+# dagriculture 0.3.0
+
+## Behavior changes
+
+- `dagri_plan()` now derives node state internally on a local copy of the
+  graph, so the returned `eligible`/`blocked` are always current even when the
+  input graph was never passed through `dagri_recompute_state()`. The input
+  graph value is not mutated.
+
+## Breaking changes
+
+- `dagri_ancestors()`, `dagri_descendants()`, `dagri_upstream()`,
+  `dagri_downstream()`, and `dagri_has_path()` now abort with
+  `dagri_error_not_found` for unknown node ids (previously they returned silent
+  empties or `FALSE`).
+- Id-taking public arguments (`id`/`from`/`to`/`edge_id`/`name`) now reject
+  vectors, `NA`, and empty strings with `dagri_error_invalid_argument` instead
+  of dying with a base-R "condition has length > 1" error.
+- `dagri_add_gate(graph, edge, ...)`'s `edge` parameter has been renamed to
+  `edge_id` for consistency with the rest of the API. Update named call sites.
+- `abort_dagri()`, `dagri_target_closure()`, and `dagri_pending_gates()` are no
+  longer exported; their results are reachable through `dagri_plan()`'s
+  `targets` and `pending_gates` fields.
+- `dagri_topo_order()` and `dagri_terminal()` no longer accept an `index`
+  argument; they build the adjacency index themselves. The index type has no
+  public constructor, so threading it through the public API was a footgun.
+
+## Internal
+
+- Minimum R version raised to 4.4.0; `%||%` relies on base R, which provides
+  it since 4.4.0.
+
 # dagriculture 0.2.0
 
 ## Features
 
-- **Cycle detection in `dagri_topo_order()`:** Kahn's algorithm now detects
-  cycles instead of silently returning a partial order. After the Kahn loop,
-  any node that could not be emitted is reported via an abort of class
-  `dagri_error_cycle` with `details$cycle_nodes` naming the cycle-participating
-  nodes. `dagri_add_edge()` prevents cycles at edit time, but consumers (e.g.
-  bayesgrove) deserialize graphs from JSON, so a corrupted file could previously
-  smuggle a cycle past the editor and cause planners to silently drop nodes.
-- **`dagri_update_node()` replace semantics documented:** the `params` and
-  `metadata` arguments **replace** the existing fields outright (they are not
-  merged). This was already the runtime behavior; it is now documented loudly in
-  the roxygen `@details`, with a pointer to `utils::modifyList()` for callers
-  that need merge semantics. The merge belongs in the consumer (e.g. bayesgrove's
-  `bg_update_node()`), not in this primitive.
-- **Referential integrity in `dagri_validate_graph()`:** the entry-point
-  validator now enforces that every edge's `$from`/`$to` references a node in
-  `graph$nodes` and every gate's `$edge_id` references an edge in `graph$edges`.
-  Dangling references abort with `dagri_error_invalid_argument` and a `details`
-  field naming the offending ids. This guards the same threat model as the new
-  cycle check: data loaded from disk bypassed the editing API, so it could
-  previously carry dangling references undetected.
-- **bayesgrove boundary migration (first tranche):** ported the graph-generic edge and diff helpers that previously lived in bayesgrove's `R/dagri-adapters.R` (`bg_dagri_*` migration candidates) into dagriculture, where the graph lives. bayesgrove pins `dagriculture (>= 0.2.0)` and thins its adapters to pass-throughs. New exported functions:
-  - `dagri_incoming_edges(graph, node_id)` and `dagri_outgoing_edges(graph, node_id)` return the incident edge objects (not just neighbor ids — `dagri_upstream()`/`dagri_downstream()` already cover ids), preserving container names.
-  - `dagri_order_edges(edges)` deterministically orders an edge list by embedded `edge$id`, for stable fingerprinting of multi-input nodes.
-  - `dagri_edge_ids(edges)` returns sorted unique edge ids, preferring container names and falling back to embedded `edge$id` fields; aborts with `dagri_error_invalid_argument` when neither yields complete ids.
-  - `dagri_graph_diff(before, after)` returns a pure structural diff (`added_nodes`, `removed_nodes`, `added_edges`, `removed_edges`) with no workflow semantics.
-
-- **Mermaid flowchart export:** added `dagri_mermaid(graph, node_label = NULL, node_class = NULL, direction = "TD")`, a pure graph-to-text renderer that emits a Mermaid flowchart block as a single length-1 character scalar. `node_label` and `node_class` are optional `(node) -> string` injection functions (defaults use `node$label %||% node$id` and `node$state %||% NA_character_`, skipping the `class` line when `NA`/empty). Pending gates are rendered as edge annotations (`<from> -- "gate: g1, g2" --> <to>`); resolved gates are silent. Labels and gate annotation text are sanitized (`"` -> `'`; `[](){}|<>` and newlines -> space) since Mermaid breaks on those characters. Node ids are emitted verbatim as Mermaid identifiers (must be Mermaid-safe by convention). Zero new dependencies, no I/O. This is the domain-generic renderer that bayesgrove's `bg_graph_mermaid()` will wrap to supply branch-aware labels and run-state CSS classes.
-
-- **Print methods and S3 classes:** `dagri_graph()` now stamps S3 class `c("dagri_graph", "list")` on its return value, and `dagri_plan()` stamps `c("dagri_plan", "list")` on its return value. Both remain plain named lists underneath: field access (`graph$nodes`, `plan$targets`), `$`/`[[` indexing, and JSON serialization are unchanged, and `dagri_validate_graph()` does not require the class. New S3 print methods:
-  - `print.dagri_graph()` writes a concise multi-line summary (package + version, node/edge/gate counts, `graph$version`, registry kind names) and returns the graph invisibly. Graph-mutating functions preserve the `dagri_graph` class on the returned copy.
-  - `print.dagri_plan()` writes target count, topological-order length, and eligible/blocked/terminal/pending-gate counts, and returns the plan invisibly.
-  - This is the only interactive UX surface a value-oriented library has; core correctness never depends on S3 dispatch.
-
-- **Getting-started vignette state-semantics table:** added a "Structural State Semantics" section explaining the three structural states (`new`/`ready`/`blocked`), the block reasons (`none`/`gate`/`upstream_blocked`), and explicitly scoping what `dagri_recompute_state()` does NOT track (execution states like `done`/`failed`/`running`/`skipped` are the consumer's overlay, not part of the structural model). This is the most common confusion point for a new consumer.
-
-- **Real package Title:** replaced the template placeholder `Tools for dagriculture` in `DESCRIPTION` with `Pure Value-Oriented Directed Acyclic Graphs for Task Planning`; the `Description` field already matched and is unchanged.
-- **Decision record — generic execution layer:** documented in `design/boundary-contract.md` that the eventual extraction of fingerprinting, content-addressed artifact storage, plan-state derivation, and job records out of bayesgrove will NOT land in dagriculture. dagriculture stays pure and value-oriented; the execution layer will be a separate package when a second consumer exists or bayesgrove's scheduler stabilizes the executor contract.
+- **Cycle detection in `dagri_topo_order()`:** Kahn's algorithm aborts with
+  `dagri_error_cycle` (`details$cycle_nodes`) instead of silently returning a
+  partial order; closes a hole for graphs deserialized from JSON.
+- **`dagri_update_node()` replace semantics documented:** `params`/`metadata`
+  **replace** the existing fields outright (use `utils::modifyList()` to merge);
+  the merge belongs in the consumer, not in this primitive.
+- **Referential integrity in `dagri_validate_graph()`:** dangling edge
+  `from`/`to` or gate `edge_id` references abort with
+  `dagri_error_invalid_argument`; guards data loaded from disk.
+- **Graph boundary helpers:** added `dagri_incoming_edges()`,
+  `dagri_outgoing_edges()`, `dagri_order_edges()`, `dagri_edge_ids()`, and
+  `dagri_graph_diff()` (pure structural diff).
+- **Mermaid flowchart export:** added `dagri_mermaid()` — a pure graph-to-text
+  renderer with injectable label/class functions and pending-gate annotations.
+- **Print methods and S3 classes:** `dagri_graph()` and `dagri_plan()` stamp S3
+  classes (still plain lists underneath) and gain `print.dagri_graph()` /
+  `print.dagri_plan()` summaries.
+- **Getting-started vignette:** added a Structural State Semantics section.
+- **Real package Title** in DESCRIPTION.
+- **Decision record — generic execution layer:** documented that execution,
+  caching, and artifact storage stay out of dagriculture (see
+  `design/boundary-contract.md`).
 
 ## Performance
 
-- **Internal adjacency index:** added an internal `dagri_adjacency()` that builds forward and reverse neighbor maps plus incident-edge maps in a single O(V+E) pass. Traversal and planning internals (`dagri_ancestors()`, `dagri_descendants()`, `dagri_has_path()`, `dagri_topo_order()`, `dagri_recompute_state()`, `dagri_terminal()`, `dagri_external_blocked()`, `dagri_plan()`) now thread this index through the walk instead of scanning the full edge list per neighbor lookup, taking traversals from O(V*E) to O(V+E) and graph construction (via `dagri_add_edge()`'s cycle check) from O(N^2*E) to O(N^2). The single-node public queries `dagri_upstream()` / `dagri_downstream()` keep their linear scan (documented O(E)) since the index overhead does not pay off for a single lookup. The index is a derived per-call value and is never stored on the graph, so the pure-value, immutable API is unchanged.
+- **Internal adjacency index:** `dagri_adjacency()` builds forward/reverse
+  neighbor maps in one O(V+E) pass; traversals and planning thread it through,
+  taking walks from O(V*E) to O(V+E). Single-node `dagri_upstream()` /
+  `dagri_downstream()` keep their O(E) scan.
 - **Re-validation collapse:** `dagri_has_path()` now runs the downstream walk inline via the shared index, instead of delegating to `dagri_descendants()` (which re-built the index). `dagri_plan()` builds one shared index across its `dagri_topo_order()` and `dagri_external_blocked()` calls. Each public boundary still does its own cheap structural validation but scans the edge list once per call.
 
 # dagriculture 0.1.6

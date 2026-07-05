@@ -4,24 +4,22 @@
 \alias{dagri_dfs}
 \title{Depth-first traversal over a dagriculture graph}
 \usage{
-dagri_dfs(graph, start, neighbor_fn, index = NULL)
+dagri_dfs(start, direction = c("forward", "reverse"), index)
 }
 \arguments{
-\item{graph}{A \code{dagri_graph}.}
-
 \item{start}{Starting node ID.}
 
-\item{neighbor_fn}{Neighbor selector: \code{dagri_upstream} or \code{dagri_downstream}.}
+\item{direction}{One of \code{"forward"} (downstream, via \code{index$forward}) or
+\code{"reverse"} (upstream, via \code{index$reverse}).}
 
-\item{index}{Optional pre-built adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
+\item{index}{Adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
 }
 \value{
 Character vector of visited node ids (excluding \code{start}).
 }
 \description{
-Internal helper. Callers are responsible for validating the graph and for
-building (and passing) an adjacency \code{index} when traversing a large graph;
-without an index each neighbor lookup falls back to a linear scan over the
-edge list.
+Internal helper. Callers must validate the graph and pass a pre-built
+adjacency \code{index}. Neighbors are read from \code{index} (O(1) per lookup), so the
+walk is O(V+E).
 }
 \keyword{internal}

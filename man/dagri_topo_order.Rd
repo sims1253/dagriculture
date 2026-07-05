@@ -4,24 +4,18 @@
 \alias{dagri_topo_order}
 \title{Get topological order}
 \usage{
-dagri_topo_order(graph, subset = NULL, index = NULL)
+dagri_topo_order(graph, subset = NULL)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
 \item{subset}{Optional subset of nodes.}
-
-\item{index}{Optional pre-built adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
 }
 \description{
 Get topological order
 }
 \details{
-Uses Kahn's algorithm. When \code{index} is \code{NULL} the adjacency index is
-built once via \code{\link[=dagri_adjacency]{dagri_adjacency()}} and threaded through the in-degree
-decrement loop, so the sort is O(V+E) overall. Callers that already hold
-an index (e.g. \code{\link[=dagri_recompute_state]{dagri_recompute_state()}}, \code{\link[=dagri_plan]{dagri_plan()}}) may pass it to
-avoid a redundant rebuild.
+O(V+E).
 
 Cycles are detected here: after the Kahn loop, any node that was not
 emitted (i.e. still has non-zero in-degree) participates in a cycle, and
@@ -30,7 +24,5 @@ cycle-participating nodes in \code{details$cycle_nodes}. \code{\link[=dagri_add_
 prevents cycles at edit time, but consumers (e.g. bayesgrove) deserialize
 graphs from JSON, so a corrupted or hand-edited file can smuggle a cycle
 past the editing layer; this check ensures a planner never silently drops
-cycle-locked nodes from the order. This is an explicit per-call check
-(O(V+E)) rather than part of \code{\link[=dagri_validate_graph]{dagri_validate_graph()}}, because it is only
-needed for topological operations.
+cycle-locked nodes from the order.
 }

@@ -17,6 +17,6 @@ dagri_pending_gates(graph, targets = NULL, index = NULL)
 Get pending gates
 }
 \details{
-When \code{index} is supplied it is forwarded to \code{\link[=dagri_target_closure]{dagri_target_closure()}}
-so the ancestor walk reuses a shared adjacency index.
+O(V+E).
 }
+\keyword{internal}

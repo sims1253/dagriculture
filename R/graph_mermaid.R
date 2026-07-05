@@ -1,10 +1,3 @@
-# Mermaid flowchart export. Pure string output, zero new dependencies.
-#
-# This is the graph-to-text renderer that bayesgrove's
-# `bg_graph_mermaid()` wraps (Milestone 7 of bayesgrove's plan) to supply
-# branch-aware labels and run-state CSS classes. See
-# `design/api-contracts.md` for the boundary contract.
-
 # --- Internal: label sanitization ---
 
 dagri_mermaid_sanitize <- function(x) {
@@ -69,8 +62,7 @@ dagri_mermaid_sanitize <- function(x) {
 #'   class <id> <class>
 #' ```
 #'
-#' Edge lines follow all node/class lines (Mermaid accepts either order;
-#' node-first is conventional):
+#' Edge lines follow all node/class lines:
 #'
 #' ```
 #'   <from> --> <to>
@@ -83,27 +75,20 @@ dagri_mermaid_sanitize <- function(x) {
 #' **Sanitization.** Mermaid breaks on `"`, `(`, `)`, `[`, `]`, `{`, `}`,
 #' `|`, `<`, `>`, and embedded newlines. Node labels and gate annotation
 #' text are sanitized: `"` becomes `'` and the other characters become
-#' single spaces (with runs of whitespace collapsed and trimmed). This
-#' keeps hostile labels on a single rendered line. A `node_label` /
-#' `node_class` return value that is `NULL`, `NA`, multi-element, or
-#' non-character is coerced to a length-1 character string (and becomes
-#' `""` if coercion yields `NA`); this lenient fallback is deliberate so a
-#' misbehaving label function never crashes rendering.
+#' single spaces (with runs of whitespace collapsed and trimmed). A
+#' `node_label` / `node_class` return value that is `NULL`, `NA`,
+#' multi-element, or non-character is coerced to a length-1 character
+#' string (and becomes `""` if coercion yields `NA`).
+#'
+#' **Node ids are NOT sanitized.** They are emitted verbatim as Mermaid
+#' node identifiers, so they MUST be Mermaid-safe (alphanumeric /
+#' underscore is safe). Callers building graphs from untrusted sources
+#' must validate ids before rendering.
 #'
 #' **Direction is passed through verbatim.** Only `direction`'s type is
 #' validated (single non-NA non-empty string); the value is not checked
-#' against an allowlist, so `"TD"`, `"LR"`, `"RL"`, and `"BT"` work but an
-#' unknown value will be emitted as-is and Mermaid will fail to render it.
-#'
-#' **Node ids are NOT sanitized.** They are emitted verbatim as Mermaid
-#' node identifiers, so they MUST be Mermaid-safe identifiers
-#' (alphanumeric / underscore is safe). The editing API guarantees this
-#' by convention; callers building graphs from untrusted sources must
-#' validate ids before rendering.
-#'
-#' **Purity.** This function is pure string output with zero new
-#' dependencies and no I/O. It validates the graph once at entry via
-#' [dagri_validate_graph()].
+#' against an allowlist, so an unknown value is emitted as-is and Mermaid
+#' will fail to render it.
 #'
 #' @examples
 #' graph <- dagri_graph(dagri_registry(dagri_kind("source"), dagri_kind("fit")))

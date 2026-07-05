@@ -13,7 +13,5 @@ dagri_recompute_state(graph)
 Recompute graph state
 }
 \details{
-Builds a single O(V+E) adjacency index via \code{\link[=dagri_adjacency]{dagri_adjacency()}} and
-threads it through the topological sort and the per-node incoming-edge
-lookup, so the whole recomputation is O(V+E) rather than O(V*E).
+O(V+E).
 }

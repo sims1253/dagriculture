@@ -4,21 +4,16 @@
 \alias{dagri_terminal}
 \title{Get terminal nodes}
 \usage{
-dagri_terminal(graph, targets = NULL, index = NULL)
+dagri_terminal(graph, targets = NULL)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
 \item{targets}{Optional target nodes.}
-
-\item{index}{Optional pre-built adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
 }
 \description{
 Get terminal nodes
 }
 \details{
-Builds a single O(V+E) adjacency index via \code{\link[=dagri_adjacency]{dagri_adjacency()}} (or
-reuses a caller-supplied \code{index}), reads the target closure through it, and
-reads downstream neighbors from it, so the scan is O(V+E) rather than
-O(V*E).
+O(V+E).
 }

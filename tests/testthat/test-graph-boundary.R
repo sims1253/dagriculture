@@ -1,10 +1,6 @@
-# Ported and adapted from bayesgrove's test-dagri-boundary.R to pin behavior
-# here, where the boundary helpers now live (bayesgrove -> dagriculture
-# migration, Milestone 1).
-
 describe("graph boundary helpers", {
-  # Mirrors bayesgrove's fixture: build a registry by mutating the graph in
-  # place via $registry$kinds[[...]], then add nodes/edges through the public
+  # Build the registry by mutating the graph in place via
+  # $registry$kinds[[...]], then add nodes/edges through the public
   # value-oriented API.
   build_fixture_graph <- function() {
     graph <- dagri_graph(dagri_registry())

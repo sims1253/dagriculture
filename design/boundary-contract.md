@@ -428,18 +428,16 @@ decision on whether that execution layer lives here.
 
 - a second consumer of the execution machinery exists (today bayesgrove is the
   only one, so there is no sharing pressure); or
-- bayesgrove's parallel scheduler (its Milestone 3) stabilizes the executor
-  contract, at which point the extracted shape is clear enough to design the
-  boundary confidently.
+- bayesgrove's parallel scheduler stabilizes the executor contract, at which
+  point the extracted shape is clear enough to design the boundary confidently.
 
-**Boundary coverage.** This document now covers both directions of the
+**Boundary coverage.** This document covers both directions of the
 dagriculture boundary:
 
-- what *moved here* — Milestone 1 ported bayesgrove's graph-generic edge and
-  diff helpers (`dagri_incoming_edges`, `dagri_outgoing_edges`,
-  `dagri_order_edges`, `dagri_edge_ids`, `dagri_graph_diff`) into
-  dagriculture, where the graph lives; bayesgrove pins `dagriculture (>= 0.2.0)`
-  and thins its adapters to pass-throughs.
-- what *deliberately did not move here* — the execution layer concerns listed
+- what *lives here* — the graph-generic edge and diff helpers
+  (`dagri_incoming_edges`, `dagri_outgoing_edges`, `dagri_order_edges`,
+  `dagri_edge_ids`, `dagri_graph_diff`) belong in dagriculture, where the graph
+  lives; bayesgrove keeps its adapters as pass-throughs.
+- what *deliberately does not live here* — the execution layer concerns listed
   above. They stay in bayesgrove for now and, when extracted, will live in a
   new package rather than in dagriculture.

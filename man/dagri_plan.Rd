@@ -24,10 +24,9 @@ A \code{dagri_plan} (a named list with S3 class
 Create a structural plan
 }
 \details{
-Builds one O(V+E) adjacency index via \code{\link[=dagri_adjacency]{dagri_adjacency()}} near the
-top and shares it across \code{\link[=dagri_topo_order]{dagri_topo_order()}} and
-\code{\link[=dagri_external_blocked]{dagri_external_blocked()}}, so a single \code{dagri_plan()} call builds the
-index once and scans the edge list once per call.
+O(V+E). State is derived internally, so the plan is always current
+even if the input graph was never passed through
+\code{\link[=dagri_recompute_state]{dagri_recompute_state()}}; the input graph value itself is not mutated.
 
 The result carries S3 class \code{c("dagri_plan", "list")} so
 \code{\link[=print.dagri_plan]{print.dagri_plan()}} dispatches; underneath it remains a plain named list

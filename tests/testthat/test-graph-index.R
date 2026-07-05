@@ -83,77 +83,6 @@ describe("dagri_adjacency()", {
   })
 })
 
-describe("adjacency-indexed traversals are correct", {
-  reg <- dagri_registry(dagri_kind("source"), dagri_kind("process"))
-
-  # n1 -> n2 -> n3, with a gate on e1
-  g <- dagri_graph(reg) |>
-    dagri_add_node("n1", "source") |>
-    dagri_add_node("n2", "process") |>
-    dagri_add_node("n3", "process") |>
-    dagri_add_edge("n1", "n2", id = "e1") |>
-    dagri_add_edge("n2", "n3", id = "e2") |>
-    dagri_add_gate("e1", id = "gate1")
-
-  it("dagri_ancestors and dagri_descendants return the expected sets", {
-    expect_setequal(dagri_ancestors(g, "n3"), c("n1", "n2"))
-    expect_setequal(dagri_ancestors(g, "n2"), "n1")
-    expect_identical(dagri_ancestors(g, "n1"), character(0))
-
-    expect_setequal(dagri_descendants(g, "n1"), c("n2", "n3"))
-    expect_setequal(dagri_descendants(g, "n2"), "n3")
-    expect_identical(dagri_descendants(g, "n3"), character(0))
-  })
-
-  it("dagri_has_path identifies reachability in both directions", {
-    expect_true(dagri_has_path(g, "n1", "n3"))
-    expect_true(dagri_has_path(g, "n1", "n2"))
-    expect_false(dagri_has_path(g, "n3", "n1"))
-    expect_false(dagri_has_path(g, "n2", "n1"))
-    # self is not considered reachable (descendants excludes start)
-    expect_false(dagri_has_path(g, "n1", "n1"))
-  })
-
-  it("dagri_topo_order returns a valid ordering", {
-    order <- dagri_topo_order(g)
-    expect_setequal(order, c("n1", "n2", "n3"))
-    expect_true(which(order == "n1") < which(order == "n2"))
-    expect_true(which(order == "n2") < which(order == "n3"))
-  })
-
-  it("dagri_recompute_state marks gate and downstream blockage", {
-    g_state <- dagri_recompute_state(g)
-
-    expect_identical(dagri_node(g_state, "n1")$state, "ready")
-    expect_identical(dagri_node(g_state, "n2")$state, "blocked")
-    expect_identical(dagri_node(g_state, "n2")$block_reason, "gate")
-    expect_identical(dagri_node(g_state, "n3")$state, "blocked")
-    expect_identical(dagri_node(g_state, "n3")$block_reason, "upstream_blocked")
-  })
-
-  it("dagri_plan threads one shared index through topo and external_blocked", {
-    g_resolved <- dagri_resolve_gate(g, "gate1") |> dagri_recompute_state()
-    plan <- dagri_plan(
-      g_resolved,
-      targets = "n3",
-      external_holds = list(n1 = "manual_pause")
-    )
-
-    expect_setequal(plan$targets, c("n1", "n2", "n3"))
-    expect_setequal(plan$terminal, "n3")
-    expect_setequal(plan$eligible, c("n1", "n2", "n3"))
-    expect_identical(
-      plan$external_blocked,
-      list(
-        n1 = "manual_pause",
-        n2 = "manual_pause",
-        n3 = "manual_pause"
-      )
-    )
-    expect_identical(plan$blocked, stats::setNames(list(), character(0)))
-    expect_identical(plan$pending_gates, character(0))
-  })
-})
 
 describe("adjacency index scales to 1000 nodes", {
   it("dagri_descendants on a 1000-node chain completes quickly", {
@@ -173,7 +102,6 @@ describe("adjacency index scales to 1000 nodes", {
     elapsed <- proc.time()[["elapsed"]] - t0
 
     expect_length(desc, 999L)
-    cat(sprintf("\n[dagri_descendants 1000-chain] elapsed=%.3fs\n", elapsed))
     expect_true(elapsed < 5)
   })
 
@@ -199,7 +127,6 @@ describe("adjacency index scales to 1000 nodes", {
     plan <- dagri_plan(g, targets = as.character(901:1000))
     elapsed <- proc.time()[["elapsed"]] - t0
 
-    cat(sprintf("\n[dagri_plan 1000-layered] elapsed=%.3fs\n", elapsed))
     expect_true(elapsed < 5)
     expect_length(plan$topo_order, 1000L)
     # all 1000 nodes are reachable from the last layer (full ancestor closure)

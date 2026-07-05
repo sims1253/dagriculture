@@ -135,4 +135,35 @@ describe("graph querying and topology", {
       expect_error(dagri_topo_order(bad_graph), class = "dagri_error_invalid_argument")
     })
   })
+
+  describe("node-id validation in topology queries", {
+    g <- dagri_graph(dagri_registry(dagri_kind("source"), dagri_kind("process"))) |>
+      dagri_add_node("n1", "source") |>
+      dagri_add_node("n2", "process") |>
+      dagri_add_edge("n1", "n2", id = "e1")
+
+    it("dagri_upstream/dagri_downstream abort not_found for unknown id", {
+      expect_error(dagri_upstream(g, "missing"), class = "dagri_error_not_found")
+      expect_error(dagri_downstream(g, "missing"), class = "dagri_error_not_found")
+    })
+
+    it("dagri_ancestors/dagri_descendants abort not_found for unknown id", {
+      expect_error(dagri_ancestors(g, "missing"), class = "dagri_error_not_found")
+      expect_error(dagri_descendants(g, "missing"), class = "dagri_error_not_found")
+    })
+
+    it("dagri_has_path aborts not_found for unknown from/to", {
+      expect_error(dagri_has_path(g, "missing", "n2"), class = "dagri_error_not_found")
+      expect_error(dagri_has_path(g, "n1", "missing"), class = "dagri_error_not_found")
+    })
+
+    it("topology queries reject non-string / vector / NA ids", {
+      expect_error(dagri_upstream(g, c("a", "b")), class = "dagri_error_invalid_argument")
+      expect_error(dagri_downstream(g, NA_character_), class = "dagri_error_invalid_argument")
+      expect_error(dagri_ancestors(g, 123), class = "dagri_error_invalid_argument")
+      expect_error(dagri_descendants(g, c("a", "b")), class = "dagri_error_invalid_argument")
+      expect_error(dagri_has_path(g, c("a", "b"), "n2"), class = "dagri_error_invalid_argument")
+      expect_error(dagri_has_path(g, "n1", NA_character_), class = "dagri_error_invalid_argument")
+    })
+  })
 })

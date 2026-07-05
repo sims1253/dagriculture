@@ -2,6 +2,7 @@
 ^\.github$
 ^\.devcontainer$
 ^README\.Rmd$
+^README\.html$
 ^codecov\.yml$
 ^data-raw$
 ^docs$
@@ -21,3 +22,4 @@
 ^\.factory$
 ^\.Rcheck$
 ^\.\.Rcheck$
+^\.claude$

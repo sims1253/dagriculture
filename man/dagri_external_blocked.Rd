@@ -31,10 +31,6 @@ Propagates external holds through the topological order, marking downstream
 nodes as blocked by the nearest upstream hold.
 }
 \details{
-When \code{index} is \code{NULL} it is built once via \code{\link[=dagri_adjacency]{dagri_adjacency()}};
-upstream neighbors are then read from \code{index$reverse} instead of scanning
-the edge list, so propagation is O(V+E) overall. Callers that already hold
-an index (e.g. \code{\link[=dagri_plan]{dagri_plan()}}) may pass it to share one index across the
-whole plan.
+O(V+E).
 }
 \keyword{internal}
