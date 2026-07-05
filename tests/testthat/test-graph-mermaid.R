@@ -50,7 +50,7 @@ describe("dagri_mermaid", {
       node_class = function(n) "custom"
     )
     expect_match(out, '  node_a\\["NODE_A"\\]', fixed = FALSE)
-    expect_match(out, '  class node_a custom')
+    expect_match(out, "  class node_a custom")
     # No default state class leaks through.
     expect_false(grepl("class node_a new", out, fixed = TRUE))
   })
@@ -121,7 +121,7 @@ describe("dagri_mermaid", {
     # The node line must not contain a literal newline inside the label;
     # the label is collapsed to a single space.
     expect_match(out, '  n\\["line one line two"\\]', fixed = FALSE)
-    expect_equal(length(strsplit(out, "\n")[[1]]), 3L) # header + node + class
+    expect_equal(length(strsplit(out, "\n")[[1]]), 3L) # header, node, class
   })
 
   it("respects a custom direction in the header", {

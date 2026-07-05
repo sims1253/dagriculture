@@ -160,7 +160,11 @@ describe("graph boundary helpers", {
       )
       expect_equal(dagri_edge_ids(edges), c("e1", "e1_again", "e2"))
       # uniqueness is within names, not across names.
-      expect_equal(dagri_edge_ids(list(a = list(), a = list())), "a")
+      # Construct the duplicate-name list without a literal duplicated argument
+      # (jarl's duplicated_arguments rule flags `a = ..., a = ...` even in a
+      # test fixture; building it via setNames makes the intent explicit).
+      dup_names <- setNames(list(list(), list()), c("a", "a"))
+      expect_equal(dagri_edge_ids(dup_names), "a")
     })
 
     it("falls back to embedded edge$id when names are absent", {
@@ -182,8 +186,8 @@ describe("graph boundary helpers", {
           ))
         }
       )
-      # Mixed: one named, one unnamed without id -> not all names, ids
-      # incomplete -> abort.
+      # Mixed: one named, one unnamed without id: not all names, ids
+      # incomplete, so dagri_edge_ids aborts.
       expect_error(
         dagri_edge_ids(list(
           e1 = list(id = "e1", from = "a", to = "b"),
