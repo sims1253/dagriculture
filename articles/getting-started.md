@@ -23,6 +23,7 @@ execution or manage side effects; rather, it tracks structural states
 ## Installation
 
 ``` r
+
 pak::pak("sims1253/dagriculture")
 ```
 
@@ -34,6 +35,7 @@ First, establish a registry to strictly define what kind of nodes are
 allowed in your graphs.
 
 ``` r
+
 library(dagriculture)
 
 reg <- dagri_registry(
@@ -50,6 +52,7 @@ Start with an empty graph, and add nodes and edges. Because
 new updated graph instance.
 
 ``` r
+
 g <- dagri_graph(reg)
 
 g <- g |>
@@ -71,8 +74,50 @@ block—for instance, requiring human approval before the statistical fit
 proceeds.
 
 ``` r
-g <- dagri_add_gate(g, edge = "e_data_fit", id = "approval_gate")
+
+g <- dagri_add_gate(g, edge_id = "e_data_fit", id = "approval_gate")
 ```
+
+## Structural State Semantics
+
+`dagriculture` tracks **structural** readiness only. It does not execute
+anything and does not know whether a node has been computed, is
+currently running, or has failed. The three structural node states, set
+by \[dagri_recompute_state()\], are:
+
+| `state` | Meaning |
+|----|----|
+| `new` | Initial state of a freshly added node; [`dagri_recompute_state()`](https://sims1253.github.io/dagriculture/reference/dagri_recompute_state.md) overwrites it on the next pass. |
+| `ready` | Every upstream node is `ready` and no inbound edge carries a pending gate; the node is structurally eligible to run. |
+| `blocked` | At least one structural blocker prevents readiness. See `block_reason` below. |
+
+When a node is `blocked`,
+[`dagri_recompute_state()`](https://sims1253.github.io/dagriculture/reference/dagri_recompute_state.md)
+records a `block_reason`:
+
+| `block_reason` | Meaning |
+|----|----|
+| `none` | Not blocked (set together with `state = "ready"`). |
+| `gate` | An inbound edge carries one or more gates with `status = "pending"`. |
+| `upstream_blocked` | At least one upstream node is itself `blocked`, so this node cannot become `ready` yet. |
+
+### What `dagri_recompute_state()` does NOT track
+
+Execution state is the consumer’s overlay, not part of the structural
+model. In particular, `dagriculture` never records:
+
+| Execution concept (consumer-owned) | Why it is out of scope |
+|----|----|
+| `done` / `succeeded` | A result existing is an artifact/cache concern (bayesgrove overlays this). |
+| `failed` | Failure is a runtime outcome; the graph only knows structural readiness. |
+| `running` | Concurrency and scheduling live in the executor, not the graph. |
+| `skipped` (cache hit) | Reuse is decided from fingerprints, not from node `$state`. |
+
+A node that is structurally `ready` may still be skipped by a consumer
+when a reusable result exists; conversely a `blocked` node will never
+run until its blocker clears. Call \[dagri_recompute_state()\] whenever
+the graph structure or gate statuses change, so the
+`state`/`block_reason` fields reflect the current graph before planning.
 
 ### 4. Compute State and Plan
 
@@ -82,6 +127,7 @@ to evaluate the graph topologically and determine which nodes are
 structurally ready and which are blocked.
 
 ``` r
+
 g_state <- dagri_recompute_state(g)
 
 # The 'data' node is a root and has no blockers
@@ -97,9 +143,13 @@ dagri_blocked(g_state)
 #> [1] "upstream_blocked"
 ```
 
-We can generate a structural plan to see how dependencies shake out:
+We can generate a structural plan to see how dependencies shake out.
+[`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)
+derives state internally, so it does not require the recomputed graph
+value above:
 
 ``` r
+
 plan <- dagri_plan(g_state)
 plan$targets
 #> [1] "data" "fit"  "plot"
@@ -119,6 +169,7 @@ Planner-visible external holds can be layered onto planning without
 mutating the graph:
 
 ``` r
+
 dagri_plan(
   g_state,
   external_holds = list(fit = "manual_review")
@@ -137,6 +188,7 @@ the state again reveals that the downstream dependencies are now
 unblocked.
 
 ``` r
+
 g_unblocked <- dagri_resolve_gate(g_state, id = "approval_gate") |>
   dagri_recompute_state()
 
@@ -153,6 +205,7 @@ dagri_blocked(g_unblocked)
 queries.
 
 ``` r
+
 dagri_upstream(g_unblocked, "plot")
 #> [1] "fit"
 dagri_descendants(g_unblocked, "data")

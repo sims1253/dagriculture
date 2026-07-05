@@ -1,9 +1,9 @@
-pandoc: 3.1.11
+pandoc: 3.8.3
 pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   getting-started: getting-started.html
-last_built: 2026-03-15T09:09Z
+last_built: 2026-07-05T03:12Z
 urls:
   reference: https://sims1253.github.io/dagriculture/reference
   article: https://sims1253.github.io/dagriculture/articles

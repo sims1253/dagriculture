@@ -6,7 +6,13 @@ downstream nodes as blocked by the nearest upstream hold.
 ## Usage
 
 ``` r
-dagri_external_blocked(graph, targets, topo_order, external_holds)
+dagri_external_blocked(
+  graph,
+  targets,
+  topo_order,
+  external_holds,
+  index = NULL
+)
 ```
 
 ## Arguments
@@ -27,6 +33,15 @@ dagri_external_blocked(graph, targets, topo_order, external_holds)
 
   Named list mapping node IDs to hold reasons.
 
+- index:
+
+  Optional pre-built adjacency index from
+  [`dagri_adjacency()`](https://sims1253.github.io/dagriculture/reference/dagri_adjacency.md).
+
 ## Value
 
 Named list of externally blocked nodes and their reasons.
+
+## Details
+
+O(V+E).

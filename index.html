@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Tools for dagriculture • dagriculture</title>
+<title>Pure Value-Oriented Directed Acyclic Graphs for Task Planning • dagriculture</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Tools for dagriculture">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Pure Value-Oriented Directed Acyclic Graphs for Task Planning">
 <meta name="description" content="A pure, value-oriented directed acyclic graph library for managing graph structures, topological dependencies, structural validity, and task planning. Graph-modifying operations are immutable and return new graph instances.">
 <meta property="og:description" content="A pure, value-oriented directed acyclic graph library for managing graph structures, topological dependencies, structural validity, and task planning. Graph-modifying operations are immutable and return new graph instances.">
 </head>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">dagriculture</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,7 +52,18 @@
 </h1></div>
 <!-- badges: start -->
 
-<p><code>dagriculture</code> is a pure, value-oriented graph library for R. It is designed to manage graph structures, topological dependencies, structural validity, and planning, specifically without coupling itself to external state or runtime execution engines.</p>
+<p><strong>dagriculture</strong> is a pure, value-oriented directed-acyclic-graph library for R. It manages graph structure, topological dependencies, structural validity, and task planning — and deliberately nothing else. Every operation takes a graph value and returns a new graph value:</p>
+<ul>
+<li>
+<strong>No mutation.</strong> Graphs are plain R lists; editing verbs return modified copies, so snapshots, diffs, and rollbacks are just variable assignments.</li>
+<li>
+<strong>No execution.</strong> dagriculture tells you <em>what could run</em> (<code><a href="reference/dagri_plan.html">dagri_plan()</a></code>), never runs anything itself, and holds no opinions about what a node does.</li>
+<li>
+<strong>No IO and no code.</strong> Graphs contain only data. Node kinds can declare parameter schemas, but executable closures are rejected by construction — a graph loaded from disk can never smuggle code into your session.</li>
+<li>
+<strong>Validity by construction.</strong> Duplicate ids, unknown kinds, dangling edges, and cycle-creating edges are rejected at edit time with a typed error taxonomy (<code>dagri_error_*</code>).</li>
+</ul>
+<p>This makes it a safe structural core for runtime layers built on top. Its primary consumer is <a href="https://github.com/sims1253/bayesgrove" class="external-link">bayesgrove</a>, which layers caching, execution, and Bayesian-workflow semantics over these primitives.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -61,9 +72,45 @@
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"sims1253/dagriculture"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="core-concepts">Core concepts<a class="anchor" aria-label="anchor" href="#core-concepts"></a>
+</h2>
+<table class="table">
+<colgroup>
+<col width="16%">
+<col width="83%">
+</colgroup>
+<thead><tr>
+<th>Concept</th>
+<th>What it is</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>Registry / kind</strong></td>
+<td>The vocabulary of allowed node types, with optional input contracts and parameter schemas</td>
+</tr>
+<tr>
+<td><strong>Node</strong></td>
+<td>A typed vertex with params, metadata, and a structural state (<code>new</code>, <code>ready</code>, <code>blocked</code>)</td>
+</tr>
+<tr>
+<td><strong>Edge</strong></td>
+<td>A typed, id-carrying dependency between nodes; cycle-creating edges are rejected</td>
+</tr>
+<tr>
+<td><strong>Gate</strong></td>
+<td>A pending/resolved blocker attached to an edge — downstream nodes stay blocked until it resolves</td>
+</tr>
+<tr>
+<td><strong>Plan</strong></td>
+<td>A pure description of targets, topological order, eligible/blocked nodes, and pending gates</td>
+</tr>
+</tbody>
+</table>
+<p>Structural state is intentionally minimal: <code><a href="reference/dagri_recompute_state.html">dagri_recompute_state()</a></code> knows whether a node is <em>structurally</em> ready or blocked (upstream not ready, or a pending gate in the way). Execution states like “done” or “failed” belong to whatever runtime you build on top.</p>
+</div>
+<div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h2>
-<p><code>dagriculture</code> provides a purely functional API to build graphs, establish dependencies, and track structural blockers such as “gates”:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/sims1253/dagriculture" class="external-link">dagriculture</a></span><span class="op">)</span></span>
 <span></span>
@@ -73,44 +120,73 @@
 <span>  <span class="fu"><a href="reference/dagri_kind.html">dagri_kind</a></span><span class="op">(</span><span class="st">"transform"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Create an empty graph</span></span>
-<span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_graph.html">dagri_graph</a></span><span class="op">(</span><span class="va">registry</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 3. Add nodes and edges</span></span>
-<span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="va">graph</span> <span class="op">|&gt;</span></span>
+<span><span class="co"># 2. Build a graph; every verb returns a new value</span></span>
+<span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_graph.html">dagri_graph</a></span><span class="op">(</span><span class="va">registry</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/dagri_add_node.html">dagri_add_node</a></span><span class="op">(</span><span class="st">"raw_data"</span>, <span class="st">"data_source"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/dagri_add_node.html">dagri_add_node</a></span><span class="op">(</span><span class="st">"cleaned_data"</span>, <span class="st">"transform"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/dagri_add_edge.html">dagri_add_edge</a></span><span class="op">(</span>from <span class="op">=</span> <span class="st">"raw_data"</span>, to <span class="op">=</span> <span class="st">"cleaned_data"</span>, id <span class="op">=</span> <span class="st">"edge_1"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 4. Add a structural blocker (gate) to an edge</span></span>
-<span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_add_gate.html">dagri_add_gate</a></span><span class="op">(</span><span class="va">graph</span>, edge <span class="op">=</span> <span class="st">"edge_1"</span>, id <span class="op">=</span> <span class="st">"review_gate"</span><span class="op">)</span></span>
+<span><span class="co"># 3. Gate the edge: downstream work is blocked until the gate resolves</span></span>
+<span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_add_gate.html">dagri_add_gate</a></span><span class="op">(</span><span class="va">graph</span>, edge_id <span class="op">=</span> <span class="st">"edge_1"</span>, id <span class="op">=</span> <span class="st">"review_gate"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 5. Compute the structural state</span></span>
+<span><span class="co"># 4. Compute structural state</span></span>
 <span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_recompute_state.html">dagri_recompute_state</a></span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># See which nodes are eligible to proceed</span></span>
-<span><span class="fu"><a href="reference/dagri_eligible.html">dagri_eligible</a></span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="do">## [1] "raw_data"</span></span></code></pre></div>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># See which nodes are blocked, and why</span></span>
-<span><span class="fu"><a href="reference/dagri_blocked.html">dagri_blocked</a></span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb5"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="do">## $cleaned_data</span></span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="do">## [1] "gate"</span></span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Planner-visible external holds stay out of graph state</span></span>
-<span><span class="fu"><a href="reference/dagri_plan.html">dagri_plan</a></span><span class="op">(</span></span>
+<span><span class="fu"><a href="reference/dagri_eligible.html">dagri_eligible</a></span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "raw_data"</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/dagri_blocked.html">dagri_blocked</a></span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $cleaned_data</span></span>
+<span><span class="co">#&gt; [1] "gate"</span></span></code></pre></div>
+<p>Planning is a pure query that derives state internally — you don’t need to recompute first — and external holds (reasons imposed by a caller, such as a policy layer) affect the plan without ever touching graph state:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_plan.html">dagri_plan</a></span><span class="op">(</span></span>
 <span>  <span class="va">graph</span>,</span>
 <span>  external_holds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cleaned_data <span class="op">=</span> <span class="st">"manual_review"</span><span class="op">)</span></span>
-<span><span class="op">)</span><span class="op">$</span><span class="va">external_blocked</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="do">## $cleaned_data</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="do">## [1] "manual_review"</span></span></code></pre></div>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># 6. Resolve the gate to unblock the downstream node</span></span>
-<span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_resolve_gate.html">dagri_resolve_gate</a></span><span class="op">(</span><span class="va">graph</span>, <span class="st">"review_gate"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">plan</span><span class="op">$</span><span class="va">topo_order</span></span>
+<span><span class="co">#&gt; [1] "raw_data"     "cleaned_data"</span></span>
+<span></span>
+<span><span class="va">plan</span><span class="op">$</span><span class="va">external_blocked</span></span>
+<span><span class="co">#&gt; $cleaned_data</span></span>
+<span><span class="co">#&gt; [1] "manual_review"</span></span>
+<span></span>
+<span><span class="va">plan</span><span class="op">$</span><span class="va">pending_gates</span></span>
+<span><span class="co">#&gt; [1] "review_gate"</span></span></code></pre></div>
+<p>Resolving the gate unblocks the downstream node:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_resolve_gate.html">dagri_resolve_gate</a></span><span class="op">(</span><span class="va">graph</span>, <span class="st">"review_gate"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/dagri_recompute_state.html">dagri_recompute_state</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="reference/dagri_eligible.html">dagri_eligible</a></span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb9"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="do">## [1] "raw_data"     "cleaned_data"</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/dagri_eligible.html">dagri_eligible</a></span><span class="op">(</span><span class="va">graph</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "raw_data"     "cleaned_data"</span></span></code></pre></div>
+<p>Because graphs are values, “what changed?” never requires an event log — keep the old value and compare:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">before</span> <span class="op">&lt;-</span> <span class="va">graph</span></span>
+<span><span class="va">after</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagri_add_node.html">dagri_add_node</a></span><span class="op">(</span><span class="va">graph</span>, <span class="st">"report"</span>, <span class="st">"transform"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">after</span><span class="op">$</span><span class="va">nodes</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">before</span><span class="op">$</span><span class="va">nodes</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "report"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="queries">Queries<a class="anchor" aria-label="anchor" href="#queries"></a>
+</h2>
+<p>Beyond editing and planning, the package provides pure structural queries: <code><a href="reference/dagri_upstream.html">dagri_upstream()</a></code> / <code><a href="reference/dagri_downstream.html">dagri_downstream()</a></code> for direct neighbors, <code><a href="reference/dagri_ancestors.html">dagri_ancestors()</a></code> / <code><a href="reference/dagri_descendants.html">dagri_descendants()</a></code> for reachability, <code><a href="reference/dagri_roots.html">dagri_roots()</a></code> / <code><a href="reference/dagri_leaves.html">dagri_leaves()</a></code> / <code><a href="reference/dagri_terminal.html">dagri_terminal()</a></code> for boundary nodes, <code><a href="reference/dagri_topo_order.html">dagri_topo_order()</a></code> for ordering, and <code><a href="reference/dagri_has_path.html">dagri_has_path()</a></code> for connectivity.</p>
+</div>
+<div class="section level2">
+<h2 id="what-dagriculture-is-not">What dagriculture is not<a class="anchor" aria-label="anchor" href="#what-dagriculture-is-not"></a>
+</h2>
+<ul>
+<li>Not a workflow runner — nothing here executes, caches, or schedules. Pair it with a runtime layer (see bayesgrove) or write your own.</li>
+<li>Not a general graph-theory package — it targets typed task DAGs, not arbitrary network analysis; use igraph for that.</li>
+<li>Not a persistence layer — graphs serialize cleanly to JSON because they are plain data, but reading and writing them is the caller’s job. The contracts are documented in <a href="design/"><code>design/</code></a>.</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="design-documents">Design documents<a class="anchor" aria-label="anchor" href="#design-documents"></a>
+</h2>
+<p>The <code>design/</code> directory is authoritative for the API surface and boundary guarantees: <a href="design/api-contracts.html"><code>api-contracts.md</code></a>, <a href="design/boundary-contract.html"><code>boundary-contract.md</code></a>, and <a href="design/persistence-spec.html"><code>persistence-spec.md</code></a>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

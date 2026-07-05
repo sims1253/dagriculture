@@ -1,5 +1,123 @@
 # Changelog
 
+## dagriculture 0.3.0
+
+### Behavior changes
+
+- [`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)
+  now derives node state internally on a local copy of the graph, so the
+  returned `eligible`/`blocked` are always current even when the input
+  graph was never passed through
+  [`dagri_recompute_state()`](https://sims1253.github.io/dagriculture/reference/dagri_recompute_state.md).
+  The input graph value is not mutated.
+
+### Breaking changes
+
+- [`dagri_ancestors()`](https://sims1253.github.io/dagriculture/reference/dagri_ancestors.md),
+  [`dagri_descendants()`](https://sims1253.github.io/dagriculture/reference/dagri_descendants.md),
+  [`dagri_upstream()`](https://sims1253.github.io/dagriculture/reference/dagri_upstream.md),
+  [`dagri_downstream()`](https://sims1253.github.io/dagriculture/reference/dagri_downstream.md),
+  and
+  [`dagri_has_path()`](https://sims1253.github.io/dagriculture/reference/dagri_has_path.md)
+  now abort with `dagri_error_not_found` for unknown node ids
+  (previously they returned silent empties or `FALSE`).
+- Id-taking public arguments (`id`/`from`/`to`/`edge_id`/`name`) now
+  reject vectors, `NA`, and empty strings with
+  `dagri_error_invalid_argument` instead of dying with a base-R
+  “condition has length \> 1” error.
+- `dagri_add_gate(graph, edge, ...)`’s `edge` parameter has been renamed
+  to `edge_id` for consistency with the rest of the API. Update named
+  call sites.
+- [`abort_dagri()`](https://sims1253.github.io/dagriculture/reference/abort_dagri.md),
+  [`dagri_target_closure()`](https://sims1253.github.io/dagriculture/reference/dagri_target_closure.md),
+  and
+  [`dagri_pending_gates()`](https://sims1253.github.io/dagriculture/reference/dagri_pending_gates.md)
+  are no longer exported; their results are reachable through
+  [`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)’s
+  `targets` and `pending_gates` fields.
+- [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)
+  and
+  [`dagri_terminal()`](https://sims1253.github.io/dagriculture/reference/dagri_terminal.md)
+  no longer accept an `index` argument; they build the adjacency index
+  themselves. The index type has no public constructor, so threading it
+  through the public API was a footgun.
+
+### Internal
+
+- Minimum R version raised to 4.4.0; `%||%` relies on base R, which
+  provides it since 4.4.0.
+
+## dagriculture 0.2.0
+
+### Features
+
+- **Cycle detection in
+  [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md):**
+  Kahn’s algorithm aborts with `dagri_error_cycle`
+  (`details$cycle_nodes`) instead of silently returning a partial order;
+  closes a hole for graphs deserialized from JSON.
+- **[`dagri_update_node()`](https://sims1253.github.io/dagriculture/reference/dagri_update_node.md)
+  replace semantics documented:** `params`/`metadata` **replace** the
+  existing fields outright (use
+  [`utils::modifyList()`](https://rdrr.io/r/utils/modifyList.html) to
+  merge); the merge belongs in the consumer, not in this primitive.
+- **Referential integrity in
+  [`dagri_validate_graph()`](https://sims1253.github.io/dagriculture/reference/dagri_validate_graph.md):**
+  dangling edge `from`/`to` or gate `edge_id` references abort with
+  `dagri_error_invalid_argument`; guards data loaded from disk.
+- **Graph boundary helpers:** added
+  [`dagri_incoming_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_incoming_edges.md),
+  [`dagri_outgoing_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_outgoing_edges.md),
+  [`dagri_order_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_order_edges.md),
+  [`dagri_edge_ids()`](https://sims1253.github.io/dagriculture/reference/dagri_edge_ids.md),
+  and
+  [`dagri_graph_diff()`](https://sims1253.github.io/dagriculture/reference/dagri_graph_diff.md)
+  (pure structural diff).
+- **Mermaid flowchart export:** added
+  [`dagri_mermaid()`](https://sims1253.github.io/dagriculture/reference/dagri_mermaid.md)
+  — a pure graph-to-text renderer with injectable label/class functions
+  and pending-gate annotations.
+- **Print methods and S3 classes:**
+  [`dagri_graph()`](https://sims1253.github.io/dagriculture/reference/dagri_graph.md)
+  and
+  [`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)
+  stamp S3 classes (still plain lists underneath) and gain
+  [`print.dagri_graph()`](https://sims1253.github.io/dagriculture/reference/print.dagri_graph.md)
+  /
+  [`print.dagri_plan()`](https://sims1253.github.io/dagriculture/reference/print.dagri_plan.md)
+  summaries.
+- **Getting-started vignette:** added a Structural State Semantics
+  section.
+- **Real package Title** in DESCRIPTION.
+- **Decision record — generic execution layer:** documented that
+  execution, caching, and artifact storage stay out of dagriculture (see
+  `design/boundary-contract.md`).
+
+### Performance
+
+- **Internal adjacency index:**
+  [`dagri_adjacency()`](https://sims1253.github.io/dagriculture/reference/dagri_adjacency.md)
+  builds forward/reverse neighbor maps in one O(V+E) pass; traversals
+  and planning thread it through, taking walks from O(V\*E) to O(V+E).
+  Single-node
+  [`dagri_upstream()`](https://sims1253.github.io/dagriculture/reference/dagri_upstream.md)
+  /
+  [`dagri_downstream()`](https://sims1253.github.io/dagriculture/reference/dagri_downstream.md)
+  keep their O(E) scan.
+- **Re-validation collapse:**
+  [`dagri_has_path()`](https://sims1253.github.io/dagriculture/reference/dagri_has_path.md)
+  now runs the downstream walk inline via the shared index, instead of
+  delegating to
+  [`dagri_descendants()`](https://sims1253.github.io/dagriculture/reference/dagri_descendants.md)
+  (which re-built the index).
+  [`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)
+  builds one shared index across its
+  [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)
+  and
+  [`dagri_external_blocked()`](https://sims1253.github.io/dagriculture/reference/dagri_external_blocked.md)
+  calls. Each public boundary still does its own cheap structural
+  validation but scans the edge list once per call.
+
 ## dagriculture 0.1.6
 
 ### Fixes
@@ -26,7 +144,9 @@
   now validates that `param_schema` is a named list or `NULL` before
   scanning it for closures, rejecting non-lists and unnamed inputs
   early.
-- **DFS re-validation**: `dagri_dfs()` and
+- **DFS re-validation**:
+  [`dagri_dfs()`](https://sims1253.github.io/dagriculture/reference/dagri_dfs.md)
+  and
   [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)
   no longer re-validate the graph on every iteration, improving
   performance for large reachability queries.

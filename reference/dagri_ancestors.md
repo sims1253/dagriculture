@@ -1,6 +1,7 @@
 # Get all ancestors
 
-Get all ancestors
+Returns all node ids reachable from `node_id` by following edges
+upstream.
 
 ## Usage
 
@@ -17,3 +18,7 @@ dagri_ancestors(graph, node_id)
 - node_id:
 
   Node ID.
+
+## Details
+
+O(V+E).

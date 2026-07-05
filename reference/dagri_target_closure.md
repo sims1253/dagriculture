@@ -5,7 +5,7 @@ Get the structural closure of target nodes
 ## Usage
 
 ``` r
-dagri_target_closure(graph, targets = NULL)
+dagri_target_closure(graph, targets = NULL, index = NULL)
 ```
 
 ## Arguments
@@ -17,3 +17,12 @@ dagri_target_closure(graph, targets = NULL)
 - targets:
 
   Optional target nodes.
+
+- index:
+
+  Optional pre-built adjacency index from
+  [`dagri_adjacency()`](https://sims1253.github.io/dagriculture/reference/dagri_adjacency.md).
+
+## Details
+
+O(V+E).

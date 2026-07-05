@@ -17,3 +17,7 @@ dagri_terminal(graph, targets = NULL)
 - targets:
 
   Optional target nodes.
+
+## Details
+
+O(V+E).

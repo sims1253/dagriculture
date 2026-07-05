@@ -1,6 +1,7 @@
 # Get all descendants
 
-Get all descendants
+Returns all node ids reachable from `node_id` by following edges
+downstream.
 
 ## Usage
 
@@ -17,3 +18,7 @@ dagri_descendants(graph, node_id)
 - node_id:
 
   Node ID.
+
+## Details
+
+O(V+E).

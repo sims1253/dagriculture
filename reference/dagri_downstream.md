@@ -1,6 +1,6 @@
 # Get downstream nodes
 
-Get downstream nodes
+Returns the unique node ids with an edge out of `node_id`. O(E).
 
 ## Usage
 

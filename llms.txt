@@ -1,23 +1,59 @@
 # dagriculture
 
-`dagriculture` is a pure, value-oriented graph library for R. It is
-designed to manage graph structures, topological dependencies,
-structural validity, and planning, specifically without coupling itself
-to external state or runtime execution engines.
+**dagriculture** is a pure, value-oriented directed-acyclic-graph
+library for R. It manages graph structure, topological dependencies,
+structural validity, and task planning — and deliberately nothing else.
+Every operation takes a graph value and returns a new graph value:
+
+- **No mutation.** Graphs are plain R lists; editing verbs return
+  modified copies, so snapshots, diffs, and rollbacks are just variable
+  assignments.
+- **No execution.** dagriculture tells you *what could run*
+  ([`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)),
+  never runs anything itself, and holds no opinions about what a node
+  does.
+- **No IO and no code.** Graphs contain only data. Node kinds can
+  declare parameter schemas, but executable closures are rejected by
+  construction — a graph loaded from disk can never smuggle code into
+  your session.
+- **Validity by construction.** Duplicate ids, unknown kinds, dangling
+  edges, and cycle-creating edges are rejected at edit time with a typed
+  error taxonomy (`dagri_error_*`).
+
+This makes it a safe structural core for runtime layers built on top.
+Its primary consumer is
+[bayesgrove](https://github.com/sims1253/bayesgrove), which layers
+caching, execution, and Bayesian-workflow semantics over these
+primitives.
 
 ## Installation
 
 ``` r
+
 # install.packages("pak")
 pak::pak("sims1253/dagriculture")
 ```
 
+## Core concepts
+
+| Concept | What it is |
+|----|----|
+| **Registry / kind** | The vocabulary of allowed node types, with optional input contracts and parameter schemas |
+| **Node** | A typed vertex with params, metadata, and a structural state (`new`, `ready`, `blocked`) |
+| **Edge** | A typed, id-carrying dependency between nodes; cycle-creating edges are rejected |
+| **Gate** | A pending/resolved blocker attached to an edge — downstream nodes stay blocked until it resolves |
+| **Plan** | A pure description of targets, topological order, eligible/blocked nodes, and pending gates |
+
+Structural state is intentionally minimal:
+[`dagri_recompute_state()`](https://sims1253.github.io/dagriculture/reference/dagri_recompute_state.md)
+knows whether a node is *structurally* ready or blocked (upstream not
+ready, or a pending gate in the way). Execution states like “done” or
+“failed” belong to whatever runtime you build on top.
+
 ## Example
 
-`dagriculture` provides a purely functional API to build graphs,
-establish dependencies, and track structural blockers such as “gates”:
-
 ``` r
+
 library(dagriculture)
 
 # 1. Define the kinds of nodes allowed in your graph
@@ -26,63 +62,114 @@ registry <- dagri_registry(
   dagri_kind("transform")
 )
 
-# 2. Create an empty graph
-graph <- dagri_graph(registry)
-
-# 3. Add nodes and edges
-graph <- graph |>
+# 2. Build a graph; every verb returns a new value
+graph <- dagri_graph(registry) |>
   dagri_add_node("raw_data", "data_source") |>
   dagri_add_node("cleaned_data", "transform") |>
   dagri_add_edge(from = "raw_data", to = "cleaned_data", id = "edge_1")
 
-# 4. Add a structural blocker (gate) to an edge
-graph <- dagri_add_gate(graph, edge = "edge_1", id = "review_gate")
+# 3. Gate the edge: downstream work is blocked until the gate resolves
+graph <- dagri_add_gate(graph, edge_id = "edge_1", id = "review_gate")
 
-# 5. Compute the structural state
+# 4. Compute structural state
 graph <- dagri_recompute_state(graph)
 
-# See which nodes are eligible to proceed
 dagri_eligible(graph)
-```
+#> [1] "raw_data"
 
-``` R
-## [1] "raw_data"
-```
-
-``` r
-# See which nodes are blocked, and why
 dagri_blocked(graph)
+#> $cleaned_data
+#> [1] "gate"
 ```
 
-``` R
-## $cleaned_data
-## [1] "gate"
-```
+Planning is a pure query that derives state internally — you don’t need
+to recompute first — and external holds (reasons imposed by a caller,
+such as a policy layer) affect the plan without ever touching graph
+state:
 
 ``` r
-# Planner-visible external holds stay out of graph state
-dagri_plan(
+
+plan <- dagri_plan(
   graph,
   external_holds = list(cleaned_data = "manual_review")
-)$external_blocked
+)
+
+plan$topo_order
+#> [1] "raw_data"     "cleaned_data"
+
+plan$external_blocked
+#> $cleaned_data
+#> [1] "manual_review"
+
+plan$pending_gates
+#> [1] "review_gate"
 ```
 
-``` R
-## $cleaned_data
-## [1] "manual_review"
-```
+Resolving the gate unblocks the downstream node:
 
 ``` r
-# 6. Resolve the gate to unblock the downstream node
+
 graph <- dagri_resolve_gate(graph, "review_gate") |>
   dagri_recompute_state()
 
 dagri_eligible(graph)
+#> [1] "raw_data"     "cleaned_data"
 ```
 
-``` R
-## [1] "raw_data"     "cleaned_data"
+Because graphs are values, “what changed?” never requires an event log —
+keep the old value and compare:
+
+``` r
+
+before <- graph
+after <- dagri_add_node(graph, "report", "transform")
+
+setdiff(names(after$nodes), names(before$nodes))
+#> [1] "report"
 ```
+
+## Queries
+
+Beyond editing and planning, the package provides pure structural
+queries:
+[`dagri_upstream()`](https://sims1253.github.io/dagriculture/reference/dagri_upstream.md)
+/
+[`dagri_downstream()`](https://sims1253.github.io/dagriculture/reference/dagri_downstream.md)
+for direct neighbors,
+[`dagri_ancestors()`](https://sims1253.github.io/dagriculture/reference/dagri_ancestors.md)
+/
+[`dagri_descendants()`](https://sims1253.github.io/dagriculture/reference/dagri_descendants.md)
+for reachability,
+[`dagri_roots()`](https://sims1253.github.io/dagriculture/reference/dagri_roots.md)
+/
+[`dagri_leaves()`](https://sims1253.github.io/dagriculture/reference/dagri_leaves.md)
+/
+[`dagri_terminal()`](https://sims1253.github.io/dagriculture/reference/dagri_terminal.md)
+for boundary nodes,
+[`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)
+for ordering, and
+[`dagri_has_path()`](https://sims1253.github.io/dagriculture/reference/dagri_has_path.md)
+for connectivity.
+
+## What dagriculture is not
+
+- Not a workflow runner — nothing here executes, caches, or schedules.
+  Pair it with a runtime layer (see bayesgrove) or write your own.
+- Not a general graph-theory package — it targets typed task DAGs, not
+  arbitrary network analysis; use igraph for that.
+- Not a persistence layer — graphs serialize cleanly to JSON because
+  they are plain data, but reading and writing them is the caller’s job.
+  The contracts are documented in
+  [`design/`](https://sims1253.github.io/dagriculture/design/).
+
+## Design documents
+
+The `design/` directory is authoritative for the API surface and
+boundary guarantees:
+[`api-contracts.md`](https://sims1253.github.io/dagriculture/design/api-contracts.md),
+[`boundary-contract.md`](https://sims1253.github.io/dagriculture/design/boundary-contract.md),
+and
+[`persistence-spec.md`](https://sims1253.github.io/dagriculture/design/persistence-spec.md).
 
 # Package index
 
@@ -153,6 +240,22 @@ Accessors and topological traversal functions.
 - [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)
   : Get topological order
 
+## Graph Boundary Helpers
+
+Graph-generic edge and diff helpers. They operate on edge objects and
+structural ids without workflow semantics.
+
+- [`dagri_incoming_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_incoming_edges.md)
+  : Incoming edges for a node
+- [`dagri_outgoing_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_outgoing_edges.md)
+  : Outgoing edges for a node
+- [`dagri_order_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_order_edges.md)
+  : Order edges deterministically by edge id
+- [`dagri_edge_ids()`](https://sims1253.github.io/dagriculture/reference/dagri_edge_ids.md)
+  : Sorted unique edge ids
+- [`dagri_graph_diff()`](https://sims1253.github.io/dagriculture/reference/dagri_graph_diff.md)
+  : Structural diff of two graphs
+
 ## State and Planning
 
 Functions to resolve structural conditions and produce graph execution
@@ -166,19 +269,24 @@ plans.
   : Get blocked nodes
 - [`dagri_terminal()`](https://sims1253.github.io/dagriculture/reference/dagri_terminal.md)
   : Get terminal nodes
-- [`dagri_target_closure()`](https://sims1253.github.io/dagriculture/reference/dagri_target_closure.md)
-  : Get the structural closure of target nodes
-- [`dagri_pending_gates()`](https://sims1253.github.io/dagriculture/reference/dagri_pending_gates.md)
-  : Get pending gates
 - [`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)
   : Create a structural plan
 
-## Internals
+## Visualization
 
-Package internal utilities.
+Graph-to-text renderers.
 
-- [`abort_dagri()`](https://sims1253.github.io/dagriculture/reference/abort_dagri.md)
-  : Abort with a typed dagriculture error
+- [`dagri_mermaid()`](https://sims1253.github.io/dagriculture/reference/dagri_mermaid.md)
+  : Render a dagriculture graph as Mermaid flowchart text
+
+## Printing
+
+S3 print methods for dagriculture’s value-oriented result types.
+
+- [`print(`*`<dagri_graph>`*`)`](https://sims1253.github.io/dagriculture/reference/print.dagri_graph.md)
+  : Print a dagriculture graph
+- [`print(`*`<dagri_plan>`*`)`](https://sims1253.github.io/dagriculture/reference/print.dagri_plan.md)
+  : Print a dagriculture structural plan
 
 # Articles
 

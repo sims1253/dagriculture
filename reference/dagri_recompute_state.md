@@ -13,3 +13,7 @@ dagri_recompute_state(graph)
 - graph:
 
   A `dagri_graph`.
+
+## Details
+
+O(V+E).

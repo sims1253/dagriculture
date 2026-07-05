@@ -1,6 +1,6 @@
 # Get upstream nodes
 
-Get upstream nodes
+Returns the unique node ids with an edge into `node_id`. O(E).
 
 ## Usage
 

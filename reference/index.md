@@ -67,6 +67,22 @@ Accessors and topological traversal functions.
 - [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)
   : Get topological order
 
+## Graph Boundary Helpers
+
+Graph-generic edge and diff helpers. They operate on edge objects and
+structural ids without workflow semantics.
+
+- [`dagri_incoming_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_incoming_edges.md)
+  : Incoming edges for a node
+- [`dagri_outgoing_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_outgoing_edges.md)
+  : Outgoing edges for a node
+- [`dagri_order_edges()`](https://sims1253.github.io/dagriculture/reference/dagri_order_edges.md)
+  : Order edges deterministically by edge id
+- [`dagri_edge_ids()`](https://sims1253.github.io/dagriculture/reference/dagri_edge_ids.md)
+  : Sorted unique edge ids
+- [`dagri_graph_diff()`](https://sims1253.github.io/dagriculture/reference/dagri_graph_diff.md)
+  : Structural diff of two graphs
+
 ## State and Planning
 
 Functions to resolve structural conditions and produce graph execution
@@ -80,16 +96,21 @@ plans.
   : Get blocked nodes
 - [`dagri_terminal()`](https://sims1253.github.io/dagriculture/reference/dagri_terminal.md)
   : Get terminal nodes
-- [`dagri_target_closure()`](https://sims1253.github.io/dagriculture/reference/dagri_target_closure.md)
-  : Get the structural closure of target nodes
-- [`dagri_pending_gates()`](https://sims1253.github.io/dagriculture/reference/dagri_pending_gates.md)
-  : Get pending gates
 - [`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md)
   : Create a structural plan
 
-## Internals
+## Visualization
 
-Package internal utilities.
+Graph-to-text renderers.
 
-- [`abort_dagri()`](https://sims1253.github.io/dagriculture/reference/abort_dagri.md)
-  : Abort with a typed dagriculture error
+- [`dagri_mermaid()`](https://sims1253.github.io/dagriculture/reference/dagri_mermaid.md)
+  : Render a dagriculture graph as Mermaid flowchart text
+
+## Printing
+
+S3 print methods for dagriculture’s value-oriented result types.
+
+- [`print(`*`<dagri_graph>`*`)`](https://sims1253.github.io/dagriculture/reference/print.dagri_graph.md)
+  : Print a dagriculture graph
+- [`print(`*`<dagri_plan>`*`)`](https://sims1253.github.io/dagriculture/reference/print.dagri_plan.md)
+  : Print a dagriculture structural plan
