@@ -134,7 +134,7 @@ describe("adjacency index scales to 1000 nodes", {
   })
 })
 
-describe("dagri_terminal and dagri_external_blocked on a non-linear (diamond + parallel-edge) graph", {
+describe("dagri_terminal and dagri_external_blocked on a non-linear graph", {
   reg <- dagri_registry(dagri_kind("a"), dagri_kind("b"))
 
   # Diamond: n1 -> n2 -> n4, n1 -> n3 -> n4, plus a parallel edge n1 -> n4

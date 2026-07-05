@@ -1,3 +1,7 @@
+# This file verifies the contracts of the unexported helpers
+# dagri_target_closure and dagri_pending_gates that dagri_plan() is built on,
+# so it intentionally reaches into the package namespace via `:::`.
+# jarl-ignore-file internal_function: tests unexported helpers via `:::`
 describe("structural helper contract", {
   it("dagri_target_closure() returns the structural target closure", {
     fixture <- dagri_fixture_gated_chain()
