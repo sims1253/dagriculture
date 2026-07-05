@@ -4,7 +4,13 @@
 \alias{dagri_external_blocked}
 \title{Compute external block propagation}
 \usage{
-dagri_external_blocked(graph, targets, topo_order, external_holds)
+dagri_external_blocked(
+  graph,
+  targets,
+  topo_order,
+  external_holds,
+  index = NULL
+)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
@@ -14,6 +20,8 @@ dagri_external_blocked(graph, targets, topo_order, external_holds)
 \item{topo_order}{Topological ordering of nodes.}
 
 \item{external_holds}{Named list mapping node IDs to hold reasons.}
+
+\item{index}{Optional pre-built adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
 }
 \value{
 Named list of externally blocked nodes and their reasons.
@@ -21,5 +29,8 @@ Named list of externally blocked nodes and their reasons.
 \description{
 Propagates external holds through the topological order, marking downstream
 nodes as blocked by the nearest upstream hold.
+}
+\details{
+O(V+E).
 }
 \keyword{internal}

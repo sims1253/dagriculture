@@ -4,13 +4,19 @@
 \alias{dagri_target_closure}
 \title{Get the structural closure of target nodes}
 \usage{
-dagri_target_closure(graph, targets = NULL)
+dagri_target_closure(graph, targets = NULL, index = NULL)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
 \item{targets}{Optional target nodes.}
+
+\item{index}{Optional pre-built adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
 }
 \description{
 Get the structural closure of target nodes
 }
+\details{
+O(V+E).
+}
+\keyword{internal}

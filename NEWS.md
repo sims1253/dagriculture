@@ -1,3 +1,70 @@
+# dagriculture 0.3.0
+
+## Behavior changes
+
+- `dagri_plan()` now derives node state internally on a local copy of the
+  graph, so the returned `eligible`/`blocked` are always current even when the
+  input graph was never passed through `dagri_recompute_state()`. The input
+  graph value is not mutated.
+
+## Breaking changes
+
+- `dagri_ancestors()`, `dagri_descendants()`, `dagri_upstream()`,
+  `dagri_downstream()`, and `dagri_has_path()` now abort with
+  `dagri_error_not_found` for unknown node ids (previously they returned silent
+  empties or `FALSE`).
+- Id-taking public arguments (`id`/`from`/`to`/`edge_id`/`name`) now reject
+  vectors, `NA`, and empty strings with `dagri_error_invalid_argument` instead
+  of dying with a base-R "condition has length > 1" error.
+- `dagri_add_gate(graph, edge, ...)`'s `edge` parameter has been renamed to
+  `edge_id` for consistency with the rest of the API. Update named call sites.
+- `abort_dagri()`, `dagri_target_closure()`, and `dagri_pending_gates()` are no
+  longer exported; their results are reachable through `dagri_plan()`'s
+  `targets` and `pending_gates` fields.
+- `dagri_topo_order()` and `dagri_terminal()` no longer accept an `index`
+  argument; they build the adjacency index themselves. The index type has no
+  public constructor, so threading it through the public API was a footgun.
+
+## Internal
+
+- Minimum R version raised to 4.4.0; `%||%` relies on base R, which provides
+  it since 4.4.0.
+
+# dagriculture 0.2.0
+
+## Features
+
+- **Cycle detection in `dagri_topo_order()`:** Kahn's algorithm aborts with
+  `dagri_error_cycle` (`details$cycle_nodes`) instead of silently returning a
+  partial order; closes a hole for graphs deserialized from JSON.
+- **`dagri_update_node()` replace semantics documented:** `params`/`metadata`
+  **replace** the existing fields outright (use `utils::modifyList()` to merge);
+  the merge belongs in the consumer, not in this primitive.
+- **Referential integrity in `dagri_validate_graph()`:** dangling edge
+  `from`/`to` or gate `edge_id` references abort with
+  `dagri_error_invalid_argument`; guards data loaded from disk.
+- **Graph boundary helpers:** added `dagri_incoming_edges()`,
+  `dagri_outgoing_edges()`, `dagri_order_edges()`, `dagri_edge_ids()`, and
+  `dagri_graph_diff()` (pure structural diff).
+- **Mermaid flowchart export:** added `dagri_mermaid()` — a pure graph-to-text
+  renderer with injectable label/class functions and pending-gate annotations.
+- **Print methods and S3 classes:** `dagri_graph()` and `dagri_plan()` stamp S3
+  classes (still plain lists underneath) and gain `print.dagri_graph()` /
+  `print.dagri_plan()` summaries.
+- **Getting-started vignette:** added a Structural State Semantics section.
+- **Real package Title** in DESCRIPTION.
+- **Decision record — generic execution layer:** documented that execution,
+  caching, and artifact storage stay out of dagriculture (see
+  `design/boundary-contract.md`).
+
+## Performance
+
+- **Internal adjacency index:** `dagri_adjacency()` builds forward/reverse
+  neighbor maps in one O(V+E) pass; traversals and planning thread it through,
+  taking walks from O(V*E) to O(V+E). Single-node `dagri_upstream()` /
+  `dagri_downstream()` keep their O(E) scan.
+- **Re-validation collapse:** `dagri_has_path()` now runs the downstream walk inline via the shared index, instead of delegating to `dagri_descendants()` (which re-built the index). `dagri_plan()` builds one shared index across its `dagri_topo_order()` and `dagri_external_blocked()` calls. Each public boundary still does its own cheap structural validation but scans the edge list once per call.
+
 # dagriculture 0.1.6
 
 ## Fixes

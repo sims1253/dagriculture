@@ -12,5 +12,8 @@ dagri_descendants(graph, node_id)
 \item{node_id}{Node ID.}
 }
 \description{
-Get all descendants
+Returns all node ids reachable from \code{node_id} by following edges downstream.
+}
+\details{
+O(V+E).
 }

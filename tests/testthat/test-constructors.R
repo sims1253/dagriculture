@@ -200,6 +200,73 @@ describe("dagri_validate_graph()", {
       class = "dagri_error_invalid_argument"
     )
   })
+
+  it("rejects an edge whose from references a missing node (dangling edge)", {
+    # Hand-constructed graph bypassing dagri_add_edge, mirroring a corrupted
+    # deserialized JSON snapshot.
+    g <- list(
+      registry = list(kinds = list(), metadata = list()),
+      nodes = stats::setNames(list(list(id = "n1", kind = "s")), "n1"),
+      edges = stats::setNames(list(list(id = "e1", from = "n1", to = "ghost")), "e1"),
+      gates = stats::setNames(list(), character(0)),
+      version = 0L,
+      metadata = list()
+    )
+    expect_error(
+      dagri_validate_graph(g),
+      class = "dagri_error_invalid_argument"
+    )
+    err <- tryCatch(dagri_validate_graph(g), error = function(e) e)
+    expect_setequal(err$details$missing_nodes, "ghost")
+    expect_identical(err$details$edge_id, "e1")
+  })
+
+  it("rejects an edge whose to references a missing node (dangling edge)", {
+    g <- list(
+      registry = list(kinds = list(), metadata = list()),
+      nodes = stats::setNames(list(list(id = "n1", kind = "s")), "n1"),
+      edges = stats::setNames(list(list(id = "e1", from = "ghost", to = "n1")), "e1"),
+      gates = stats::setNames(list(), character(0)),
+      version = 0L,
+      metadata = list()
+    )
+    err <- tryCatch(dagri_validate_graph(g), error = function(e) e)
+    expect_s3_class(err, "dagri_error_invalid_argument")
+    expect_setequal(err$details$missing_nodes, "ghost")
+  })
+
+  it("rejects a gate whose edge_id references a missing edge (dangling gate)", {
+    g <- list(
+      registry = list(kinds = list(), metadata = list()),
+      nodes = stats::setNames(list(list(id = "n1", kind = "s")), "n1"),
+      edges = stats::setNames(list(), character(0)),
+      gates = stats::setNames(list(list(id = "g1", edge_id = "e_ghost")), "g1"),
+      version = 0L,
+      metadata = list()
+    )
+    err <- tryCatch(dagri_validate_graph(g), error = function(e) e)
+    expect_s3_class(err, "dagri_error_invalid_argument")
+    expect_identical(err$details$missing_edge_id, "e_ghost")
+    expect_identical(err$details$gate_id, "g1")
+  })
+
+  it("accepts a graph with intact edge -> node and gate -> edge references", {
+    g <- list(
+      registry = list(kinds = list(), metadata = list()),
+      nodes = stats::setNames(
+        list(
+          list(id = "n1", kind = "s"),
+          list(id = "n2", kind = "s")
+        ),
+        c("n1", "n2")
+      ),
+      edges = stats::setNames(list(list(id = "e1", from = "n1", to = "n2")), "e1"),
+      gates = stats::setNames(list(list(id = "g1", edge_id = "e1")), "g1"),
+      version = 0L,
+      metadata = list()
+    )
+    expect_invisible(dagri_validate_graph(g))
+  })
 })
 
 describe("input_contract enforcement in dagri_add_node()", {

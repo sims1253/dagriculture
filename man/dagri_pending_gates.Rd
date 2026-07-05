@@ -4,13 +4,19 @@
 \alias{dagri_pending_gates}
 \title{Get pending gates}
 \usage{
-dagri_pending_gates(graph, targets = NULL)
+dagri_pending_gates(graph, targets = NULL, index = NULL)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
 
 \item{targets}{Optional target nodes.}
+
+\item{index}{Optional pre-built adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
 }
 \description{
 Get pending gates
 }
+\details{
+O(V+E).
+}
+\keyword{internal}

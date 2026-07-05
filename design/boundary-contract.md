@@ -399,3 +399,45 @@ The current draft resolves these previously open choices:
    fixtures checked into both repos)?
 2. Should alpha implement renewable lock leases automatically, or require
    explicit/manual stale-lock recovery until heartbeat infrastructure exists?
+
+## Decision Record: Generic Execution Layer
+
+**Status:** Decided (2026-07). No code change; recorded so neither repo
+re-litigates it.
+
+bayesgrove's review recommends that, eventually, fingerprinting,
+content-addressed artifact storage, plan-state derivation, and job records move
+*out* of `bayesgrove` into a graph-generic execution layer, leaving
+`bayesgrove` purely semantic. This section records the dagriculture-side
+decision on whether that execution layer lives here.
+
+**Decision: not now, and not here.**
+
+- `dagriculture` stays pure and value-oriented. An execution layer has
+  different concerns — I/O, locking, caching, process lifecycle — that are
+  incompatible with dagriculture's no-I/O, serializable-as-plain-data
+  constraints (see *Design Constraints* above). Folding execution in would
+  either force dagriculture to drop those constraints or strand the execution
+  code behind awkward seams. Either outcome is worse than a clean separation.
+- When the execution layer is eventually extracted, it should be a **separate
+  package or a clearly separated module**, not a part of dagriculture. It would
+  depend on dagriculture for graph structure (the way bayesgrove does today)
+  but would own the execution, artifact, and job-record concerns itself.
+
+**Revisit triggers** (either suffices):
+
+- a second consumer of the execution machinery exists (today bayesgrove is the
+  only one, so there is no sharing pressure); or
+- bayesgrove's parallel scheduler stabilizes the executor contract, at which
+  point the extracted shape is clear enough to design the boundary confidently.
+
+**Boundary coverage.** This document covers both directions of the
+dagriculture boundary:
+
+- what *lives here* — the graph-generic edge and diff helpers
+  (`dagri_incoming_edges`, `dagri_outgoing_edges`, `dagri_order_edges`,
+  `dagri_edge_ids`, `dagri_graph_diff`) belong in dagriculture, where the graph
+  lives; bayesgrove keeps its adapters as pass-throughs.
+- what *deliberately does not live here* — the execution layer concerns listed
+  above. They stay in bayesgrove for now and, when extracted, will live in a
+  new package rather than in dagriculture.

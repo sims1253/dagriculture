@@ -17,6 +17,7 @@ dagri_has_closure <- function(x) {
 #'   list structure is allowed, but executable closures are rejected for safety.
 #' @export
 dagri_kind <- function(name, input_contract = NULL, output_type = NULL, param_schema = NULL) {
+  dagri_validate_id(name, "name")
   if (!is.null(input_contract)) {
     if (!is.list(input_contract)) {
       abort_dagri(
@@ -99,15 +100,27 @@ dagri_registry <- function(...) {
 
 #' Create an empty dagriculture graph
 #'
+#' Returns a new immutable graph carrying the given registry and empty
+#' node/edge/gate collections. The result has S3 class `c("dagri_graph",
+#' "list")` so [print.dagri_graph()] dispatches; underneath it remains a plain
+#' named list and serializes identically to before. Graph-mutating functions
+#' (`dagri_add_node()`, `dagri_add_edge()`, ...) preserve the class on the
+#' returned copy.
+#'
 #' @param registry A \code{dagri_registry} object.
+#' @return A `dagri_graph` (a named list with S3 class
+#'   \code{c("dagri_graph", "list")}).
 #' @export
 dagri_graph <- function(registry) {
-  list(
-    registry = registry,
-    nodes = stats::setNames(list(), character(0)),
-    edges = stats::setNames(list(), character(0)),
-    gates = stats::setNames(list(), character(0)),
-    version = 0L,
-    metadata = list()
+  structure(
+    list(
+      registry = registry,
+      nodes = stats::setNames(list(), character(0)),
+      edges = stats::setNames(list(), character(0)),
+      gates = stats::setNames(list(), character(0)),
+      version = 0L,
+      metadata = list()
+    ),
+    class = c("dagri_graph", "list")
   )
 }

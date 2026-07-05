@@ -64,6 +64,60 @@ Readers should validate in this order:
 5. field types
 6. semantic invariants
 
+## Graph Validation: Load Time vs Per Call
+
+The threat model for graph integrity is that graph snapshots are deserialized
+from JSON on disk, so their contents did not flow through the editing API
+(`dagri_add_node`, `dagri_add_edge`, `dagri_add_gate`, ...). A corrupted or
+hand-edited file can therefore smuggle structural defects (dangling
+references, cycles) past the edit-time guards. There are two distinct
+validation layers, by design:
+
+### Load time / entry-point validator: `dagri_validate_graph()`
+
+`dagri_validate_graph()` is called at the top of every public function. It
+performs cheap, structural checks and is therefore suitable to run on every
+boundary crossing:
+
+1. top-level fields are present (`registry`, `nodes`, `edges`, `gates`, `version`)
+2. component types are lists (not scalars or data.frames)
+3. `version` is a single non-NA integer
+4. **referential integrity (edge -> node):** every edge's `$from` and `$to`
+   reference a node that exists in `graph$nodes` (O(E))
+5. **referential integrity (gate -> edge):** every gate's `$edge_id` references
+   an edge that exists in `graph$edges` (O(G))
+
+A dangling edge aborts with class `dagri_error_invalid_argument` and
+`details = list(edge_id, missing_nodes)`; a dangling gate aborts with the same
+class and `details = list(gate_id, missing_edge_id)`.
+
+### Per-call check (topological operations): cycle detection in `dagri_topo_order()`
+
+Cycle detection is **not** part of `dagri_validate_graph()`. It is an explicit,
+O(V+E) check performed by `dagri_topo_order()` (and therefore by its callers
+`dagri_recompute_state()` and `dagri_plan()`), because:
+
+- it is only needed when computing a topological ordering;
+- it is O(V+E), which is acceptable for topo operations but too costly to run
+  on every single-node query that also routes through
+  `dagri_validate_graph()` (e.g. `dagri_upstream()`, `dagri_node()`).
+
+`dagri_add_edge()` prevents cycles at edit time, but graphs loaded from disk
+bypass it. After the Kahn loop, if any node could not be emitted (it still has
+non-zero in-degree), the function aborts with class `dagri_error_cycle` and
+`details = list(cycle_nodes)`, where `cycle_nodes` are exactly the nodes that
+participate in (or are downstream-trapped-by) a cycle. This guarantees a
+planner never silently drops cycle-locked nodes from the order.
+
+### Per-call checks (editing API)
+
+`dagri_add_edge()`, `dagri_add_gate()`, etc. perform their own targeted checks
+(`dagri_error_not_found` for unknown endpoints, `dagri_error_cycle` for a
+would-be cycle at edge-add time, `dagri_error_duplicate_id` for collisions).
+These run only on the editing path; they are not redundant with the
+load-time validator because they enforce the stronger invariant that a graph
+edited through the public API is always acyclic and referentially complete.
+
 ## Null / Missingness Policy
 
 - optional fields may be omitted when absent

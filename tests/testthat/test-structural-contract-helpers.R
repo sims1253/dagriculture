@@ -3,7 +3,7 @@ describe("structural helper contract", {
     fixture <- dagri_fixture_gated_chain()
 
     expect_setequal(
-      dagri_target_closure(fixture$graph, fixture$targets),
+      dagriculture:::dagri_target_closure(fixture$graph, fixture$targets),
       c("n1", "n2", "n3")
     )
   })
@@ -12,7 +12,7 @@ describe("structural helper contract", {
     fixture <- dagri_fixture_gated_chain()
 
     expect_error(
-      dagri_target_closure(fixture$graph, "missing"),
+      dagriculture:::dagri_target_closure(fixture$graph, "missing"),
       class = "dagri_error_not_found"
     )
   })
@@ -30,11 +30,11 @@ describe("structural helper contract", {
     fixture <- dagri_fixture_gated_chain()
 
     expect_setequal(
-      dagri_pending_gates(fixture$graph, targets = fixture$targets),
+      dagriculture:::dagri_pending_gates(fixture$graph, targets = fixture$targets),
       fixture$gate_id
     )
     expect_identical(
-      dagri_pending_gates(fixture$graph, targets = "n1"),
+      dagriculture:::dagri_pending_gates(fixture$graph, targets = "n1"),
       character(0)
     )
   })
@@ -44,9 +44,9 @@ describe("structural helper contract", {
     graph <- dagri_recompute_state(fixture$graph)
     plan <- dagri_plan(graph, targets = fixture$targets)
 
-    expect_setequal(plan$targets, dagri_target_closure(graph, fixture$targets))
+    expect_setequal(plan$targets, dagriculture:::dagri_target_closure(graph, fixture$targets))
     expect_setequal(plan$terminal, dagri_terminal(graph, fixture$targets))
-    expect_setequal(plan$pending_gates, dagri_pending_gates(graph, fixture$targets))
+    expect_setequal(plan$pending_gates, dagriculture:::dagri_pending_gates(graph, fixture$targets))
   })
 })
 

@@ -14,3 +14,15 @@ dagri_topo_order(graph, subset = NULL)
 \description{
 Get topological order
 }
+\details{
+O(V+E).
+
+Cycles are detected here: after the Kahn loop, any node that was not
+emitted (i.e. still has non-zero in-degree) participates in a cycle, and
+the function aborts with class \code{dagri_error_cycle}, naming the
+cycle-participating nodes in \code{details$cycle_nodes}. \code{\link[=dagri_add_edge]{dagri_add_edge()}}
+prevents cycles at edit time, but consumers (e.g. bayesgrove) deserialize
+graphs from JSON, so a corrupted or hand-edited file can smuggle a cycle
+past the editing layer; this check ensures a planner never silently drops
+cycle-locked nodes from the order.
+}

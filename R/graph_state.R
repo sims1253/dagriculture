@@ -1,14 +1,28 @@
 #' Recompute graph state
 #'
+#' @details O(V+E).
+#'
 #' @param graph A \code{dagri_graph}.
 #' @export
 dagri_recompute_state <- function(graph) {
   dagri_validate_graph(graph)
+  dagri_recompute_state_impl(graph, dagri_adjacency(graph))
+}
 
-  topo <- dagri_topo_order(graph)
+#' Recompute graph state against a pre-built adjacency index
+#'
+#' Pure worker shared by [dagri_recompute_state()] and [dagri_plan()]. Returns a
+#' new graph value with `state`/`block_reason` rewritten in topological order.
+#'
+#' @param graph A \code{dagri_graph}.
+#' @param index Adjacency index from [dagri_adjacency()].
+#' @return A new \code{dagri_graph} value with derived node states.
+#' @keywords internal
+dagri_recompute_state_impl <- function(graph, index) {
+  topo <- dagri_topo_order_impl(graph, index = index)
 
   for (n_id in topo) {
-    up_edges <- Filter(function(e) e$to == n_id, graph$edges)
+    up_edges <- graph$edges[index$reverse_edges[[n_id]]]
 
     is_upstream_blocked <- FALSE
     for (e in up_edges) {
@@ -49,8 +63,9 @@ dagri_recompute_state <- function(graph) {
 
 #' Get eligible nodes
 #'
-#' Returns IDs of nodes whose state is "ready". Call \code{dagri_recompute_state()}
-#' before using this function to ensure node states are current.
+#' Returns IDs of nodes whose stored state is "ready". Reflects the last
+#' [dagri_recompute_state()] pass; call it again after structural or gate
+#' changes. [dagri_plan()] recomputes state internally and is always current.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @export
@@ -65,9 +80,10 @@ dagri_eligible <- function(graph) {
 
 #' Get blocked nodes
 #'
-#' Returns a named list of blocked nodes mapped to their block reasons. Call
-#' \code{dagri_recompute_state()} before using this function to ensure node
-#' states are current.
+#' Returns a named list of nodes whose stored state is "blocked" mapped to their
+#' block reasons. Reflects the last [dagri_recompute_state()] pass; call it again
+#' after structural or gate changes. [dagri_plan()] recomputes state internally
+#' and is always current.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @export
@@ -84,20 +100,36 @@ dagri_blocked <- function(graph) {
 
 #' Get terminal nodes
 #'
+#' @details O(V+E).
+#'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Optional target nodes.
 #' @export
 dagri_terminal <- function(graph, targets = NULL) {
   dagri_validate_graph(graph)
 
-  scoped_targets <- dagri_target_closure(graph, targets)
+  index <- dagri_adjacency(graph)
+  scoped_targets <- dagri_target_closure(graph, targets, index = index)
+  dagri_terminal_impl(scoped_targets, index)
+}
+
+#' Terminal nodes within an already-scoped target closure
+#'
+#' Pure worker shared by [dagri_terminal()] and [dagri_plan()]: a node is
+#' terminal when none of its downstream neighbors are inside `scoped_targets`.
+#'
+#' @param scoped_targets Character vector of node ids (a target closure).
+#' @param index Adjacency index from [dagri_adjacency()].
+#' @return Character vector of terminal node ids.
+#' @keywords internal
+dagri_terminal_impl <- function(scoped_targets, index) {
   if (length(scoped_targets) == 0) {
     return(character(0))
   }
 
   terminal_nodes <- character(0)
   for (node_id in scoped_targets) {
-    down <- intersect(dagri_downstream(graph, node_id), scoped_targets)
+    down <- intersect(index$forward[[node_id]], scoped_targets)
     if (length(down) == 0) {
       terminal_nodes <- c(terminal_nodes, node_id)
     }
@@ -158,10 +190,13 @@ dagri_validate_node_ids <- function(graph, node_ids, arg = "node_ids") {
 
 #' Get the structural closure of target nodes
 #'
+#' @details O(V+E).
+#'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Optional target nodes.
-#' @export
-dagri_target_closure <- function(graph, targets = NULL) {
+#' @param index Optional pre-built adjacency index from [dagri_adjacency()].
+#' @keywords internal
+dagri_target_closure <- function(graph, targets = NULL, index = NULL) {
   dagri_validate_graph(graph)
 
   if (is.null(targets)) {
@@ -169,9 +204,17 @@ dagri_target_closure <- function(graph, targets = NULL) {
   }
 
   targets <- dagri_validate_node_ids(graph, targets, arg = "targets")
+  if (is.null(index)) {
+    index <- dagri_adjacency(graph)
+  }
+
   all_targets <- character(0)
   for (target in targets) {
-    all_targets <- unique(c(all_targets, target, dagri_ancestors(graph, target)))
+    all_targets <- unique(c(
+      all_targets,
+      target,
+      dagri_dfs(target, direction = "reverse", index)
+    ))
   }
 
   all_targets
@@ -236,15 +279,22 @@ dagri_validate_external_holds <- function(graph, external_holds) {
 #' Propagates external holds through the topological order, marking downstream
 #' nodes as blocked by the nearest upstream hold.
 #'
+#' @details O(V+E).
+#'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Target node IDs.
 #' @param topo_order Topological ordering of nodes.
 #' @param external_holds Named list mapping node IDs to hold reasons.
+#' @param index Optional pre-built adjacency index from [dagri_adjacency()].
 #' @return Named list of externally blocked nodes and their reasons.
 #' @keywords internal
-dagri_external_blocked <- function(graph, targets, topo_order, external_holds) {
+dagri_external_blocked <- function(graph, targets, topo_order, external_holds, index = NULL) {
   if (length(targets) == 0) {
     return(dagri_empty_named_list())
+  }
+
+  if (is.null(index)) {
+    index <- dagri_adjacency(graph)
   }
 
   holds_in_scope <- external_holds[intersect(names(external_holds), targets)]
@@ -261,7 +311,7 @@ dagri_external_blocked <- function(graph, targets, topo_order, external_holds) {
       next
     }
 
-    upstream_blockers <- intersect(dagri_upstream(graph, node_id), names(external_blocked))
+    upstream_blockers <- intersect(index$reverse[[node_id]], names(external_blocked))
     if (length(upstream_blockers) == 0) {
       next
     }
@@ -279,13 +329,20 @@ dagri_external_blocked <- function(graph, targets, topo_order, external_holds) {
 
 #' Get pending gates
 #'
+#' @details O(V+E).
+#'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Optional target nodes.
-#' @export
-dagri_pending_gates <- function(graph, targets = NULL) {
+#' @param index Optional pre-built adjacency index from [dagri_adjacency()].
+#' @keywords internal
+dagri_pending_gates <- function(graph, targets = NULL, index = NULL) {
   dagri_validate_graph(graph)
 
-  scoped_targets <- dagri_target_closure(graph, targets)
+  if (is.null(index)) {
+    index <- dagri_adjacency(graph)
+  }
+
+  scoped_targets <- dagri_target_closure(graph, targets, index = index)
   if (length(scoped_targets) == 0 || length(graph$gates) == 0) {
     return(character(0))
   }
@@ -315,19 +372,34 @@ dagri_pending_gates <- function(graph, targets = NULL) {
 
 #' Create a structural plan
 #'
+#' @details O(V+E). State is derived internally, so the plan is always current
+#'   even if the input graph was never passed through
+#'   [dagri_recompute_state()]; the input graph value itself is not mutated.
+#'
+#'   The result carries S3 class `c("dagri_plan", "list")` so
+#'   [print.dagri_plan()] dispatches; underneath it remains a plain named list
+#'   with the fields documented below. Field access (`plan$targets`, etc.) and
+#'   serialization are unchanged.
+#'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Optional target nodes.
 #' @param external_holds Optional named list mapping node ids to external hold
 #'   reason strings. These affect planning output without mutating graph state.
+#' @return A `dagri_plan` (a named list with S3 class
+#'   \code{c("dagri_plan", "list")}) with components \code{targets},
+#'   \code{topo_order}, \code{eligible}, \code{blocked}, \code{external_blocked},
+#'   \code{terminal}, and \code{pending_gates}.
 #' @export
 dagri_plan <- function(graph, targets = NULL, external_holds = list()) {
   dagri_validate_graph(graph)
 
   external_holds <- dagri_validate_external_holds(graph, external_holds)
 
-  targets <- dagri_target_closure(graph, targets)
+  index <- dagri_adjacency(graph)
+  graph <- dagri_recompute_state_impl(graph, index)
+  targets <- dagri_target_closure(graph, targets, index = index)
 
-  topo <- dagri_topo_order(graph, subset = targets)
+  topo <- dagri_topo_order_impl(graph, subset = targets, index = index)
 
   eligible_nodes <- intersect(targets, dagri_eligible(graph))
 
@@ -337,15 +409,18 @@ dagri_plan <- function(graph, targets = NULL, external_holds = list()) {
     blocked_list <- dagri_empty_named_list()
   }
 
-  external_blocked <- dagri_external_blocked(graph, targets, topo, external_holds)
+  external_blocked <- dagri_external_blocked(graph, targets, topo, external_holds, index = index)
 
-  list(
-    targets = targets,
-    topo_order = topo,
-    eligible = eligible_nodes,
-    blocked = blocked_list,
-    external_blocked = external_blocked,
-    terminal = dagri_terminal(graph, targets = targets),
-    pending_gates = dagri_pending_gates(graph, targets = targets)
+  structure(
+    list(
+      targets = targets,
+      topo_order = topo,
+      eligible = eligible_nodes,
+      blocked = blocked_list,
+      external_blocked = external_blocked,
+      terminal = dagri_terminal_impl(targets, index),
+      pending_gates = dagri_pending_gates(graph, targets = targets, index = index)
+    ),
+    class = c("dagri_plan", "list")
   )
 }

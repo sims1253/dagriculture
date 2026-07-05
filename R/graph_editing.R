@@ -12,8 +12,9 @@
 #' @export
 dagri_add_node <- function(graph, id, kind, label = NULL, params = list(), metadata = list()) {
   dagri_validate_graph(graph)
+  dagri_validate_id(id, "id")
 
-  if (!is.character(kind) || length(kind) != 1) {
+  if (!is.character(kind) || length(kind) != 1 || is.na(kind) || !nzchar(kind)) {
     abort_dagri(
       "dagri_error_invalid_argument",
       sprintf("`kind` must be a single character string, got %s.", class(kind)[1])
@@ -60,14 +61,27 @@ dagri_add_node <- function(graph, id, kind, label = NULL, params = list(), metad
 
 #' Update a node in a dagriculture graph
 #'
+#' @details `params` (when non-`NULL`) **replaces** the node's `params` outright;
+#'   it is NOT merged into the existing params. Likewise `metadata` (when
+#'   non-`NULL`) **replaces** the node's `metadata` outright. To merge partial
+#'   updates, do it in the caller, e.g.
+#'   `dagri_update_node(graph, id, params = utils::modifyList(old_params, new_params))`.
+#'   A `NULL` `params`/`metadata`/`label` leaves that field untouched. Keeping
+#'   this a primitive (replace, not merge) means consumers (e.g. bayesgrove's
+#'   `bg_update_node()`) must opt into merge explicitly, instead of silently
+#'   having their partial update destroy sibling fields.
+#'
 #' @param graph A \code{dagri_graph}.
 #' @param id Node ID.
-#' @param label Node label.
-#' @param params Node parameters.
-#' @param metadata Node metadata.
+#' @param label Node label. `NULL` leaves the field unchanged.
+#' @param params Node parameters. When non-`NULL`, **replaces** the existing
+#'   `params` outright (see Details).
+#' @param metadata Node metadata. When non-`NULL`, **replaces** the existing
+#'   `metadata` outright (see Details).
 #' @export
 dagri_update_node <- function(graph, id, label = NULL, params = NULL, metadata = NULL) {
   dagri_validate_graph(graph)
+  dagri_validate_id(id, "id")
 
   if (!id %in% names(graph$nodes)) {
     abort_dagri("dagri_error_not_found", sprintf("Node %s not found.", id))
@@ -96,6 +110,7 @@ dagri_update_node <- function(graph, id, label = NULL, params = NULL, metadata =
 #' @export
 dagri_remove_node <- function(graph, id) {
   dagri_validate_graph(graph)
+  dagri_validate_id(id, "id")
 
   if (!id %in% names(graph$nodes)) {
     abort_dagri("dagri_error_not_found", sprintf("Node %s not found.", id))
@@ -133,8 +148,13 @@ dagri_remove_node <- function(graph, id) {
 #' @export
 dagri_add_edge <- function(graph, from, to, type = "data", id = NULL, metadata = list()) {
   dagri_validate_graph(graph)
+  dagri_validate_id(from, "from")
+  dagri_validate_id(to, "to")
+  if (!is.null(id)) {
+    dagri_validate_id(id, "id")
+  }
 
-  if (!is.character(type) || length(type) != 1) {
+  if (!is.character(type) || length(type) != 1 || is.na(type) || !nzchar(type)) {
     abort_dagri(
       "dagri_error_invalid_argument",
       sprintf("`type` must be a single character string, got %s.", class(type)[1])
@@ -177,6 +197,7 @@ dagri_add_edge <- function(graph, from, to, type = "data", id = NULL, metadata =
 #' @export
 dagri_remove_edge <- function(graph, id) {
   dagri_validate_graph(graph)
+  dagri_validate_id(id, "id")
 
   if (!id %in% names(graph$edges)) {
     abort_dagri("dagri_error_not_found", sprintf("Edge %s not found.", id))
@@ -198,18 +219,22 @@ dagri_remove_edge <- function(graph, id) {
 #' Add a gate to a dagriculture graph
 #'
 #' @param graph A \code{dagri_graph}.
-#' @param edge Edge ID.
+#' @param edge_id Edge ID.
 #' @param id Optional Gate ID.
 #' @param metadata Gate metadata.
 #' @export
-dagri_add_gate <- function(graph, edge, id = NULL, metadata = list()) {
+dagri_add_gate <- function(graph, edge_id, id = NULL, metadata = list()) {
   dagri_validate_graph(graph)
+  dagri_validate_id(edge_id, "edge_id")
+  if (!is.null(id)) {
+    dagri_validate_id(id, "id")
+  }
 
   if (is.null(id)) {
-    id <- paste0("gate_", edge)
+    id <- paste0("gate_", edge_id)
   }
-  if (!edge %in% names(graph$edges)) {
-    abort_dagri("dagri_error_not_found", sprintf("Edge %s not found.", edge))
+  if (!edge_id %in% names(graph$edges)) {
+    abort_dagri("dagri_error_not_found", sprintf("Edge %s not found.", edge_id))
   }
   if (id %in% names(graph$gates)) {
     abort_dagri("dagri_error_duplicate_id", sprintf("Duplicate gate id: %s.", id))
@@ -217,7 +242,7 @@ dagri_add_gate <- function(graph, edge, id = NULL, metadata = list()) {
 
   gate <- list(
     id = id,
-    edge_id = edge,
+    edge_id = edge_id,
     status = "pending",
     metadata = metadata
   )
@@ -234,6 +259,7 @@ dagri_add_gate <- function(graph, edge, id = NULL, metadata = list()) {
 #' @export
 dagri_resolve_gate <- function(graph, id) {
   dagri_validate_graph(graph)
+  dagri_validate_id(id, "id")
 
   if (!id %in% names(graph$gates)) {
     abort_dagri("dagri_error_not_found", sprintf("Gate %s not found.", id))
@@ -250,6 +276,7 @@ dagri_resolve_gate <- function(graph, id) {
 #' @export
 dagri_reopen_gate <- function(graph, id) {
   dagri_validate_graph(graph)
+  dagri_validate_id(id, "id")
 
   if (!id %in% names(graph$gates)) {
     abort_dagri("dagri_error_not_found", sprintf("Gate %s not found.", id))
@@ -266,6 +293,7 @@ dagri_reopen_gate <- function(graph, id) {
 #' @export
 dagri_remove_gate <- function(graph, id) {
   dagri_validate_graph(graph)
+  dagri_validate_id(id, "id")
 
   if (!id %in% names(graph$gates)) {
     abort_dagri("dagri_error_not_found", sprintf("Gate %s not found.", id))

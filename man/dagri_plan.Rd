@@ -14,6 +14,22 @@ dagri_plan(graph, targets = NULL, external_holds = list())
 \item{external_holds}{Optional named list mapping node ids to external hold
 reason strings. These affect planning output without mutating graph state.}
 }
+\value{
+A \code{dagri_plan} (a named list with S3 class
+\code{c("dagri_plan", "list")}) with components \code{targets},
+\code{topo_order}, \code{eligible}, \code{blocked}, \code{external_blocked},
+\code{terminal}, and \code{pending_gates}.
+}
 \description{
 Create a structural plan
+}
+\details{
+O(V+E). State is derived internally, so the plan is always current
+even if the input graph was never passed through
+\code{\link[=dagri_recompute_state]{dagri_recompute_state()}}; the input graph value itself is not mutated.
+
+The result carries S3 class \code{c("dagri_plan", "list")} so
+\code{\link[=print.dagri_plan]{print.dagri_plan()}} dispatches; underneath it remains a plain named list
+with the fields documented below. Field access (\code{plan$targets}, etc.) and
+serialization are unchanged.
 }

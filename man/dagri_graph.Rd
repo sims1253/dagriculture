@@ -9,6 +9,14 @@ dagri_graph(registry)
 \arguments{
 \item{registry}{A \code{dagri_registry} object.}
 }
+\value{
+A \code{dagri_graph} (a named list with S3 class
+\code{c("dagri_graph", "list")}).
+}
 \description{
-Create an empty dagriculture graph
+Returns a new immutable graph carrying the given registry and empty
+node/edge/gate collections. The result has S3 class \code{c("dagri_graph", "list")} so \code{\link[=print.dagri_graph]{print.dagri_graph()}} dispatches; underneath it remains a plain
+named list and serializes identically to before. Graph-mutating functions
+(\code{dagri_add_node()}, \code{dagri_add_edge()}, ...) preserve the class on the
+returned copy.
 }

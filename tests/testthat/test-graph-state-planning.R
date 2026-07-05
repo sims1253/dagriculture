@@ -167,6 +167,29 @@ describe("graph state and planning", {
       )
       expect_setequal(plan$eligible, "n1")
     })
+
+    it("derives state internally, independent of stored state", {
+      plan_recomputed <- dagri_plan(dagri_recompute_state(g), targets = "n3")
+      plan_never <- dagri_plan(g, targets = "n3")
+
+      expect_identical(plan_never$eligible, plan_recomputed$eligible)
+      expect_identical(plan_never$blocked, plan_recomputed$blocked)
+      expect_identical(plan_never$external_blocked, plan_recomputed$external_blocked)
+      expect_identical(plan_never$pending_gates, plan_recomputed$pending_gates)
+      expect_identical(plan_never$targets, plan_recomputed$targets)
+      expect_identical(plan_never$terminal, plan_recomputed$terminal)
+    })
+
+    it("does not mutate the input graph value", {
+      g_before <- g
+      plan <- dagri_plan(g, targets = "n3")
+
+      expect_identical(g, g_before)
+      expect_setequal(
+        vapply(g$nodes, function(n) n$state, character(1)),
+        rep("new", length(g$nodes))
+      )
+    })
   })
 
   describe("graph validation in state functions", {
@@ -189,11 +212,17 @@ describe("graph state and planning", {
     })
 
     it("dagri_target_closure rejects invalid graph", {
-      expect_error(dagri_target_closure(bad_graph, "n1"), class = "dagri_error_invalid_argument")
+      expect_error(
+        dagriculture:::dagri_target_closure(bad_graph, "n1"),
+        class = "dagri_error_invalid_argument"
+      )
     })
 
     it("dagri_pending_gates rejects invalid graph", {
-      expect_error(dagri_pending_gates(bad_graph), class = "dagri_error_invalid_argument")
+      expect_error(
+        dagriculture:::dagri_pending_gates(bad_graph),
+        class = "dagri_error_invalid_argument"
+      )
     })
 
     it("dagri_plan rejects invalid graph", {

@@ -12,5 +12,5 @@ dagri_upstream(graph, node_id)
 \item{node_id}{Node ID.}
 }
 \description{
-Get upstream nodes
+Returns the unique node ids with an edge into \code{node_id}. O(E).
 }
