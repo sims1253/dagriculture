@@ -102,7 +102,13 @@ describe("dagri_adjacency()", {
       names(idx),
       c("forward", "reverse", "forward_edges", "reverse_edges", "pending_gate_ids_by_edge")
     )
-    for (map_name in c("forward", "reverse", "forward_edges", "reverse_edges", "pending_gate_ids_by_edge")) {
+    for (map_name in c(
+      "forward",
+      "reverse",
+      "forward_edges",
+      "reverse_edges",
+      "pending_gate_ids_by_edge"
+    )) {
       expect_identical(idx[[map_name]], stats::setNames(list(), character(0)))
     }
   })

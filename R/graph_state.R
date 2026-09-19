@@ -381,15 +381,11 @@ dagri_pending_gates_for_edges <- function(index, edge_ids) {
     return(character(0))
   }
 
-  pending <- unlist(
+  unlist(
     lapply(edge_ids, function(eid) index$pending_gate_ids_by_edge[[eid]]),
     use.names = FALSE
-  )
-  if (is.null(pending)) {
+  ) %||%
     character(0)
-  } else {
-    pending
-  }
 }
 
 #' Build the per-node status view for a plan
