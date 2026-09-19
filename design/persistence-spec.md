@@ -344,6 +344,11 @@ Representation rule:
   by id/name, matching their in-memory named-map shape
 - writers should commit graph snapshots via write-to-temp plus atomic rename
   under the active write lock rather than in-place overwrite
+- the `metadata` fields (graph-level, per-kind, per-node, per-edge, and
+  per-gate) are opaque caller-owned named plain data, validated at every
+  `dagriculture` entry point; writers that previously always emitted `{}` may
+  now emit populated objects, which is backward compatible for readers that
+  treat metadata as opaque
 
 ### 3. Gate Specification Store
 

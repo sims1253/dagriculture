@@ -28,6 +28,40 @@ Persistence and schema rules belong in
   staged attempted mutation payload in `details` so callers can retry without
   reconstructing intent.
 
+## Metadata Policy
+
+Metadata fields on every record type (`dagri_kind`, `dagri_registry`,
+`dagri_graph`, `dagri_node`, `dagri_edge`, `dagri_gate`) are opaque
+caller-owned extension data. Chosen policy (issue #14): support metadata
+everywhere, at creation and through update mutators, rather than removing it —
+consumers never need to mutate graph internals for a supported metadata
+change.
+
+Rules:
+
+- Metadata must be a named list (empty allowed) of plain data. Named lists,
+  vectors, and scalars are allowed at any nesting depth; unnamed nested lists
+  (arrays) are allowed.
+- `dagri_validate_metadata()` rejects non-lists (including data.frames),
+  unnamed top-level entries, and — recursively — closures, environments,
+  formulas, and external pointers. It runs at every metadata entry point: the
+  three constructors and `dagri_add_node()` / `dagri_update_node()` /
+  `dagri_add_edge()` / `dagri_update_edge()` / `dagri_add_gate()` /
+  `dagri_update_gate()`.
+- Update mutators use the same replace-not-merge semantics as
+  `dagri_update_node()`: a non-`NULL` `metadata` **replaces** the field
+  outright; merging partial metadata belongs in the caller.
+- Metadata changes go through the same mutators and therefore bump `version`
+  by exactly `1` per successful call, like every `dagri_*` mutation.
+- Known boundary: `dagri_graph_diff()` is a pure structural id diff — it
+  reports only added/removed node and edge ids, so metadata (and other
+  in-place field) edits do not surface in its output. Value-aware diffing is
+  not part of this contract yet.
+- Persistence: the `dagri_graph_snapshot` schema already carries all `metadata`
+  fields. Writers that previously always emitted `{}` may now emit populated
+  objects; this is backward compatible for readers that treat metadata as
+  opaque.
+
 ## Identifier Contracts
 
 - Ids are opaque strings.
@@ -165,9 +199,10 @@ Fields:
 ### Constructors
 
 ```r
-dagri_kind(name, input_contract = NULL, output_type = NULL, param_schema = NULL)
-dagri_registry(...)
-dagri_graph(registry)
+dagri_kind(name, input_contract = NULL, output_type = NULL, param_schema = NULL,
+           metadata = list())
+dagri_registry(..., metadata = list())
+dagri_graph(registry, metadata = list())
 ```
 
 ### Graph Editing
@@ -178,13 +213,27 @@ dagri_update_node(graph, node_id, label = NULL, params = NULL, metadata = NULL)
 dagri_remove_node(graph, node_id)
 
 dagri_add_edge(graph, from, to, type = "data", id = NULL, metadata = list())
+dagri_update_edge(graph, edge_id, type = NULL, metadata = NULL)
 dagri_remove_edge(graph, edge_id)
 
 dagri_add_gate(graph, edge_id, id = NULL, metadata = list())
+dagri_update_gate(graph, gate_id, metadata = NULL)
 dagri_resolve_gate(graph, id)
 dagri_reopen_gate(graph, id)
 dagri_remove_gate(graph, id)
 ```
+
+Rules:
+
+- `dagri_update_edge()` and `dagri_update_gate()` mirror `dagri_update_node()`:
+  non-`NULL` fields **replace** the existing values (never merge), `NULL`
+  leaves a field untouched, and every successful call bumps `version` by
+  exactly `1` and returns a new graph.
+- `dagri_update_edge()` cannot rewire `from`/`to` (remove and re-add the edge)
+  and `dagri_update_gate()` does not touch `status` (`dagri_resolve_gate()` /
+  `dagri_reopen_gate()` own the status lifecycle).
+- `metadata` arguments at every entry point must satisfy the
+  [Metadata Policy](#metadata-policy).
 
 ### Queries
 
@@ -232,6 +281,10 @@ Rules:
   shape and unnamed edge lists remain diffable; it aborts with
   `dagri_error_invalid_argument` when neither yields complete ids.
 - `dagri_graph_diff()` is a pure structural diff with no workflow semantics.
+- `dagri_graph_diff()` reports only added/removed node and edge ids; in-place
+  field edits (metadata, `type`, `label`, ...) do not surface in its output.
+  This is a known boundary of the structural diff, not a promise about future
+  value-aware diffing.
 
 ### State And Planning
 

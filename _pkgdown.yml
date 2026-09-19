@@ -15,8 +15,10 @@ reference:
   - dagri_update_node
   - dagri_remove_node
   - dagri_add_edge
+  - dagri_update_edge
   - dagri_remove_edge
   - dagri_add_gate
+  - dagri_update_gate
   - dagri_resolve_gate
   - dagri_reopen_gate
   - dagri_remove_gate
