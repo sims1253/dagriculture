@@ -346,8 +346,8 @@ dagri_mermaid(
   graph,
   node_label = NULL,
   node_class = NULL,
-  gate_label = NULL,
   direction = "TD",
+  gate_label = NULL,
   include_resolved_gates = FALSE,
   class_defs = character(),
   header = character()
