@@ -4,20 +4,23 @@
 \alias{dagri_pending_gates_for_edges}
 \title{Collect pending gate ids on a set of edges}
 \usage{
-dagri_pending_gates_for_edges(graph, edge_ids)
+dagri_pending_gates_for_edges(index, edge_ids)
 }
 \arguments{
-\item{graph}{A \code{dagri_graph}.}
+\item{index}{Adjacency index from \code{\link[=dagri_adjacency]{dagri_adjacency()}}.}
 
 \item{edge_ids}{Character vector of edge ids in insertion order.}
 }
 \value{
-Character vector of gate ids; \code{character(0)} when none are pending.
+Unnamed character vector of gate ids; \code{character(0)} when none are
+pending.
 }
 \description{
-Pure worker shared by \code{\link[=dagri_node_status_impl]{dagri_node_status_impl()}}: returns the ids of gates
-with status "pending" attached to \code{edge_ids}, in deterministic order —
-\code{edge_ids} order first (incoming-edge insertion order), then gate insertion
-order within each edge (the order of \code{graph$gates}).
+Pure worker shared by \code{\link[=dagri_node_status_impl]{dagri_node_status_impl()}} and
+\code{\link[=dagri_recompute_state_impl]{dagri_recompute_state_impl()}}: returns the ids of gates with status
+"pending" attached to \code{edge_ids}, in deterministic order — \code{edge_ids} order
+first (incoming-edge insertion order), then gate insertion order within each
+edge. Reads the prebuilt \code{pending_gate_ids_by_edge} map from the adjacency
+index instead of rescanning \code{graph$gates} per edge.
 }
 \keyword{internal}

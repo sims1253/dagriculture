@@ -39,16 +39,8 @@ dagri_recompute_state_impl <- function(graph, index) {
       next
     }
 
-    is_gate_blocked <- FALSE
-    for (e in up_edges) {
-      gates_on_edge <- Filter(function(g) g$edge_id == e$id && g$status == "pending", graph$gates)
-      if (length(gates_on_edge) > 0) {
-        is_gate_blocked <- TRUE
-        break
-      }
-    }
-
-    if (is_gate_blocked) {
+    pending_gates <- dagri_pending_gates_for_edges(index, index$reverse_edges[[n_id]])
+    if (length(pending_gates) > 0) {
       graph$nodes[[n_id]]$state <- "blocked"
       graph$nodes[[n_id]]$block_reason <- "gate"
       next
@@ -372,30 +364,32 @@ dagri_pending_gates <- function(graph, targets = NULL, index = NULL) {
 
 #' Collect pending gate ids on a set of edges
 #'
-#' Pure worker shared by [dagri_node_status_impl()]: returns the ids of gates
-#' with status "pending" attached to `edge_ids`, in deterministic order —
-#' `edge_ids` order first (incoming-edge insertion order), then gate insertion
-#' order within each edge (the order of `graph$gates`).
+#' Pure worker shared by [dagri_node_status_impl()] and
+#' [dagri_recompute_state_impl()]: returns the ids of gates with status
+#' "pending" attached to `edge_ids`, in deterministic order — `edge_ids` order
+#' first (incoming-edge insertion order), then gate insertion order within each
+#' edge. Reads the prebuilt `pending_gate_ids_by_edge` map from the adjacency
+#' index instead of rescanning `graph$gates` per edge.
 #'
-#' @param graph A \code{dagri_graph}.
+#' @param index Adjacency index from [dagri_adjacency()].
 #' @param edge_ids Character vector of edge ids in insertion order.
-#' @return Character vector of gate ids; `character(0)` when none are pending.
+#' @return Unnamed character vector of gate ids; `character(0)` when none are
+#'   pending.
 #' @keywords internal
-dagri_pending_gates_for_edges <- function(graph, edge_ids) {
-  if (length(graph$gates) == 0 || length(edge_ids) == 0) {
+dagri_pending_gates_for_edges <- function(index, edge_ids) {
+  if (length(edge_ids) == 0) {
     return(character(0))
   }
 
-  pending <- character(0)
-  for (edge_id in edge_ids) {
-    for (gate in graph$gates) {
-      if (identical(gate$edge_id, edge_id) && identical(gate$status, "pending")) {
-        pending <- c(pending, gate$id)
-      }
-    }
+  pending <- unlist(
+    lapply(edge_ids, function(eid) index$pending_gate_ids_by_edge[[eid]]),
+    use.names = FALSE
+  )
+  if (is.null(pending)) {
+    character(0)
+  } else {
+    pending
   }
-
-  pending
 }
 
 #' Build the per-node status view for a plan
@@ -444,7 +438,7 @@ dagri_node_status_impl <- function(graph, topo_order, external_blocked, index) {
     node_status[[node_id]] <- list(
       state = node$state,
       block_reason = node$block_reason,
-      pending_gates = dagri_pending_gates_for_edges(graph, index$reverse_edges[[node_id]]),
+      pending_gates = dagri_pending_gates_for_edges(index, index$reverse_edges[[node_id]]),
       external_hold = hold_reason,
       upstream_blockers = upstream_ids[upstream_not_ready],
       eligible = node$state == "ready"
