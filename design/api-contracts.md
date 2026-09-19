@@ -464,12 +464,19 @@ When relevant, `details` should include ids or paths that localize the failure.
 
 ### `dagri_plan`
 
+For a chain `node_data` (kind `data_source`) -> `node_fit` (kind `process`)
+-> `node_diag` (kind `process`), where the inbound edge of `node_fit` carries
+the pending gate `gate_prior_review`, produced by
+`dagri_plan(graph, targets = c("node_fit", "node_diag"), external_holds = list(node_diag = "manual_review"))`
+(`targets` carries the planned closure in request order — each requested
+target followed by its ancestors — which is not necessarily `topo_order`):
+
 ```r
 list(
-  targets = c("node_fit", "node_diag"),
+  targets = c("node_fit", "node_data", "node_diag"),
   topo_order = c("node_data", "node_fit", "node_diag"),
-  eligible = character(),
-  blocked = list(node_fit = "gate"),
+  eligible = c("node_data"),
+  blocked = list(node_fit = "gate", node_diag = "upstream_blocked"),
   external_blocked = list(node_diag = "manual_review"),
   terminal = c("node_diag"),
   pending_gates = c("gate_prior_review"),
