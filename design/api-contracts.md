@@ -54,10 +54,9 @@ Rules:
   outright; merging partial metadata belongs in the caller.
 - Metadata changes go through the same mutators and therefore bump `version`
   by exactly `1` per successful call, like every `dagri_*` mutation.
-- Known boundary: `dagri_graph_diff()` is a pure structural id diff — it
-  reports only added/removed node and edge ids, so metadata (and other
-  in-place field) edits do not surface in its output. Value-aware diffing is
-  not part of this contract yet.
+- `dagri_graph_diff()` surfaces metadata (and other tracked-field) edits in
+  its output through `changed_nodes` / `changed_edges` / `changed_gates` and
+  the optional `values` payload; see the Graph Boundary Helpers rules.
 - Persistence: the `dagri_graph_snapshot` schema already carries all `metadata`
   fields. Writers that previously always emitted `{}` may now emit populated
   objects; this is backward compatible for readers that treat metadata as
@@ -267,7 +266,7 @@ dagri_incoming_edges(graph, node_id)
 dagri_outgoing_edges(graph, node_id)
 dagri_order_edges(edges)
 dagri_edge_ids(edges)
-dagri_graph_diff(before, after)
+dagri_graph_diff(before, after, include_values = FALSE)
 ```
 
 Rules:
@@ -281,11 +280,33 @@ Rules:
   back to embedded `edge$id` fields so both the canonical named-map storage
   shape and unnamed edge lists remain diffable; it aborts with
   `dagri_error_invalid_argument` when neither yields complete ids.
-- `dagri_graph_diff()` is a pure structural diff with no workflow semantics.
-- `dagri_graph_diff()` reports only added/removed node and edge ids; in-place
-  field edits (metadata, `type`, `label`, ...) do not surface in its output.
-  This is a known boundary of the structural diff, not a promise about future
-  value-aware diffing.
+- `dagri_graph_diff()` is a pure diff with no workflow semantics. The result
+  is a named list in this order: `added_nodes`, `removed_nodes`,
+  `added_edges`, `removed_edges`, `added_gates`, `removed_gates`,
+  `changed_nodes`, `changed_edges`, `changed_gates` — all character vectors.
+  The first four keep the exact structural-only semantics (plain `setdiff()`
+  over `names(graph$nodes)` and `dagri_edge_ids()`), so existing consumers are
+  unaffected; gates follow the same setdiff pattern keyed by
+  `names(graph$gates)`.
+- `changed_nodes` / `changed_edges` / `changed_gates` list ids present in both
+  graphs (by key) where any tracked field differs: node `kind`, `label`,
+  `params`, `state`, `block_reason`, `metadata`; edge `from`, `to`, `type`,
+  `metadata`; gate `edge_id`, `status`, `metadata`. Fields are compared with
+  `identical()` on the stored in-memory values; `graph$version` is ignored
+  (derived state, not content). Ordering is deterministic: changed ids appear
+  in the named-map insertion order of `after`.
+- With `include_values = TRUE` the result additionally carries `values`: a
+  named list with `nodes`, `edges`, and `gates` elements, each a named list
+  keyed by the changed ids (same ids and order as `changed_*`), each entry a
+  named list of only the differing fields, each field
+  `list(before = <value>, after = <value>)`. Ids that were only added or
+  removed do not appear in `values`. With the default `include_values =
+  FALSE` the `values` element is absent.
+- Because comparison is `identical()`-based on in-memory values, graphs that
+  serialize identically can still diff when their in-memory shapes differ
+  (for example `NULL` vs `""`). Callers diffing JSON-round-tripped graphs
+  should normalize values first; see the serialization rules in
+  [persistence-spec.md](./persistence-spec.md).
 
 ### State And Planning
 
@@ -433,4 +454,34 @@ list(
   pending_gates = c("gate_prior_review")
 )
 ```
+
+### `dagri_graph_diff`
+
+With `include_values = TRUE` (a label edit, a gate resolve, and an added
+node; the `values` element is absent with the default `include_values =
+FALSE`):
+
+```r
+list(
+  added_nodes = "diag",
+  removed_nodes = character(),
+  added_edges = character(),
+  removed_edges = character(),
+  added_gates = character(),
+  removed_gates = character(),
+  changed_nodes = "fit",
+  changed_edges = character(),
+  changed_gates = "gate_review",
+  values = list(
+    nodes = list(
+      fit = list(label = list(before = "Fit", after = "Posterior fit"))
+    ),
+    edges = setNames(list(), character(0)),
+    gates = list(
+      gate_review = list(status = list(before = "pending", after = "resolved"))
+    )
+  )
+)
+```
+
 

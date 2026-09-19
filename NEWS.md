@@ -13,6 +13,17 @@
   `graph$version` by 1. Known boundary: `dagri_graph_diff()` remains a
   structural id diff, so metadata and `type` edits do not surface in its
   output.
+- **Value-aware graph diffing with gate support:** `dagri_graph_diff()` now
+  also reports `added_gates`, `removed_gates`, and `changed_nodes` /
+  `changed_edges` / `changed_gates` alongside the existing structural
+  vectors (which are unchanged). `changed_*` covers ids present in both
+  graphs whose tracked fields differ — node `kind`/`label`/`params`/`state`/
+  `block_reason`/`metadata`, edge `from`/`to`/`type`/`metadata`, gate
+  `edge_id`/`status`/`metadata` — compared with `identical()` on in-memory
+  values; `graph$version` is ignored. The new `include_values = TRUE` adds a
+  `values` element carrying `list(before = ..., after = ...)` per changed
+  field. `changed_*` ids are ordered by the named-map insertion order of
+  `after`.
 
 ## Behavior changes
 
