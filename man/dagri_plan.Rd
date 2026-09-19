@@ -16,9 +16,55 @@ reason strings. These affect planning output without mutating graph state.}
 }
 \value{
 A \code{dagri_plan} (a named list with S3 class
-\code{c("dagri_plan", "list")}) with components \code{targets},
-\code{topo_order}, \code{eligible}, \code{blocked}, \code{external_blocked},
-\code{terminal}, and \code{pending_gates}.
+\code{c("dagri_plan", "list")}) with components:
+\describe{
+\item{\code{targets}}{Character vector of the planned target closure
+(the requested targets plus all their ancestors).}
+\item{\code{topo_order}}{Character vector of \code{targets} in
+topological order.}
+\item{\code{eligible}}{Character vector of structurally ready nodes
+within \code{targets}. External holds never remove a node from this
+set.}
+\item{\code{blocked}}{Named list mapping each structurally blocked
+target to its derived block reason (\code{"gate"} or
+\code{"upstream_blocked"}).}
+\item{\code{external_blocked}}{Named list mapping each externally held
+target — and every target downstream of it — to the propagated hold
+reason. A node can appear here and in \code{eligible} at the same
+time: structural eligibility and external blocking are separate.}
+\item{\code{terminal}}{Character vector of targets with no downstream
+neighbors inside \code{targets}.}
+\item{\code{pending_gates}}{Character vector of pending gate ids on
+inbound edges of the target closure, in gate insertion order.}
+\item{\code{node_status}}{Named list keyed by node id covering exactly
+\code{targets}, ordered by \code{topo_order}. Each entry is a named
+list with:
+\describe{
+\item{\code{state}}{Single string: the derived structural state
+(\code{"ready"} or \code{"blocked"}) after the internal
+recompute.}
+\item{\code{block_reason}}{Single string: the structural block
+reason (\code{"none"}, \code{"gate"}, or
+\code{"upstream_blocked"}).}
+\item{\code{pending_gates}}{Character vector of pending gate ids
+attached to the node's inbound edges, in deterministic order —
+edge insertion order, then gate insertion order within each
+edge; \code{character(0)} when none.}
+\item{\code{external_hold}}{\code{NULL} when the node is not
+externally blocked; otherwise the single-string propagated hold
+reason (the same value \code{external_blocked[[id]]} carries).}
+\item{\code{upstream_blockers}}{Character vector of direct upstream
+neighbor ids (incoming-edge sources) whose derived state is not
+\code{"ready"}; unique, in incoming-edge insertion order;
+\code{character(0)} when none.}
+\item{\code{eligible}}{Single logical: structural eligibility,
+identical to membership in the plan's \code{eligible} field.
+Deliberately remains \code{TRUE} when the node is externally
+held — structural eligibility and external blocking are separate
+axes, so an entry can carry \code{eligible = TRUE} together with
+a non-\code{NULL} \code{external_hold}.}
+}}
+}
 }
 \description{
 Create a structural plan

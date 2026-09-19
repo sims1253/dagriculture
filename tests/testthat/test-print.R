@@ -77,11 +77,12 @@ describe("print.dagri_plan", {
     expect_true(grepl("targets: 3", collapsed, fixed = TRUE))
     expect_true(grepl("topo order length: 3", collapsed, fixed = TRUE))
     # n1 eligible; n2 (gate) and n3 (upstream_blocked) blocked; n3 terminal;
-    # gate1 pending.
+    # gate1 pending; node_status covers the whole 3-node closure.
     expect_true(grepl("eligible: 1", collapsed, fixed = TRUE))
     expect_true(grepl("blocked: 2", collapsed, fixed = TRUE))
     expect_true(grepl("terminal: 1", collapsed, fixed = TRUE))
     expect_true(grepl("pending gates: 1", collapsed, fixed = TRUE))
+    expect_true(grepl("node status: 3", collapsed, fixed = TRUE))
   })
 
   it("field access still works after the class is added", {

@@ -34,6 +34,18 @@
   with `dagri_error_invalid_argument` (previously metadata was stored
   unvalidated, so code-bearing or reference-bearing values could silently enter
   graphs and later break serialization).
+- **Per-node status view in `dagri_plan()`:** plans now carry a `node_status`
+  field — a named list keyed by node id covering the target closure in
+  `topo_order` order — so consumers no longer re-derive why each node is
+  blocked. Each entry exposes the derived structural `state` and
+  `block_reason`, the `pending_gates` on the node's inbound edges (edge
+  insertion order, then gate insertion order), the propagated
+  `external_hold` reason (`NULL` when none), the direct `upstream_blockers`
+  (unique, incoming-edge insertion order), and final structural `eligible`.
+  `eligible` is identical to membership in `plan$eligible` and deliberately
+  stays `TRUE` under external holds, preserving the existing separation
+  between structural eligibility and external blocking. Existing plan fields
+  are unchanged; the new field is additive.
 
 # dagriculture 0.3.0
 

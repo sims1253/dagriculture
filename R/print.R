@@ -51,8 +51,8 @@ print.dagri_graph <- function(x, ...) {
 #'
 #' Prints a concise multi-line summary of a \code{dagri_plan} produced by
 #' [dagri_plan()]: counts of targets, the topological order length, and the
-#' eligible/blocked/terminal sets plus the number of pending gates. Matches
-#' the style of base R print methods.
+#' eligible/blocked/terminal sets, the number of pending gates, and the number
+#' of per-node status entries. Matches the style of base R print methods.
 #'
 #' @param x A \code{dagri_plan}.
 #' @param ... Unused; for S3 generic compatibility.
@@ -67,5 +67,6 @@ print.dagri_plan <- function(x, ...) {
   cat(sprintf("  blocked: %d\n", n_blocked))
   cat(sprintf("  terminal: %d\n", length(x$terminal)))
   cat(sprintf("  pending gates: %d\n", length(x$pending_gates)))
+  cat(sprintf("  node status: %d\n", length(x$node_status)))
   invisible(x)
 }
