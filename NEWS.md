@@ -23,6 +23,12 @@
   `values` element carrying `list(before = ..., after = ...)` per changed
   field. `changed_*` ids are ordered by the named-map insertion order of
   `after`.
+- **Tabular accessors:** added `dagri_nodes_df()`, `dagri_edges_df()`, and
+  `dagri_gates_df()` — base `data.frame` views of the stored node, edge, and
+  gate records for reporting consumers. Rows follow graph insertion order,
+  `params`/`metadata` stay list-columns holding the stored lists verbatim,
+  ids live in the `id` column instead of row names, and empty graphs yield
+  zero-row frames with identical column names and classes.
 - **Customization hooks for `dagri_mermaid()`:** the renderer gains
   `gate_label`, `include_resolved_gates`, `class_defs`, and `header`
   arguments without changing its pure graph-to-text contract. With every
