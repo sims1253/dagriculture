@@ -274,6 +274,44 @@ describe("graph boundary helpers", {
       expect_equal(unnamed_diff$removed_edges, character())
     })
 
+    it("applies the embedded-id fallback to changed_edges and values$edges", {
+      graph_before <- base_graph()
+      # Edge type cannot change through the public editing API; re-adding
+      # under the same id with a new type keeps the key present in both
+      # graphs, so the change surfaces through changed_edges.
+      typed_after <- dagri_remove_edge(graph_before, "edge_ab")
+      typed_after <- dagri_add_edge(
+        typed_after,
+        from = "node_a",
+        to = "node_b",
+        id = "edge_ab",
+        type = "model"
+      )
+
+      # Strip container names on both sides so edge ids come from the
+      # embedded edge$id fallback (dagri_edge_map), not names(graph$edges).
+      unnamed_before <- graph_before
+      names(unnamed_before$edges) <- NULL
+      unnamed_after <- typed_after
+      names(unnamed_after$edges) <- NULL
+
+      diff <- dagri_graph_diff(unnamed_before, unnamed_after)
+      expect_equal(diff$changed_edges, "edge_ab")
+      expect_equal(diff$added_edges, character())
+      expect_equal(diff$removed_edges, character())
+
+      value_diff <- dagri_graph_diff(
+        unnamed_before,
+        unnamed_after,
+        include_values = TRUE
+      )
+      expect_equal(value_diff$changed_edges, "edge_ab")
+      expect_equal(
+        value_diff$values$edges$edge_ab,
+        list(type = list(before = "data", after = "model"))
+      )
+    })
+
     it("rejects an invalid graph argument", {
       empty_graph <- dagri_graph(dagri_registry())
       bad_graph <- list(nodes = list())
