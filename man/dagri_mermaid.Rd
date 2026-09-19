@@ -8,8 +8,8 @@ dagri_mermaid(
   graph,
   node_label = NULL,
   node_class = NULL,
-  gate_label = NULL,
   direction = "TD",
+  gate_label = NULL,
   include_resolved_gates = FALSE,
   class_defs = character(),
   header = character()
@@ -28,6 +28,10 @@ supplies a Mermaid CSS class name for each node. Defaults to
 \code{function(node) node$state \%||\% NA_character_}; when the
 function returns \code{NA}, no \code{class} line is emitted for that node.}
 
+\item{direction}{Single character string, the Mermaid flowchart
+direction. Defaults to \code{"TD"} (top-down). Common alternatives are
+\code{"LR"}, \code{"RL"}, and \code{"BT"}.}
+
 \item{gate_label}{\code{NULL} (default) or a function
 \code{(gate, edge) -> string} supplying the annotation label for each
 gate — e.g. \code{"pending review"}, \code{"signed off"}, or a reviewer name
@@ -41,10 +45,6 @@ gate; non-character returns are coerced with \code{\link[=as.character]{as.chara
 return that is still not a single non-\code{NA} string after coercion
 (e.g. a multi-element vector) becomes \code{""}.}
 
-\item{direction}{Single character string, the Mermaid flowchart
-direction. Defaults to \code{"TD"} (top-down). Common alternatives are
-\code{"LR"}, \code{"RL"}, and \code{"BT"}.}
-
 \item{include_resolved_gates}{Single non-\code{NA} logical, default \code{FALSE}.
 When \code{TRUE}, gates with \code{status == "resolved"} are also annotated on
 their edge, with the constant \code{" (resolved)"} appended to each
@@ -57,7 +57,9 @@ default), resolved gates produce no annotation.}
 lines). Each element must be a single non-\code{NA} string and is
 sanitized with the label sanitizer, then emitted on its own line
 after the \code{flowchart} line and before the node lines, in the given
-order. \code{NULL} is treated as \code{character()}.}
+order. Because the sanitizer strips parentheses, prefer 8-digit hex
+color forms (e.g. \verb{fill:#3480db66}) over \code{rgba(...)} colors, whose
+parentheses are removed. \code{NULL} is treated as \code{character()}.}
 
 \item{header}{Character vector of raw Mermaid preamble lines, default
 \code{character()}. Each element must be a single non-\code{NA} string; lines
@@ -73,7 +75,7 @@ derived from graph data (labels, classes, gate annotations,
 \value{
 A length-1 character scalar containing the full Mermaid
 flowchart block, with lines separated by \verb{\\n}. An empty graph yields
-just the header line (e.g. \code{"flowchart TD\\n"}).
+just the \code{flowchart} line (e.g. \code{"flowchart TD\\n"}).
 }
 \description{
 Emits a \href{https://mermaid.js.org/}{Mermaid} flowchart as a single

@@ -80,6 +80,9 @@ dagri_mermaid_gate_segment <- function(gate, edge, gate_label, mark_resolved) {
 #'   supplies a Mermaid CSS class name for each node. Defaults to
 #'   \code{function(node) node$state \%||\% NA_character_}; when the
 #'   function returns `NA`, no `class` line is emitted for that node.
+#' @param direction Single character string, the Mermaid flowchart
+#'   direction. Defaults to `"TD"` (top-down). Common alternatives are
+#'   `"LR"`, `"RL"`, and `"BT"`.
 #' @param gate_label `NULL` (default) or a function
 #'   \code{(gate, edge) -> string} supplying the annotation label for each
 #'   gate — e.g. `"pending review"`, `"signed off"`, or a reviewer name
@@ -92,9 +95,6 @@ dagri_mermaid_gate_segment <- function(gate, edge, gate_label, mark_resolved) {
 #'   gate; non-character returns are coerced with [as.character()]; a
 #'   return that is still not a single non-`NA` string after coercion
 #'   (e.g. a multi-element vector) becomes `""`.
-#' @param direction Single character string, the Mermaid flowchart
-#'   direction. Defaults to `"TD"` (top-down). Common alternatives are
-#'   `"LR"`, `"RL"`, and `"BT"`.
 #' @param include_resolved_gates Single non-`NA` logical, default `FALSE`.
 #'   When `TRUE`, gates with `status == "resolved"` are also annotated on
 #'   their edge, with the constant `" (resolved)"` appended to each
@@ -106,7 +106,9 @@ dagri_mermaid_gate_segment <- function(gate, edge, gate_label, mark_resolved) {
 #'   lines). Each element must be a single non-`NA` string and is
 #'   sanitized with the label sanitizer, then emitted on its own line
 #'   after the `flowchart` line and before the node lines, in the given
-#'   order. `NULL` is treated as `character()`.
+#'   order. Because the sanitizer strips parentheses, prefer 8-digit hex
+#'   color forms (e.g. `fill:#3480db66`) over `rgba(...)` colors, whose
+#'   parentheses are removed. `NULL` is treated as `character()`.
 #' @param header Character vector of raw Mermaid preamble lines, default
 #'   `character()`. Each element must be a single non-`NA` string; lines
 #'   are emitted before the `flowchart` line in the given order. Because
@@ -120,7 +122,7 @@ dagri_mermaid_gate_segment <- function(gate, edge, gate_label, mark_resolved) {
 #'
 #' @return A length-1 character scalar containing the full Mermaid
 #'   flowchart block, with lines separated by `\n`. An empty graph yields
-#'   just the header line (e.g. `"flowchart TD\n"`).
+#'   just the `flowchart` line (e.g. `"flowchart TD\n"`).
 #'
 #' @details
 #'
@@ -224,8 +226,8 @@ dagri_mermaid <- function(
   graph,
   node_label = NULL,
   node_class = NULL,
-  gate_label = NULL,
   direction = "TD",
+  gate_label = NULL,
   include_resolved_gates = FALSE,
   class_defs = character(),
   header = character()
