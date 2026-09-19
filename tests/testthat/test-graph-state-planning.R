@@ -274,6 +274,17 @@ describe("graph state and planning", {
       expect_true(all(vapply(plan$node_status, function(s) isTRUE(s$eligible), logical(1))))
     })
 
+    it("pins the request-order closure of targets on a branching graph", {
+      fixture <- dagri_fixture_branching_graph()
+      plan <- dagri_plan(fixture$graph, targets = c("n3", "n4"))
+
+      # Pins the request-order closure documented in api-contracts.md: each
+      # requested target followed by its ancestors, shared ancestors not
+      # repeated. Deliberately exact (not expect_setequal) so reordering
+      # plan$targets fails here.
+      expect_identical(plan$targets, c("n3", "n2", "n1", "n4"))
+    })
+
     it("mirrors the aggregate eligible, blocked, and external_blocked fields", {
       plan <- dagri_plan(
         g,
