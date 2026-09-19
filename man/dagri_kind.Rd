@@ -24,7 +24,8 @@ list structure is allowed, but executable closures are rejected for safety.}
 
 \item{metadata}{Opaque caller-owned extension data: a named list of plain
 data (nested lists, vectors, and scalars are fine). Closures,
-environments, formulas, and external pointers are rejected recursively.}
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.}
 }
 \value{
 A kind record: a named list with fields \code{name}, \code{input_contract},

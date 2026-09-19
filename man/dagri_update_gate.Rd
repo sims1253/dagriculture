@@ -13,8 +13,8 @@ dagri_update_gate(graph, gate_id, metadata = NULL)
 
 \item{metadata}{Gate metadata. When non-\code{NULL}, \strong{replaces} the existing
 \code{metadata} outright (see Details); must be a named list of plain data
-(closures, environments, formulas, and external pointers are rejected
-recursively).}
+(closures, environments, formulas, language objects, S4 objects, external
+pointers, and weak references are rejected recursively).}
 }
 \value{
 A new \code{dagri_graph} with the gate updated and \code{version} bumped by 1

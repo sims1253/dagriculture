@@ -11,7 +11,8 @@ dagri_graph(registry, metadata = list())
 
 \item{metadata}{Opaque caller-owned extension data: a named list of plain
 data (nested lists, vectors, and scalars are fine). Closures,
-environments, formulas, and external pointers are rejected recursively.}
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.}
 }
 \value{
 A \code{dagri_graph} (a named list with S3 class
@@ -28,9 +29,10 @@ returned copy.
 \details{
 Graph-level \code{metadata} is opaque caller-owned extension data; every record
 type (kind, registry, graph, node, edge, gate) carries the same field. It
-must be a named list of plain data — closures, environments, formulas, and
-external pointers are rejected recursively — so it stays serializable under
-the persistence contract.
+must be a named list of plain data — closures, environments, formulas,
+language objects, S4 objects, external pointers, and weak references are
+rejected recursively — so it stays serializable under the persistence
+contract.
 }
 \section{Errors}{
 

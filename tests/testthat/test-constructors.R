@@ -248,6 +248,83 @@ describe("metadata in constructors", {
     )
   })
 
+  it("rejects language objects in metadata (calls, symbols, expressions)", {
+    expect_error(
+      dagri_kind("bad", metadata = list(expr = quote(x + 1))),
+      class = "dagri_error_invalid_argument"
+    )
+    expect_error(
+      dagri_kind("bad", metadata = list(sym = as.name("x"))),
+      class = "dagri_error_invalid_argument"
+    )
+    expect_error(
+      dagri_registry(dagri_kind("s"), metadata = list(exprs = expression(y ~ z))),
+      class = "dagri_error_invalid_argument"
+    )
+    expect_error(
+      dagri_graph(
+        dagri_registry(dagri_kind("s")),
+        metadata = list(a = list(b = quote(x + 1)))
+      ),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("rejects S4 objects in metadata, including nested", {
+    methods::setClass("DagriTestRefBearer", slots = c(env = "environment"))
+    on.exit(methods::removeClass("DagriTestRefBearer"), add = TRUE)
+    expect_error(
+      dagri_kind(
+        "bad",
+        metadata = list(obj = methods::new("DagriTestRefBearer", env = new.env()))
+      ),
+      class = "dagri_error_invalid_argument"
+    )
+    expect_error(
+      dagri_graph(
+        dagri_registry(dagri_kind("s")),
+        metadata = list(a = list(obj = methods::new("DagriTestRefBearer")))
+      ),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("rejects weak references in metadata", {
+    # Base R 4.6 has no public weakref constructor; rlang (a hard Imports
+    # dependency) exposes one internally. If it ever disappears, fall back to
+    # exercising the denylist branch directly and skip the end-to-end path.
+    wr <- tryCatch(
+      getFromNamespace("new_weakref", "rlang")(new.env()),
+      error = function(e) NULL
+    )
+    if (is.null(wr)) {
+      skip("no weakref constructor available on this R/rlang")
+    }
+    expect_identical(typeof(wr), "weakref")
+    expect_true(dagriculture:::dagri_has_reference_value(wr))
+    expect_error(
+      dagri_kind("bad", metadata = list(ref = wr)),
+      class = "dagri_error_invalid_argument"
+    )
+    expect_error(
+      dagri_graph(
+        dagri_registry(dagri_kind("s")),
+        metadata = list(a = list(ref = wr))
+      ),
+      class = "dagri_error_invalid_argument"
+    )
+  })
+
+  it("plain data still passes the reference check", {
+    ok <- list(
+      a = 1,
+      b = c("x", "y"),
+      c = list(d = TRUE, e = list(f = 1.5)),
+      g = NULL
+    )
+    expect_false(dagriculture:::dagri_has_reference_value(ok))
+  })
+
   it("reports the failing argument and reason in details", {
     err <- tryCatch(
       dagri_kind("bad", metadata = list(a = ~x)),

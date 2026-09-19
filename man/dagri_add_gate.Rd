@@ -15,7 +15,8 @@ dagri_add_gate(graph, edge_id, id = NULL, metadata = list())
 
 \item{metadata}{Opaque caller-owned extension data: a named list of plain
 data (nested lists, vectors, and scalars are fine). Closures,
-environments, formulas, and external pointers are rejected recursively.}
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.}
 }
 \value{
 A new \code{dagri_graph} with the gate added (status "pending") and

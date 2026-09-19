@@ -205,9 +205,12 @@ describe("graph editing operations", {
     })
 
     it("replaces metadata, not merges (replace semantics regression guard)", {
-      g2 <- dagri_update_edge(g_edge, "e1", metadata = list(weight = 2, note = "revised"))
+      # update metadata lacks the original `weight` key on purpose: under merge
+      # semantics it would survive, so these assertions can actually fail.
+      g2 <- dagri_update_edge(g_edge, "e1", metadata = list(note = "revised"))
 
-      expect_identical(g2$edges[["e1"]]$metadata, list(weight = 2, note = "revised"))
+      expect_identical(g2$edges[["e1"]]$metadata, list(note = "revised"))
+      expect_false("weight" %in% names(g2$edges[["e1"]]$metadata))
       expect_identical(g2$edges[["e1"]]$type, "data")
     })
 

@@ -26,7 +26,8 @@ dagri_add_node(
 
 \item{metadata}{Opaque caller-owned extension data: a named list of plain
 data (nested lists, vectors, and scalars are fine). Closures,
-environments, formulas, and external pointers are rejected recursively.}
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.}
 }
 \value{
 A new \code{dagri_graph} with the node added and \code{version} bumped by 1;

@@ -10,7 +10,8 @@
 #' @param params Node parameters.
 #' @param metadata Opaque caller-owned extension data: a named list of plain
 #'   data (nested lists, vectors, and scalars are fine). Closures,
-#'   environments, formulas, and external pointers are rejected recursively.
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
 #' @return A new `dagri_graph` with the node added and `version` bumped by 1;
 #'   the input graph is not modified.
 #'
@@ -100,8 +101,8 @@ dagri_add_node <- function(graph, id, kind, label = NULL, params = list(), metad
 #'   `params` outright (see Details).
 #' @param metadata Node metadata. When non-`NULL`, **replaces** the existing
 #'   `metadata` outright (see Details); must be a named list of plain data
-#'   (closures, environments, formulas, and external pointers are rejected
-#'   recursively).
+#'   (closures, environments, formulas, language objects, S4 objects, external
+#'   pointers, and weak references are rejected recursively).
 #' @return A new `dagri_graph` with the node updated and `version` bumped by 1
 #'   (the bump happens even when every field argument is `NULL`); the input
 #'   graph is not modified.
@@ -187,7 +188,8 @@ dagri_remove_node <- function(graph, id) {
 #' @param id Optional Edge ID.
 #' @param metadata Opaque caller-owned extension data: a named list of plain
 #'   data (nested lists, vectors, and scalars are fine). Closures,
-#'   environments, formulas, and external pointers are rejected recursively.
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
 #' @return A new `dagri_graph` with the edge added and `version` bumped by 1;
 #'   the input graph is not modified.
 #'
@@ -273,8 +275,8 @@ dagri_add_edge <- function(graph, from, to, type = "data", id = NULL, metadata =
 #'   and **replaces** the existing `type` (see Details).
 #' @param metadata Edge metadata. When non-`NULL`, **replaces** the existing
 #'   `metadata` outright (see Details); must be a named list of plain data
-#'   (closures, environments, formulas, and external pointers are rejected
-#'   recursively).
+#'   (closures, environments, formulas, language objects, S4 objects, external
+#'   pointers, and weak references are rejected recursively).
 #' @return A new `dagri_graph` with the edge updated and `version` bumped by 1
 #'   (the bump happens even when both field arguments are `NULL`); the input
 #'   graph is not modified. `from`/`to` cannot be changed — remove and re-add
@@ -363,7 +365,8 @@ dagri_remove_edge <- function(graph, id) {
 #' @param id Optional Gate ID.
 #' @param metadata Opaque caller-owned extension data: a named list of plain
 #'   data (nested lists, vectors, and scalars are fine). Closures,
-#'   environments, formulas, and external pointers are rejected recursively.
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
 #' @return A new `dagri_graph` with the gate added (status "pending") and
 #'   `version` bumped by 1; the input graph is not modified.
 #'
@@ -432,8 +435,8 @@ dagri_add_gate <- function(graph, edge_id, id = NULL, metadata = list()) {
 #' @param gate_id Gate ID.
 #' @param metadata Gate metadata. When non-`NULL`, **replaces** the existing
 #'   `metadata` outright (see Details); must be a named list of plain data
-#'   (closures, environments, formulas, and external pointers are rejected
-#'   recursively).
+#'   (closures, environments, formulas, language objects, S4 objects, external
+#'   pointers, and weak references are rejected recursively).
 #' @return A new `dagri_graph` with the gate updated and `version` bumped by 1
 #'   (the bump happens even when `metadata` is `NULL`); the input graph is not
 #'   modified.

@@ -20,6 +20,7 @@ Metadata is opaque caller-owned extension data carried on every record type
 persistence contract it must be named plain data: a named list (possibly
 empty) whose values contain no executable or reference-bearing objects.
 Nested lists (objects and arrays) are allowed at any depth; closures,
-environments, formulas, and external pointers are rejected recursively.
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.
 }
 \keyword{internal}

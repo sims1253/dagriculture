@@ -11,13 +11,19 @@ dagri_has_closure <- function(x) {
 # Metadata must be plain data (see dagri_validate_metadata()): this recursive
 # check mirrors dagri_has_closure()'s no-code approach and additionally rejects
 # reference-bearing values (environments carry mutable state, formulas carry
-# environments, external pointers are opaque native references).
+# environments, language objects are eval()-able, S4 objects can hold
+# environments or external pointers in their slots, and external pointers and
+# weak references are opaque native references).
 dagri_has_reference_value <- function(x) {
   if (
     is.function(x) ||
       is.environment(x) ||
       inherits(x, "formula") ||
-      identical(typeof(x), "externalptr")
+      is.language(x) ||
+      is.expression(x) ||
+      isS4(x) ||
+      identical(typeof(x), "externalptr") ||
+      identical(typeof(x), "weakref")
   ) {
     return(TRUE)
   }
@@ -40,7 +46,8 @@ dagri_has_reference_value <- function(x) {
 #'   list structure is allowed, but executable closures are rejected for safety.
 #' @param metadata Opaque caller-owned extension data: a named list of plain
 #'   data (nested lists, vectors, and scalars are fine). Closures,
-#'   environments, formulas, and external pointers are rejected recursively.
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
 #' @return A kind record: a named list with fields `name`, `input_contract`,
 #'   `output_type`, `param_schema`, and `metadata`.
 #'
@@ -139,7 +146,8 @@ dagri_kind <- function(
 #' @param ... \code{dagri_kind} objects.
 #' @param metadata Opaque caller-owned extension data: a named list of plain
 #'   data (nested lists, vectors, and scalars are fine). Closures,
-#'   environments, formulas, and external pointers are rejected recursively.
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
 #' @return A registry: a named list with fields `kinds` (a named map of kind
 #'   records) and `metadata`.
 #'
@@ -181,14 +189,16 @@ dagri_registry <- function(..., metadata = list()) {
 #'
 #' Graph-level `metadata` is opaque caller-owned extension data; every record
 #' type (kind, registry, graph, node, edge, gate) carries the same field. It
-#' must be a named list of plain data — closures, environments, formulas, and
-#' external pointers are rejected recursively — so it stays serializable under
-#' the persistence contract.
+#' must be a named list of plain data — closures, environments, formulas,
+#' language objects, S4 objects, external pointers, and weak references are
+#' rejected recursively — so it stays serializable under the persistence
+#' contract.
 #'
 #' @param registry A \code{dagri_registry} object.
 #' @param metadata Opaque caller-owned extension data: a named list of plain
 #'   data (nested lists, vectors, and scalars are fine). Closures,
-#'   environments, formulas, and external pointers are rejected recursively.
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
 #' @return A `dagri_graph` (a named list with S3 class
 #'   \code{c("dagri_graph", "list")}) with fields `registry`, `nodes`, `edges`,
 #'   `gates`, `version` (0L), and `metadata`.

@@ -44,7 +44,8 @@ Rules:
   (arrays) are allowed.
 - `dagri_validate_metadata()` rejects non-lists (including data.frames),
   unnamed top-level entries, and — recursively — closures, environments,
-  formulas, and external pointers. It runs at every metadata entry point: the
+  formulas, language objects, S4 objects, external pointers, and weak
+  references. It runs at every metadata entry point: the
   three constructors and `dagri_add_node()` / `dagri_update_node()` /
   `dagri_add_edge()` / `dagri_update_edge()` / `dagri_add_gate()` /
   `dagri_update_gate()`.
@@ -104,7 +105,7 @@ Fields:
 - `edges`: named map of `dagri_edge`
 - `gates`: named map of `dagri_gate`
 - `version`: scalar integer
-- `metadata`: named list
+- `metadata`: named plain-data list (see [Metadata Policy](#metadata-policy))
 
 Carries S3 class `c("dagri_graph", "list")` so
 [print.dagri_graph()] dispatches; underneath it is a plain named list and
@@ -127,7 +128,7 @@ Invariants:
 Fields:
 
 - `kinds`: named map of `dagri_kind`
-- `metadata`: named list
+- `metadata`: named plain-data list (see [Metadata Policy](#metadata-policy))
 
 #### `dagri_kind`
 
@@ -137,7 +138,7 @@ Fields:
 - `input_contract`: `NULL` or named list
 - `output_type`: `NULL` or scalar string
 - `param_schema`: `NULL` or named list
-- `metadata`: named list
+- `metadata`: named plain-data list (see [Metadata Policy](#metadata-policy))
 
 Rules:
 
@@ -154,7 +155,7 @@ Fields:
 - `params`: named list
 - `state`: `new`, `ready`, or `blocked`
 - `block_reason`: `none`, `gate`, or `upstream_blocked`
-- `metadata`: named list
+- `metadata`: named plain-data list (see [Metadata Policy](#metadata-policy))
 
 Rules:
 
@@ -168,7 +169,7 @@ Fields:
 - `from`: scalar string
 - `to`: scalar string
 - `type`: scalar string
-- `metadata`: named list
+- `metadata`: named plain-data list (see [Metadata Policy](#metadata-policy))
 
 #### `dagri_gate`
 
@@ -177,7 +178,7 @@ Fields:
 - `id`: scalar string
 - `edge_id`: scalar string
 - `status`: `pending` or `resolved`
-- `metadata`: named list
+- `metadata`: named plain-data list (see [Metadata Policy](#metadata-policy))
 
 #### `dagri_plan`
 
