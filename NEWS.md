@@ -19,7 +19,8 @@
 - `metadata` is now validated at every entry point (`dagri_kind()`,
   `dagri_registry()`, `dagri_graph()`, `dagri_add_node()`, `dagri_update_node()`,
   `dagri_add_edge()`, `dagri_add_gate()`): it must be a named list of plain
-  data, and closures, environments, formulas, or external pointers are rejected
+  data, and closures, environments, formulas, language objects, S4 objects,
+  external pointers, or weak references are rejected
   with `dagri_error_invalid_argument` (previously metadata was stored
   unvalidated, so code-bearing or reference-bearing values could silently enter
   graphs and later break serialization).
