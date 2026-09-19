@@ -8,7 +8,8 @@ dagri_kind(
   name,
   input_contract = NULL,
   output_type = NULL,
-  param_schema = NULL
+  param_schema = NULL,
+  metadata = list()
 )
 }
 \arguments{
@@ -20,7 +21,35 @@ dagri_kind(
 
 \item{param_schema}{A named list describing expected parameters. Arbitrary nested
 list structure is allowed, but executable closures are rejected for safety.}
+
+\item{metadata}{Opaque caller-owned extension data: a named list of plain
+data (nested lists, vectors, and scalars are fine). Closures,
+environments, formulas, and external pointers are rejected recursively.}
+}
+\value{
+A kind record: a named list with fields \code{name}, \code{input_contract},
+\code{output_type}, \code{param_schema}, and \code{metadata}.
 }
 \description{
-Define a dagriculture kind
+Creates a kind record describing one node type: its input contract, output
+type, and parameter schema. The record is plain data and carries an opaque
+caller-owned \code{metadata} field.
+}
+\section{Errors}{
+
+\itemize{
+\item \code{dagri_error_invalid_argument} when \code{name} is not a single non-empty
+string, \code{input_contract} is not a named list of single strings/\code{NULL},
+\code{param_schema} is not a named list free of closures, or \code{metadata} fails
+the plain-data check (see \code{\link[=dagri_graph]{dagri_graph()}}).
+}
+}
+
+\examples{
+dagri_kind("source", output_type = "data.frame")
+dagri_kind(
+  "fit",
+  input_contract = list(data = "data.frame"),
+  metadata = list(owner = "team_a", revision = 2)
+)
 }

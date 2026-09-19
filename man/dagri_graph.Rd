@@ -4,14 +4,19 @@
 \alias{dagri_graph}
 \title{Create an empty dagriculture graph}
 \usage{
-dagri_graph(registry)
+dagri_graph(registry, metadata = list())
 }
 \arguments{
 \item{registry}{A \code{dagri_registry} object.}
+
+\item{metadata}{Opaque caller-owned extension data: a named list of plain
+data (nested lists, vectors, and scalars are fine). Closures,
+environments, formulas, and external pointers are rejected recursively.}
 }
 \value{
 A \code{dagri_graph} (a named list with S3 class
-\code{c("dagri_graph", "list")}).
+\code{c("dagri_graph", "list")}) with fields \code{registry}, \code{nodes}, \code{edges},
+\code{gates}, \code{version} (0L), and \code{metadata}.
 }
 \description{
 Returns a new immutable graph carrying the given registry and empty
@@ -19,4 +24,25 @@ node/edge/gate collections. The result has S3 class \code{c("dagri_graph", "list
 named list and serializes identically to before. Graph-mutating functions
 (\code{dagri_add_node()}, \code{dagri_add_edge()}, ...) preserve the class on the
 returned copy.
+}
+\details{
+Graph-level \code{metadata} is opaque caller-owned extension data; every record
+type (kind, registry, graph, node, edge, gate) carries the same field. It
+must be a named list of plain data — closures, environments, formulas, and
+external pointers are rejected recursively — so it stays serializable under
+the persistence contract.
+}
+\section{Errors}{
+
+\itemize{
+\item \code{dagri_error_invalid_argument} when \code{metadata} is not a named list of
+plain data.
+}
+}
+
+\examples{
+reg <- dagri_registry(dagri_kind("source"))
+g <- dagri_graph(reg, metadata = list(project = "pilot"))
+g$version
+g$metadata
 }

@@ -24,9 +24,36 @@ dagri_add_node(
 
 \item{params}{Node parameters.}
 
-\item{metadata}{Node metadata.}
+\item{metadata}{Opaque caller-owned extension data: a named list of plain
+data (nested lists, vectors, and scalars are fine). Closures,
+environments, formulas, and external pointers are rejected recursively.}
+}
+\value{
+A new \code{dagri_graph} with the node added and \code{version} bumped by 1;
+the input graph is not modified.
 }
 \description{
 Nodes are created with state "new". Call \code{dagri_recompute_state()} to
 compute structural readiness (state becomes "ready" or "blocked").
+}
+\section{Errors}{
+
+\itemize{
+\item \code{dagri_error_invalid_argument} when \code{graph} is malformed, \code{id}/\code{kind} is
+not a single non-empty string, params miss required \code{input_contract}
+fields, or \code{metadata} is not a named list of plain data.
+\item \code{dagri_error_unknown_kind} when \code{kind} is not in the registry.
+\item \code{dagri_error_duplicate_id} when \code{id} already exists.
+}
+}
+
+\examples{
+reg <- dagri_registry(dagri_kind("source"))
+g <- dagri_add_node(
+  dagri_graph(reg),
+  id = "raw",
+  kind = "source",
+  metadata = list(uri = "source:observations_v1")
+)
+g$nodes[["raw"]]$metadata
 }
