@@ -242,6 +242,29 @@ describe("graph boundary helpers", {
       expect_equal(diff$removed_edges, character())
     })
 
+    it("normalizes JSON-style empty node and gate containers", {
+      empty_graph <- dagri_graph(dagri_registry())
+      # A JSON round-trip serializes empty named lists as unnamed `list()`,
+      # a shape dagri_validate_graph() permits but the constructor never
+      # produces (it seeds setNames(list(), character(0))). Rebuild both
+      # graphs that way so the diff's name fallbacks are exercised.
+      json_before <- empty_graph
+      json_after <- empty_graph
+      json_before$nodes <- list()
+      json_before$gates <- list()
+      json_after$nodes <- list()
+      json_after$gates <- list()
+
+      diff <- dagri_graph_diff(json_before, json_after)
+      expect_identical(diff$added_nodes, character(0))
+      expect_identical(diff$removed_nodes, character(0))
+      expect_identical(diff$added_gates, character(0))
+      expect_identical(diff$removed_gates, character(0))
+      expect_identical(diff$changed_nodes, character(0))
+      expect_identical(diff$changed_edges, character(0))
+      expect_identical(diff$changed_gates, character(0))
+    })
+
     it("handles unnamed edge lists via the embedded-id fallback", {
       graph_before <- base_graph()
       graph_after <- dagri_add_node(graph_before, "node_c", "fit", label = "C")
