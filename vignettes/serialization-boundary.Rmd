@@ -23,16 +23,17 @@ library(jsonlite)
 JSON writer. In practice, though, every consumer that persists graphs with
 jsonlite rediscovers the same handful of rules: which fields are required,
 how `NULL` round-trips, why map keys and embedded ids both exist, and what
-`dagri_validate_graph()` actually checks on load. This vignette records
-those rules once, as a canonical writer and reader recipe you can copy.
+the package's validation actually checks when a graph comes back on load.
+This vignette records those rules once, as a canonical writer and reader
+recipe you can copy.
 
 The design backdrop is `design/persistence-spec.md` in the repository;
 nothing here is new policy — it is that policy applied to jsonlite.
 
 ## The graph snapshot shape
 
-A graph is a named list with five fields `dagri_validate_graph()` requires
-(`registry`, `nodes`, `edges`, `gates`, `version`) plus the graph-level
+A graph is a named list with five fields the entry-point validation
+requires (`registry`, `nodes`, `edges`, `gates`, `version`) plus the graph-level
 `metadata` that every record type carries. Starred fields are nullable —
 they hold R `NULL` when absent:
 
@@ -139,8 +140,10 @@ keys in stable lexical order, so call `graph$nodes <- graph$nodes[sort(names(gra
 
 The reader is the mirror image, plus three fixes jsonlite will not do for
 you. Read with `simplifyVector = FALSE`, normalize JSON `null` back to the
-nullable R fields, check map keys against embedded ids, then hand the result
-to `dagri_validate_graph()`.
+nullable R fields, check map keys against embedded ids, then confirm the
+revived graph through a public call — the recipe ends with
+`dagri_topo_order()`, which exercises the validation every public function
+runs on entry and additionally rejects cyclic snapshots.
 
 `fromJSON(txt, simplifyVector = FALSE)` keeps every JSON object a named list
 and never coerces arrays or heterogeneous values. With the default
@@ -203,12 +206,15 @@ is.null(g2$nodes$m1$label)                  # nullable field restored as NULL
 is.null(g2$registry$kinds$source$param_schema)
 identical(names(g2$gates), "g1")
 
-dagri_validate_graph(g2)
+dagri_topo_order(g2)
 ```
 
-`dagri_validate_graph()` is the load boundary: passing it means the document
-is structurally a graph. It is deliberately kept cheap and structural, so
-note what it does *not* do (next sections).
+`dagri_topo_order()` is the public load check: every `dagriculture` function
+validates graph structure on entry, and topological ordering additionally
+rejects cyclic snapshots — exactly the hydration hazard a revived file can
+carry. A revived graph that sorts cleanly is structurally sound *and* acyclic.
+The validation is deliberately kept cheap and structural, so note what it
+does *not* do (next sections).
 
 One asymmetry to remember when comparing: `toJSON()` writes R atomic vectors
 as JSON arrays, and `simplifyVector = FALSE` reads JSON arrays back as R
@@ -222,25 +228,25 @@ on a reloaded graph.
 
 Both exist on purpose. The map keys (`names(graph$nodes)`) are what
 dagriculture itself looks things up by — `dagri_node()`, referential checks
-in `dagri_validate_graph()`, duplicate detection in the editors. The
+in the entry-point validation, duplicate detection in the editors. The
 embedded `id` (or `name`, for kinds) travels *inside* the record so
 snapshot consumers that iterate records without a map context (JSONL
 exports, database rows) still know what they are looking at.
 
-`dagri_validate_graph()` uses the map keys for referential integrity but
+The entry-point validation uses the map keys for referential integrity but
 does not compare them to the embedded ids, so a hand-edited file where the
-two disagree passes validation and misbehaves later. That is what
+two disagree passes every public call and misbehaves later. That is what
 `check_snapshot_maps()` above guards:
 
 ```{r key-check-demo}
 check_snapshot_maps(g2)
 
-# A key/id mismatch is invisible to dagri_validate_graph(): it resolves
+# A key/id mismatch is invisible to the entry-point validation: it resolves
 # references by map key and never reads the embedded id. Rename the key of
-# an edge-less node and validation still passes...
+# an edge-less node and public calls still pass...
 tampered <- dagri_add_node(g2, "iso", "source")
 names(tampered$nodes)[[3]] <- "renamed"
-dagri_validate_graph(tampered)
+dagri_topo_order(tampered)
 ```
 
 ```{r key-check-error, error = TRUE}
@@ -276,7 +282,10 @@ The persistence rule is: persist plain data, never executable code. JSON
 gives you that by construction — a closure cannot survive `toJSON()`. An
 RDS file can, which is where the boundary needs stating precisely.
 
-`dagri_validate_graph()` checks structure only:
+Every public `dagriculture` function runs the same cheap structural check
+before doing anything with a graph — the validator behind it
+(`dagri_validate_graph()`) is internal and unexported, so public calls are
+the boundary. It checks structure only:
 
 1. required top-level fields are present and components are lists (not
    data.frames),
@@ -287,7 +296,8 @@ RDS file can, which is where the boundary needs stating precisely.
 It does **not** scan `params`, `metadata`, or `param_schema` for closures or
 other reference-bearing values, and it does not detect cycles (that is
 `dagri_topo_order()`'s job when you traverse). Concretely, a graph smuggled
-through `saveRDS()` with a closure in `params` validates:
+through `saveRDS()` with a closure in `params` passes every structural
+check:
 
 ```{r rds-demo}
 suspicious <- dagri_graph(reg) |>
@@ -298,7 +308,7 @@ saveRDS(suspicious, f)
 loaded <- readRDS(f)
 
 class(loaded$nodes$raw$params$loader)  # the closure survived the round trip
-dagri_validate_graph(loaded)           # ...and validation passes anyway
+dagri_topo_order(loaded)               # ...and the public surface accepts it
 ```
 
 So where does the no-code guarantee actually come from? From the *entry
