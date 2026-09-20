@@ -272,10 +272,10 @@ dagri_graph_diff <- function(before, after, include_values = FALSE) {
   dagri_validate_graph(after)
   dagri_validate_flag(include_values, "include_values")
 
-  before_nodes <- names(before$nodes %||% list())
-  after_nodes <- names(after$nodes %||% list())
-  before_gates <- names(before$gates %||% list())
-  after_gates <- names(after$gates %||% list())
+  before_nodes <- names(before$nodes %||% list()) %||% character(0)
+  after_nodes <- names(after$nodes %||% list()) %||% character(0)
+  before_gates <- names(before$gates %||% list()) %||% character(0)
+  after_gates <- names(after$gates %||% list()) %||% character(0)
 
   before_edge_map <- dagri_edge_map(before$edges %||% list())
   after_edge_map <- dagri_edge_map(after$edges %||% list())
