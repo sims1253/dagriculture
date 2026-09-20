@@ -291,8 +291,8 @@ describe("metadata in constructors", {
 
   it("rejects weak references in metadata", {
     # Base R 4.6 has no public weakref constructor; rlang (a hard Imports
-    # dependency) exposes one internally. If it ever disappears, fall back to
-    # exercising the denylist branch directly and skip the end-to-end path.
+    # dependency) exposes one internally. If it ever disappears, skip the
+    # end-to-end rejection path.
     wr <- tryCatch(
       getFromNamespace("new_weakref", "rlang")(new.env()),
       error = function(e) NULL
@@ -301,7 +301,6 @@ describe("metadata in constructors", {
       skip("no weakref constructor available on this R/rlang")
     }
     expect_identical(typeof(wr), "weakref")
-    expect_true(dagriculture:::dagri_has_reference_value(wr))
     expect_error(
       dagri_kind("bad", metadata = list(ref = wr)),
       class = "dagri_error_invalid_argument"
@@ -322,7 +321,7 @@ describe("metadata in constructors", {
       c = list(d = TRUE, e = list(f = 1.5)),
       g = NULL
     )
-    expect_false(dagriculture:::dagri_has_reference_value(ok))
+    expect_identical(dagri_kind("ok", metadata = ok)$metadata, ok)
   })
 
   it("reports the failing argument and reason in details", {
