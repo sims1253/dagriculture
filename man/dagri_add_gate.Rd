@@ -13,8 +13,35 @@ dagri_add_gate(graph, edge_id, id = NULL, metadata = list())
 
 \item{id}{Optional Gate ID.}
 
-\item{metadata}{Gate metadata.}
+\item{metadata}{Opaque caller-owned extension data: a named list of plain
+data (nested lists, vectors, and scalars are fine). Closures,
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.}
+}
+\value{
+A new \code{dagri_graph} with the gate added (status "pending") and
+\code{version} bumped by 1; the input graph is not modified.
 }
 \description{
 Add a gate to a dagriculture graph
+}
+\section{Errors}{
+
+\itemize{
+\item \code{dagri_error_invalid_argument} when \code{graph} is malformed, \code{edge_id}/\code{id}
+is not a single non-empty string, or \code{metadata} is not a named list of
+plain data.
+\item \code{dagri_error_not_found} when \code{edge_id} is not an edge in the graph.
+\item \code{dagri_error_duplicate_id} when \code{id} already exists as a gate.
+}
+}
+
+\examples{
+reg <- dagri_registry(dagri_kind("source"), dagri_kind("process"))
+g <- dagri_graph(reg) |>
+  dagri_add_node("raw", "source") |>
+  dagri_add_node("fit", "process") |>
+  dagri_add_edge("raw", "fit", id = "e1") |>
+  dagri_add_gate("e1", metadata = list(approver = "reviewer_a"))
+g$gates[["gate_e1"]]$metadata
 }

@@ -1,3 +1,30 @@
+# dagriculture (development version)
+
+## Features
+
+- **Metadata support across constructors:** `dagri_kind()`, `dagri_registry()`,
+  and `dagri_graph()` now accept a `metadata` argument (named plain data,
+  stored as given), so graph/registry/kind metadata no longer requires
+  mutating package internals.
+- **Edge and gate update mutators:** added `dagri_update_edge()` (optional
+  `type`/`metadata` replacement) and `dagri_update_gate()` (optional `metadata`
+  replacement). Both are immutable value-in/value-out mutators using the same
+  replace-not-merge semantics as `dagri_update_node()`, and both bump
+  `graph$version` by 1. Known boundary: `dagri_graph_diff()` remains a
+  structural id diff, so metadata and `type` edits do not surface in its
+  output.
+
+## Behavior changes
+
+- `metadata` is now validated at every entry point (`dagri_kind()`,
+  `dagri_registry()`, `dagri_graph()`, `dagri_add_node()`, `dagri_update_node()`,
+  `dagri_add_edge()`, `dagri_add_gate()`): it must be a named list of plain
+  data, and closures, environments, formulas, language objects, S4 objects,
+  external pointers, or weak references are rejected
+  with `dagri_error_invalid_argument` (previously metadata was stored
+  unvalidated, so code-bearing or reference-bearing values could silently enter
+  graphs and later break serialization).
+
 # dagriculture 0.3.0
 
 ## Behavior changes

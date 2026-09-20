@@ -8,16 +8,72 @@ dagri_has_closure <- function(x) {
   FALSE
 }
 
+# Metadata must be plain data (see dagri_validate_metadata()): this recursive
+# check mirrors dagri_has_closure()'s no-code approach and additionally rejects
+# reference-bearing values (environments carry mutable state, formulas carry
+# environments, language objects are eval()-able, S4 objects can hold
+# environments or external pointers in their slots, and external pointers and
+# weak references are opaque native references).
+dagri_has_reference_value <- function(x) {
+  if (
+    is.function(x) ||
+      is.environment(x) ||
+      inherits(x, "formula") ||
+      is.language(x) ||
+      is.expression(x) ||
+      isS4(x) ||
+      identical(typeof(x), "externalptr") ||
+      identical(typeof(x), "weakref")
+  ) {
+    return(TRUE)
+  }
+  if (is.list(x)) {
+    return(any(vapply(x, dagri_has_reference_value, logical(1))))
+  }
+  FALSE
+}
+
 #' Define a dagriculture kind
+#'
+#' Creates a kind record describing one node type: its input contract, output
+#' type, and parameter schema. The record is plain data and carries an opaque
+#' caller-owned `metadata` field.
 #'
 #' @param name The name of the kind.
 #' @param input_contract Input contract list.
 #' @param output_type Output type string.
 #' @param param_schema A named list describing expected parameters. Arbitrary nested
 #'   list structure is allowed, but executable closures are rejected for safety.
+#' @param metadata Opaque caller-owned extension data: a named list of plain
+#'   data (nested lists, vectors, and scalars are fine). Closures,
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
+#' @return A kind record: a named list with fields `name`, `input_contract`,
+#'   `output_type`, `param_schema`, and `metadata`.
+#'
+#' @section Errors:
+#' - `dagri_error_invalid_argument` when `name` is not a single non-empty
+#'   string, `input_contract` is not a named list of single strings/`NULL`,
+#'   `param_schema` is not a named list free of closures, or `metadata` fails
+#'   the plain-data check (see [dagri_graph()]).
+#'
+#' @examples
+#' dagri_kind("source", output_type = "data.frame")
+#' dagri_kind(
+#'   "fit",
+#'   input_contract = list(data = "data.frame"),
+#'   metadata = list(owner = "team_a", revision = 2)
+#' )
 #' @export
-dagri_kind <- function(name, input_contract = NULL, output_type = NULL, param_schema = NULL) {
+dagri_kind <- function(
+  name,
+  input_contract = NULL,
+  output_type = NULL,
+  param_schema = NULL,
+  metadata = list()
+) {
   dagri_validate_id(name, "name")
+  dagri_validate_metadata(metadata)
   if (!is.null(input_contract)) {
     if (!is.list(input_contract)) {
       abort_dagri(
@@ -78,15 +134,39 @@ dagri_kind <- function(name, input_contract = NULL, output_type = NULL, param_sc
     input_contract = input_contract,
     output_type = output_type,
     param_schema = param_schema,
-    metadata = list()
+    metadata = metadata
   )
 }
 
 #' Define a dagriculture registry
 #'
+#' Bundles one or more [dagri_kind()] records into a registry keyed by kind
+#' name. The registry carries an opaque caller-owned `metadata` field.
+#'
 #' @param ... \code{dagri_kind} objects.
+#' @param metadata Opaque caller-owned extension data: a named list of plain
+#'   data (nested lists, vectors, and scalars are fine). Closures,
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
+#' @return A registry: a named list with fields `kinds` (a named map of kind
+#'   records) and `metadata`.
+#'
+#' @section Errors:
+#' - `dagri_error_invalid_argument` when `metadata` is not a named list of
+#'   plain data.
+#'
+#' @examples
+#' reg <- dagri_registry(
+#'   dagri_kind("source"),
+#'   dagri_kind("process"),
+#'   metadata = list(origin = "hand-authored")
+#' )
+#' names(reg$kinds)
+#' reg$metadata
 #' @export
-dagri_registry <- function(...) {
+dagri_registry <- function(..., metadata = list()) {
+  dagri_validate_metadata(metadata)
+
   kinds_list <- list(...)
   kinds_env <- list()
   for (k in kinds_list) {
@@ -94,7 +174,7 @@ dagri_registry <- function(...) {
   }
   list(
     kinds = kinds_env,
-    metadata = list()
+    metadata = metadata
   )
 }
 
@@ -107,11 +187,35 @@ dagri_registry <- function(...) {
 #' (`dagri_add_node()`, `dagri_add_edge()`, ...) preserve the class on the
 #' returned copy.
 #'
+#' Graph-level `metadata` is opaque caller-owned extension data; every record
+#' type (kind, registry, graph, node, edge, gate) carries the same field. It
+#' must be a named list of plain data — closures, environments, formulas,
+#' language objects, S4 objects, external pointers, and weak references are
+#' rejected recursively — so it stays serializable under the persistence
+#' contract.
+#'
 #' @param registry A \code{dagri_registry} object.
+#' @param metadata Opaque caller-owned extension data: a named list of plain
+#'   data (nested lists, vectors, and scalars are fine). Closures,
+#'   environments, formulas, language objects, S4 objects, external pointers,
+#'   and weak references are rejected recursively.
 #' @return A `dagri_graph` (a named list with S3 class
-#'   \code{c("dagri_graph", "list")}).
+#'   \code{c("dagri_graph", "list")}) with fields `registry`, `nodes`, `edges`,
+#'   `gates`, `version` (0L), and `metadata`.
+#'
+#' @section Errors:
+#' - `dagri_error_invalid_argument` when `metadata` is not a named list of
+#'   plain data.
+#'
+#' @examples
+#' reg <- dagri_registry(dagri_kind("source"))
+#' g <- dagri_graph(reg, metadata = list(project = "pilot"))
+#' g$version
+#' g$metadata
 #' @export
-dagri_graph <- function(registry) {
+dagri_graph <- function(registry, metadata = list()) {
+  dagri_validate_metadata(metadata)
+
   structure(
     list(
       registry = registry,
@@ -119,7 +223,7 @@ dagri_graph <- function(registry) {
       edges = stats::setNames(list(), character(0)),
       gates = stats::setNames(list(), character(0)),
       version = 0L,
-      metadata = list()
+      metadata = metadata
     ),
     class = c("dagri_graph", "list")
   )

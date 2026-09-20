@@ -4,11 +4,38 @@
 \alias{dagri_registry}
 \title{Define a dagriculture registry}
 \usage{
-dagri_registry(...)
+dagri_registry(..., metadata = list())
 }
 \arguments{
 \item{...}{\code{dagri_kind} objects.}
+
+\item{metadata}{Opaque caller-owned extension data: a named list of plain
+data (nested lists, vectors, and scalars are fine). Closures,
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.}
+}
+\value{
+A registry: a named list with fields \code{kinds} (a named map of kind
+records) and \code{metadata}.
 }
 \description{
-Define a dagriculture registry
+Bundles one or more \code{\link[=dagri_kind]{dagri_kind()}} records into a registry keyed by kind
+name. The registry carries an opaque caller-owned \code{metadata} field.
+}
+\section{Errors}{
+
+\itemize{
+\item \code{dagri_error_invalid_argument} when \code{metadata} is not a named list of
+plain data.
+}
+}
+
+\examples{
+reg <- dagri_registry(
+  dagri_kind("source"),
+  dagri_kind("process"),
+  metadata = list(origin = "hand-authored")
+)
+names(reg$kinds)
+reg$metadata
 }

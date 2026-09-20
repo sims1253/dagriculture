@@ -110,3 +110,53 @@ dagri_validate_graph <- function(graph) {
 
   invisible(graph)
 }
+
+#' Validate caller-owned metadata
+#'
+#' Metadata is opaque caller-owned extension data carried on every record type
+#' (kind, registry, graph, node, edge, gate). To stay compatible with the
+#' persistence contract it must be named plain data: a named list (possibly
+#' empty) whose values contain no executable or reference-bearing objects.
+#' Nested lists (objects and arrays) are allowed at any depth; closures,
+#' environments, formulas, language objects, S4 objects, external pointers,
+#' and weak references are rejected recursively.
+#'
+#' @param x The metadata value to validate.
+#' @param arg Argument name used in error messages.
+#' @return `x`, invisibly, if valid.
+#' @keywords internal
+dagri_validate_metadata <- function(x, arg = "metadata") {
+  if (!is.list(x) || inherits(x, "data.frame")) {
+    abort_dagri(
+      "dagri_error_invalid_argument",
+      sprintf(
+        "`%s` must be a named list, got %s.",
+        arg,
+        paste(class(x), collapse = "/")
+      ),
+      details = list(arg = arg, reason = "not_a_list")
+    )
+  }
+  x_names <- names(x)
+  if (length(x) > 0L && (is.null(x_names) || anyNA(x_names) || any(x_names == ""))) {
+    abort_dagri(
+      "dagri_error_invalid_argument",
+      sprintf("`%s` must be a named list (all entries must be named).", arg),
+      details = list(arg = arg, reason = "unnamed_entries")
+    )
+  }
+  if (dagri_has_reference_value(x)) {
+    abort_dagri(
+      "dagri_error_invalid_argument",
+      sprintf(
+        paste0(
+          "`%s` must be plain data: closures, environments, formulas, and ",
+          "other reference-bearing values are not allowed."
+        ),
+        arg
+      ),
+      details = list(arg = arg, reason = "reference_bearing_value")
+    )
+  }
+  invisible(x)
+}

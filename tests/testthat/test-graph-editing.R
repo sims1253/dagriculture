@@ -186,6 +186,127 @@ describe("graph editing operations", {
     })
   })
 
+  describe("dagri_update_edge()", {
+    g_nodes <- dagri_add_node(g0, "n1", "source") |> dagri_add_node("n2", "process")
+    g_edge <- dagri_add_edge(
+      g_nodes,
+      from = "n1",
+      to = "n2",
+      id = "e1",
+      type = "data",
+      metadata = list(weight = 1)
+    )
+
+    it("replaces the edge type and increments graph version", {
+      g2 <- dagri_update_edge(g_edge, "e1", type = "control")
+
+      expect_identical(g2$version, g_edge$version + 1L)
+      expect_identical(g2$edges[["e1"]]$type, "control")
+    })
+
+    it("replaces metadata, not merges (replace semantics regression guard)", {
+      # update metadata lacks the original `weight` key on purpose: under merge
+      # semantics it would survive, so these assertions can actually fail.
+      g2 <- dagri_update_edge(g_edge, "e1", metadata = list(note = "revised"))
+
+      expect_identical(g2$edges[["e1"]]$metadata, list(note = "revised"))
+      expect_false("weight" %in% names(g2$edges[["e1"]]$metadata))
+      expect_identical(g2$edges[["e1"]]$type, "data")
+    })
+
+    it("updates type and metadata together", {
+      g2 <- dagri_update_edge(
+        g_edge,
+        "e1",
+        type = "control",
+        metadata = list(weight = 9)
+      )
+
+      expect_identical(g2$edges[["e1"]]$type, "control")
+      expect_identical(g2$edges[["e1"]]$metadata, list(weight = 9))
+    })
+
+    it("NULL type/metadata leave the fields untouched (and still bump version)", {
+      g2 <- dagri_update_edge(g_edge, "e1")
+
+      expect_identical(g2$edges[["e1"]]$type, "data")
+      expect_identical(g2$edges[["e1"]]$metadata, list(weight = 1))
+      expect_identical(g2$version, g_edge$version + 1L)
+    })
+
+    it("preserves id, from, and to", {
+      g2 <- dagri_update_edge(g_edge, "e1", type = "control")
+
+      expect_identical(g2$edges[["e1"]]$id, "e1")
+      expect_identical(g2$edges[["e1"]]$from, "n1")
+      expect_identical(g2$edges[["e1"]]$to, "n2")
+    })
+
+    it("does not mutate the original graph", {
+      g2 <- dagri_update_edge(g_edge, "e1", type = "control", metadata = list(weight = 9))
+
+      expect_identical(g_edge$edges[["e1"]]$type, "data")
+      expect_identical(g_edge$edges[["e1"]]$metadata, list(weight = 1))
+      expect_identical(g_edge$version, g2$version - 1L)
+    })
+
+    it("errors if edge is not found", {
+      expect_error(
+        dagri_update_edge(g_edge, "missing", type = "control"),
+        class = "dagri_error_not_found"
+      )
+    })
+
+    it("rejects invalid type values", {
+      expect_error(
+        dagri_update_edge(g_edge, "e1", type = 123),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_edge(g_edge, "e1", type = c("a", "b")),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_edge(g_edge, "e1", type = NA_character_),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_edge(g_edge, "e1", type = ""),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("rejects invalid metadata", {
+      expect_error(
+        dagri_update_edge(g_edge, "e1", metadata = "not a list"),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_edge(g_edge, "e1", metadata = list("unnamed")),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_edge(g_edge, "e1", metadata = list(fn = function(x) x)),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("rejects vector, NA, and empty edge_id", {
+      expect_error(
+        dagri_update_edge(g_edge, c("a", "b")),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_edge(g_edge, NA_character_),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_edge(g_edge, ""),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+  })
+
   describe("dagri_remove_edge()", {
     it("removes an edge and increments version", {
       g2 <- dagri_add_node(g0, "n1", "source") |> dagri_add_node("n2", "process")
@@ -233,6 +354,170 @@ describe("graph editing operations", {
         dagri_add_gate(g_gate, edge_id = "e1", id = "gate1"),
         class = "dagri_error_duplicate_id"
       )
+    })
+  })
+
+  describe("dagri_update_gate()", {
+    g_gate <- dagri_add_node(g0, "n1", "source") |>
+      dagri_add_node("n2", "process") |>
+      dagri_add_edge(from = "n1", to = "n2", id = "e1") |>
+      dagri_add_gate(edge_id = "e1", id = "gate1", metadata = list(approver = "max"))
+
+    it("replaces gate metadata and increments graph version", {
+      g2 <- dagri_update_gate(g_gate, "gate1", metadata = list(approver = "reviewer_b"))
+
+      expect_identical(g2$version, g_gate$version + 1L)
+      expect_identical(g2$gates[["gate1"]]$metadata, list(approver = "reviewer_b"))
+    })
+
+    it("replaces metadata, not merges (replace semantics regression guard)", {
+      g2 <- dagri_update_gate(g_gate, "gate1", metadata = list(note = "re-prompted"))
+
+      expect_identical(g2$gates[["gate1"]]$metadata, list(note = "re-prompted"))
+      expect_false("approver" %in% names(g2$gates[["gate1"]]$metadata))
+    })
+
+    it("NULL metadata leaves the field untouched (and still bumps version)", {
+      g2 <- dagri_update_gate(g_gate, "gate1")
+
+      expect_identical(g2$gates[["gate1"]]$metadata, list(approver = "max"))
+      expect_identical(g2$version, g_gate$version + 1L)
+    })
+
+    it("preserves id, edge_id, and status", {
+      g2 <- dagri_update_gate(g_gate, "gate1", metadata = list(a = 1))
+
+      expect_identical(g2$gates[["gate1"]]$id, "gate1")
+      expect_identical(g2$gates[["gate1"]]$edge_id, "e1")
+      expect_identical(g2$gates[["gate1"]]$status, "pending")
+    })
+
+    it("does not mutate the original graph", {
+      g2 <- dagri_update_gate(g_gate, "gate1", metadata = list(a = 1))
+
+      expect_identical(g_gate$gates[["gate1"]]$metadata, list(approver = "max"))
+      expect_identical(g_gate$version, g2$version - 1L)
+    })
+
+    it("errors if gate is not found", {
+      expect_error(
+        dagri_update_gate(g_gate, "missing", metadata = list(a = 1)),
+        class = "dagri_error_not_found"
+      )
+    })
+
+    it("rejects invalid metadata", {
+      expect_error(
+        dagri_update_gate(g_gate, "gate1", metadata = "not a list"),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_gate(g_gate, "gate1", metadata = list("unnamed")),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_gate(g_gate, "gate1", metadata = list(env = new.env())),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("rejects vector, NA, and empty gate_id", {
+      expect_error(
+        dagri_update_gate(g_gate, c("a", "b")),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_gate(g_gate, NA_character_),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_gate(g_gate, ""),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+  })
+
+  describe("metadata validation at editing entry points", {
+    it("dagri_add_node rejects closures in metadata", {
+      expect_error(
+        dagri_add_node(g0, "n1", "source", metadata = list(a = function(x) x)),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_add_node rejects nested closures in metadata", {
+      expect_error(
+        dagri_add_node(g0, "n1", "source", metadata = list(a = list(b = function() 1))),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_add_node rejects non-list and unnamed metadata", {
+      expect_error(
+        dagri_add_node(g0, "n1", "source", metadata = "not a list"),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_add_node(g0, "n1", "source", metadata = list("unnamed")),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_add_node round-trips valid metadata", {
+      g1 <- dagri_add_node(
+        g0,
+        "n1",
+        "source",
+        metadata = list(uri = "source:observations_v1", tags = c("raw", "etl"))
+      )
+      expect_identical(
+        g1$nodes[["n1"]]$metadata,
+        list(uri = "source:observations_v1", tags = c("raw", "etl"))
+      )
+    })
+
+    it("dagri_update_node rejects invalid metadata", {
+      g1 <- dagri_add_node(g0, "n1", "source")
+      expect_error(
+        dagri_update_node(g1, "n1", metadata = list(fn = function(x) x)),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_update_node(g1, "n1", metadata = list("unnamed")),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_add_edge rejects invalid metadata", {
+      g2 <- dagri_add_node(g0, "n1", "source") |> dagri_add_node("n2", "process")
+      expect_error(
+        dagri_add_edge(g2, "n1", "n2", id = "e1", metadata = list(fn = mean)),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_add_edge(g2, "n1", "n2", id = "e1", metadata = "not a list"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_add_gate rejects invalid metadata", {
+      g2 <- dagri_add_node(g0, "n1", "source") |>
+        dagri_add_node("n2", "process") |>
+        dagri_add_edge("n1", "n2", id = "e1")
+      expect_error(
+        dagri_add_gate(g2, "e1", metadata = list(env = new.env())),
+        class = "dagri_error_invalid_argument"
+      )
+      expect_error(
+        dagri_add_gate(g2, "e1", metadata = list("unnamed")),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("graph-level constructor metadata flows into editing functions", {
+      g <- dagri_graph(dagri_registry(dagri_kind("source")), metadata = list(project = "p"))
+      g1 <- dagri_add_node(g, "n1", "source")
+      expect_identical(g1$metadata, list(project = "p"))
     })
   })
 
@@ -311,6 +596,13 @@ describe("graph editing operations", {
       )
     })
 
+    it("dagri_update_edge rejects invalid graph", {
+      expect_error(
+        dagri_update_edge(bad_graph, "e1"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
     it("dagri_remove_edge rejects invalid graph", {
       expect_error(
         dagri_remove_edge(bad_graph, "e1"),
@@ -321,6 +613,13 @@ describe("graph editing operations", {
     it("dagri_add_gate rejects invalid graph", {
       expect_error(
         dagri_add_gate(bad_graph, "e1"),
+        class = "dagri_error_invalid_argument"
+      )
+    })
+
+    it("dagri_update_gate rejects invalid graph", {
+      expect_error(
+        dagri_update_gate(bad_graph, "gate1"),
         class = "dagri_error_invalid_argument"
       )
     })

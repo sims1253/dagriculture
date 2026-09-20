@@ -17,7 +17,14 @@ dagri_update_node(graph, id, label = NULL, params = NULL, metadata = NULL)
 \code{params} outright (see Details).}
 
 \item{metadata}{Node metadata. When non-\code{NULL}, \strong{replaces} the existing
-\code{metadata} outright (see Details).}
+\code{metadata} outright (see Details); must be a named list of plain data
+(closures, environments, formulas, language objects, S4 objects, external
+pointers, and weak references are rejected recursively).}
+}
+\value{
+A new \code{dagri_graph} with the node updated and \code{version} bumped by 1
+(the bump happens even when every field argument is \code{NULL}); the input
+graph is not modified.
 }
 \description{
 Update a node in a dagriculture graph
@@ -32,4 +39,19 @@ A \code{NULL} \code{params}/\code{metadata}/\code{label} leaves that field untou
 this a primitive (replace, not merge) means consumers (e.g. bayesgrove's
 \code{bg_update_node()}) must opt into merge explicitly, instead of silently
 having their partial update destroy sibling fields.
+}
+\section{Errors}{
+
+\itemize{
+\item \code{dagri_error_invalid_argument} when \code{graph} is malformed, \code{id} is not a
+single non-empty string, or \code{metadata} is not a named list of plain data.
+\item \code{dagri_error_not_found} when \code{id} is not a node in the graph.
+}
+}
+
+\examples{
+reg <- dagri_registry(dagri_kind("source"))
+g <- dagri_add_node(dagri_graph(reg), "raw", "source")
+g2 <- dagri_update_node(g, "raw", metadata = list(reviewed = TRUE))
+g2$nodes[["raw"]]$metadata
 }
