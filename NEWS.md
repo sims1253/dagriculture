@@ -13,6 +13,18 @@
 
 ## Features
 
+- **Vignette: branching and comparing graphs:** the getting-started vignette
+  now demonstrates forking a graph into two alternatives with the public
+  mutators and reading `dagri_graph_diff()` results — structural
+  added/removed id vectors as well as value-aware `include_values = TRUE`
+  output with per-field before/after values for changed nodes, edges, and
+  gates.
+- **Vignette: Mermaid rendering:** the getting-started vignette now renders
+  its running example with `dagri_mermaid()` — the default output plus a
+  customized one exercising `gate_label` and `class_defs`, and a
+  `class.output = "mermaid"` chunk that documentation sites loading
+  mermaid.js render as a live diagram while plain R documentation keeps the
+  readable flowchart text.
 - **Metadata support across constructors:** `dagri_kind()`, `dagri_registry()`,
   and `dagri_graph()` now accept a `metadata` argument (named plain data,
   stored as given), so graph/registry/kind metadata no longer requires

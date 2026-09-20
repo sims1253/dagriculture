@@ -23,6 +23,8 @@ knitr::opts_chunk$set(
 *   **Nodes & Edges:** Represent units of computation (or data) and their dependencies.
 *   **Gates:** Explicit structural blockers attached to edges, which prevent downstream nodes from becoming `ready` until the gate is resolved.
 *   **Planning:** Topologically sorting and tracking the structural readiness of nodes.
+*   **Diffing:** Comparing two graph values id by id, down to individual field changes.
+*   **Rendering:** Turning a graph value into text formats such as Mermaid flowcharts.
 
 ## Installation
 
@@ -169,3 +171,147 @@ dagri_descendants(g_unblocked, "data")
 dagri_leaves(g_unblocked)
 dagri_topo_order(g_unblocked)
 ```
+
+## Branching and Comparing Graphs
+
+Because graphs are immutable values, exploring an alternative is cheap: bind the
+current graph to a new name and mutate from there. Every mutator returns a fresh
+graph value, so the shared history is never rewritten and the branches can be
+kept side by side.
+
+```{r}
+# Both branches start from `g`, where the approval gate is still pending.
+
+# Branch A: the reviewer signs off and the scope grows a summary node.
+g_signed <- g |>
+  dagri_resolve_gate(id = "approval_gate") |>
+  dagri_add_node(id = "summary", kind = "report", label = "Executive Summary") |>
+  dagri_add_edge(from = "fit", to = "summary", id = "e_fit_summary")
+
+# Branch B: a quick-look variant that plots straight from the raw data.
+g_quick <- g |>
+  dagri_remove_edge(id = "e_fit_plot") |>
+  dagri_add_edge(from = "data", to = "plot", id = "e_data_plot") |>
+  dagri_update_node(id = "plot", label = "Quick Look")
+```
+
+[dagri_graph_diff()] reports what it takes to go from one graph value
+(`before`) to another (`after`). The result is a pure structural comparison —
+nine id vectors, no planning or workflow semantics attached:
+
+```{r}
+diff <- dagri_graph_diff(g_quick, g_signed)
+
+diff$added_nodes    # "summary" exists only in g_signed
+diff$removed_nodes  # empty: neither branch drops a node
+diff$added_edges    # "e_fit_plot" and "e_fit_summary" exist only in g_signed
+diff$removed_edges  # "e_data_plot" exists only in g_quick
+diff$added_gates    # empty: the gate exists in both branches
+diff$removed_gates  # empty
+```
+
+Read the direction as `before -> after`: `added_*` ids are present only in
+`after`, `removed_*` ids only in `before`. Ids present in both graphs can still
+differ field by field, which the `changed_*` vectors report:
+
+```{r}
+diff$changed_nodes  # "plot": its label differs between the branches
+diff$changed_edges  # empty
+diff$changed_gates  # "approval_gate": pending in g_quick, resolved in g_signed
+```
+
+The tracked fields are the node
+`kind`/`label`/`params`/`state`/`block_reason`/`metadata`, the edge
+`from`/`to`/`type`/`metadata`, and the gate `edge_id`/`status`/`metadata`. The
+internal `$version` is deliberately ignored — it is derived bookkeeping, not
+content. Because node `state` and `block_reason` are tracked, recomputing state
+on one branch only (as [dagri_recompute_state()] did above) also surfaces as
+`changed_nodes`; that is still structural bookkeeping, not an execution record.
+
+To see *what* changed, not just *where*, pass `include_values = TRUE`. The
+result additionally carries a `values` element: a named list with `nodes`,
+`edges`, and `gates`, each keyed by the ids of the matching `changed_*` vector
+(same ids, same order). Every entry lists only the differing fields, each as
+`list(before = ..., after = ...)`:
+
+```{r}
+value_diff <- dagri_graph_diff(g_quick, g_signed, include_values = TRUE)
+
+# The plot node's label on the way from g_quick to g_signed:
+value_diff$values$nodes$plot$label
+
+# The gate flipped from pending to resolved:
+value_diff$values$gates$approval_gate$status
+```
+
+Ids that were only added or removed do not appear in `values` — there is
+nothing to compare them against. Edge fields follow the same shape; for
+example, re-typing an edge shows up like this:
+
+```{r}
+g_control <- dagri_update_edge(g, "e_fit_plot", type = "control")
+edge_diff <- dagri_graph_diff(g, g_control, include_values = TRUE)
+
+edge_diff$changed_edges
+edge_diff$values$edges$e_fit_plot
+```
+
+## Visualizing with Mermaid
+
+[dagri_mermaid()] renders any graph value as Mermaid flowchart text: one line
+per node carrying its label (the id when no label is set), a companion `class`
+line named after the node's structural `state`, and one arrow per edge. Pending
+gates annotate the edge they block:
+
+```{r}
+cat(dagri_mermaid(g_state))
+```
+
+The `class` lines are inert until a `classDef` with a matching name exists,
+which is what the `class_defs` argument is for. Gate annotation text defaults
+to `gate: <id>` but can be replaced with the `gate_label` callback, which
+receives the full gate and edge records — so it can map `status` to review
+language or pull a reviewer name from `gate$metadata`:
+
+```{r}
+cat(dagri_mermaid(
+  g_state,
+  gate_label = function(gate, edge) {
+    if (identical(gate$status, "resolved")) "signed off" else "pending review"
+  },
+  class_defs = c(
+    "classDef ready fill:#e8f5e9",
+    "classDef blocked fill:#ffebee",
+    "classDef new fill:#fff3e0"
+  )
+))
+```
+
+Resolved gates are omitted by default — they no longer block anything. With
+`include_resolved_gates = TRUE` they rejoin the annotation, each suffixed with
+a renderer-owned `" (resolved)"` marker:
+
+```{r mermaid-embed, echo = FALSE, comment = NA, collapse = FALSE, class.output = "mermaid"}
+cat(dagri_mermaid(
+  g_unblocked,
+  gate_label = function(gate, edge) "signed off",
+  include_resolved_gates = TRUE
+))
+```
+
+The chunk above sets `class.output = "mermaid"`, so its output block carries
+the `mermaid` class: documentation sites that load mermaid.js turn such blocks
+into live diagrams. pkgdown's stock Bootstrap 5 template does not ship
+mermaid.js, so on a default pkgdown site — and in plain R documentation — the
+block simply stays the readable flowchart text you see above; a site owner can
+opt in to live rendering by adding mermaid.js to the site head (for example via
+pkgdown's `includes`).
+
+Two properties worth knowing when embedding the output. Node labels, gate
+annotations, and `class_defs` lines are sanitized (`"` becomes `'`; brackets,
+braces, and angle brackets become spaces), so prefer paren-free color forms
+such as `fill:#3480db66` over `rgba(...)`, whose parentheses would be stripped.
+And emission follows graph insertion order deterministically, so the same graph
+value always renders to the same string — snapshot-friendly. Node ids are
+emitted verbatim as Mermaid identifiers, so keep them alphanumeric (the ids in
+this vignette are safe by construction).
