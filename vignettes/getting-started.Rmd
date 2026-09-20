@@ -309,7 +309,7 @@ pkgdown's `includes`).
 
 Two properties worth knowing when embedding the output. Node labels, gate
 annotations, and `class_defs` lines are sanitized (`"` becomes `'`; brackets,
-braces, and angle brackets become spaces), so prefer paren-free color forms
+braces, pipes, and angle brackets become spaces), so prefer paren-free color forms
 such as `fill:#3480db66` over `rgba(...)`, whose parentheses would be stripped.
 And emission follows graph insertion order deterministically, so the same graph
 value always renders to the same string — snapshot-friendly. Node ids are
