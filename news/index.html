@@ -36,6 +36,11 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="dagriculture-development-version">dagriculture (development version)<a class="anchor" aria-label="anchor" href="#dagriculture-development-version"></a></h2>
 <div class="section level3">
+<h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>
+<ul><li>
+<strong>Serialization vignette:</strong> added “Serialization and the Consumer Boundary” (<code><a href="../articles/serialization-boundary.html">vignette("serialization-boundary")</a></code>): the graph snapshot shape, a canonical jsonlite writer/reader recipe (<code>auto_unbox</code>/<code>null</code>/<code>digits</code> options, <code>simplifyVector = FALSE</code>, null normalization, key/id consistency check), the recommended safe id pattern, the exact no-code boundary of <code><a href="../reference/dagri_validate_graph.html">dagri_validate_graph()</a></code> on load (including the RDS path), and a direct statement that <code>param_schema</code> is declarative and not enforced against node params. <code>jsonlite</code> added to <code>Suggests</code>; the recipe is covered by tests.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="features-development-version">Features<a class="anchor" aria-label="anchor" href="#features-development-version"></a></h3>
 <ul><li>
 <strong>Metadata support across constructors:</strong> <code><a href="../reference/dagri_kind.html">dagri_kind()</a></code>, <code><a href="../reference/dagri_registry.html">dagri_registry()</a></code>, and <code><a href="../reference/dagri_graph.html">dagri_graph()</a></code> now accept a <code>metadata</code> argument (named plain data, stored as given), so graph/registry/kind metadata no longer requires mutating package internals.</li>
