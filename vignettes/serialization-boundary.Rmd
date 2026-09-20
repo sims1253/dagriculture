@@ -101,14 +101,28 @@ the snapshot carries the spec's full required list (`graph_id`, `version`,
 `registry`, `nodes`, `edges`, `gates`, `metadata`). `graph_id` is required
 by the snapshot spec while the in-memory graph does not carry one, so pick a
 stable caller-chosen id at the wrap site and reuse it across rewrites of the
-same graph.
+same graph. The rest of the recipe round-trips the wrapped document: the
+writer below serializes `snapshot`, and the reader unwraps it back into a
+graph before hydrating.
 
 ## Writing: one canonical call
 
 ```{r writer}
-write_graph_json <- function(graph, file = NULL, pretty = FALSE) {
+# The four named maps are keyed collections: emit their records in
+# radix-sorted key order so the bytes do not depend on insertion order.
+# Unnamed arrays are passed through untouched.
+canonical_order <- function(x) {
+  x$registry$kinds <-
+    x$registry$kinds[sort(names(x$registry$kinds), method = "radix")]
+  x$nodes <- x$nodes[sort(names(x$nodes), method = "radix")]
+  x$edges <- x$edges[sort(names(x$edges), method = "radix")]
+  x$gates <- x$gates[sort(names(x$gates), method = "radix")]
+  x
+}
+
+write_graph_json <- function(snapshot, file = NULL, pretty = FALSE) {
   txt <- toJSON(
-    graph,
+    canonical_order(snapshot),
     auto_unbox = TRUE,
     null = "null",
     digits = NA,
@@ -117,11 +131,21 @@ write_graph_json <- function(graph, file = NULL, pretty = FALSE) {
   if (is.null(file)) {
     txt
   } else {
-    writeLines(txt, file)
+    # Commit atomically: write a sibling temp file, replace only on success.
+    tmp <- tempfile(tmpdir = dirname(file), fileext = ".json")
+    on.exit(unlink(tmp), add = TRUE)
+    writeLines(txt, tmp)
+    stopifnot(file.rename(tmp, file))
     invisible(file)
   }
 }
 ```
+
+When `file` is supplied the write commits atomically: the text goes to a
+temporary file *in the destination's own directory* first, and only a fully
+written temp file is moved over the destination with `file.rename()` — a
+same-directory rename is a single atomic directory-entry swap, so a failed
+or interrupted write leaves the previous snapshot in place.
 
 Each option is load-bearing; the jsonlite defaults break round trips:
 
@@ -134,7 +158,7 @@ Each option is load-bearing; the jsonlite defaults break round trips:
   silently truncates `1.23456789` to `1.2346`.
 
 ```{r writer-demo}
-txt <- write_graph_json(g)
+txt <- write_graph_json(snapshot)
 cat(txt)
 ```
 
@@ -150,23 +174,28 @@ Two caveats to know about, both consequences of JSON being shape-blind:
   read back as empty lists and both are valid metadata.
 
 For reproducible bytes (hashing, diffing), pin every option — including
-`pretty` — and sort your records before serializing. `toJSON()` preserves
-the insertion order of the R list; the persistence spec asks writers to emit
-keys in stable lexical order, so call
-`graph$nodes <- graph$nodes[sort(names(graph$nodes), method = "radix")]`
-(and likewise for edges, gates, kinds) when byte stability matters. The
-`method = "radix"` argument is what makes this safe across machines: radix
-sorting compares strings byte-wise in the C locale, so the written keys —
-and any hash of the bytes — are machine-independent, whereas `sort()`'s
-default collation (`LC_COLLATE`) orders the id charset's `-`, `_`, `.`
-differently in locales like `en_US.UTF-8`.
+`pretty`. `toJSON()` preserves the insertion order of the R list, and two
+graphs holding the same records can carry them in different insertion
+orders, so the writer canonicalizes key order itself: `canonical_order()`
+re-indexes `nodes`, `edges`, `gates`, and the registry's `kinds` with
+`sort(names(...), method = "radix")` before `toJSON()` runs — exactly the
+stable lexical order the persistence spec asks of writers. Two graphs built
+by inserting the same records in different orders therefore serialize to
+identical bytes. The `method = "radix"` argument is what makes this safe
+across machines: radix sorting compares strings byte-wise in the C locale,
+so the written keys — and any hash of the bytes — are machine-independent,
+whereas `sort()`'s default collation (`LC_COLLATE`) orders the id charset's
+`-`, `_`, `.` differently in locales like `en_US.UTF-8`. Only the four named
+maps are re-ordered; unnamed arrays (a default `params = list()`, for
+example) keep their shape and order untouched.
 
 ## Reading: simplify, normalize, check, validate
 
 The reader is the mirror image, plus three fixes jsonlite will not do for
-you. Read with `simplifyVector = FALSE`, normalize JSON `null` back to the
-nullable R fields, check map keys against embedded ids, then confirm the
-revived graph through a public call — the recipe ends with
+you. Parse the snapshot with `simplifyVector = FALSE`, confirm its
+`schema_name`, and extract the graph fields; then normalize JSON `null`
+back to the nullable R fields, check map keys against embedded ids, and
+confirm the revived graph through a public call — the recipe ends with
 `dagri_topo_order()`, which exercises the validation every public function
 runs on entry and additionally rejects cyclic snapshots.
 
@@ -216,7 +245,10 @@ check_snapshot_maps <- function(graph) {
 }
 
 read_graph_json <- function(txt) {
-  graph <- fromJSON(txt, simplifyVector = FALSE)
+  snapshot <- fromJSON(txt, simplifyVector = FALSE)
+  stopifnot(identical(snapshot$schema_name, "dagri_graph_snapshot"))
+  graph <-
+    snapshot[c("registry", "nodes", "edges", "gates", "version", "metadata")]
   graph <- normalize_nulls(graph)
   check_snapshot_maps(graph)
   # Restore the S3 class so print.dagri_graph() dispatches.
@@ -337,7 +369,7 @@ dagri_topo_order(loaded)               # ...and the public surface accepts it
 ```
 
 So where does the no-code guarantee actually come from? From the *entry
-points*, not from the load boundary:
+points*, not from the load boundary. Stated precisely:
 
 - `metadata` is validated as named plain data by every constructor and
   editor that accepts it (`dagri_kind()`, `dagri_registry()`, `dagri_graph()`,
@@ -345,16 +377,63 @@ points*, not from the load boundary:
   `dagri_update_edge()`, `dagri_add_gate()`, `dagri_update_gate()`):
   closures, environments, formulas, language objects, S4 objects, external
   pointers, and weak references are rejected recursively.
-- `param_schema` is closure-checked by `dagri_kind()`.
+- `param_schema` gets a shape check and a no-closure check — but only when
+  `dagri_kind()` runs.
+- Nothing re-scans the caller-owned fields of an *already assembled* graph.
+  `dagri_validate_graph()`, which every public call runs, checks structure
+  and referential integrity only; cycles surface later, through traversal
+  calls like `dagri_topo_order()`. So the `params`, `metadata`, and
+  `param_schema` of a graph loaded from RDS — or handed in after direct
+  assignment like `graph$nodes$raw$metadata <- list(env = new.env())` —
+  are exactly as trustworthy as the source they came from.
 
-Values that never passed through an entry point — an RDS payload, or direct
-assignment like `graph$nodes$raw$metadata <- list(env = new.env())` — are
-not re-scanned on load or on the next public call. Practical guidance:
-treat the JSON recipe above as your persistence format and RDS only as a
-trusted-cache format. If you must load graphs from RDS you do not fully
-trust, re-check metadata yourself before use (the same recursive plain-data
-test the entry points apply), or push each record's caller-owned fields back
-through a public mutator, which validates what it accepts.
+Practical guidance: treat the JSON recipe above as your persistence format
+and RDS only as a trusted-cache format. If you must load a graph from RDS
+you do not fully trust, scan its caller-owned fields with the same
+recursive plain-data test the entry points apply before using it:
+
+```{r plain-data-check}
+is_plain_data <- function(x) {
+  if (
+    is.function(x) || is.environment(x) || is.language(x) || isS4(x) ||
+      inherits(x, "formula") ||
+      identical(typeof(x), "externalptr") || identical(typeof(x), "weakref")
+  ) {
+    return(FALSE)
+  }
+  if (is.list(x)) {
+    return(all(vapply(x, is_plain_data, logical(1))))
+  }
+  TRUE
+}
+
+graph_is_plain_data <- function(graph) {
+  is_plain_data(graph$metadata) &&
+    is_plain_data(graph$registry$metadata) &&
+    all(vapply(
+      graph$registry$kinds,
+      function(k) is_plain_data(k$param_schema) && is_plain_data(k$metadata),
+      logical(1)
+    )) &&
+    all(vapply(
+      graph$nodes,
+      function(n) is_plain_data(n$params) && is_plain_data(n$metadata),
+      logical(1)
+    )) &&
+    all(vapply(graph$edges, function(e) is_plain_data(e$metadata), logical(1))) &&
+    all(vapply(graph$gates, function(g) is_plain_data(g$metadata), logical(1)))
+}
+
+graph_is_plain_data(loaded)  # FALSE: params$loader is a closure
+graph_is_plain_data(g)       # TRUE: fields that passed the entry points
+```
+
+The alternative — reconstruction — is only a partial substitute. Pushing a
+record back through `dagri_add_node()`/`dagri_update_node()` re-validates
+its `metadata`, and `dagri_add_node()` additionally enforces the kind's
+`input_contract` for required params, but neither mutator plain-data-checks
+arbitrary `params`, and `param_schema` is only checked when `dagri_kind()`
+runs. For untrusted payloads, the scan above is the guarantee.
 
 ## `param_schema` is declarative
 
@@ -372,8 +451,8 @@ own constructor or wrapper before they enter a graph.
 
 ## Comparing and hashing after a reload
 
-- Fix the writer options (`auto_unbox`, `null`, `digits`, `pretty`) — any
-  change rewrites every serialized value.
+- Fix the writer options (`auto_unbox`, `null`, `digits`, `pretty`) and the
+  canonical key order — any change to either rewrites every serialized value.
 - Normalize before comparing: run the reader recipe on both sides so
   nullable fields are `NULL`, keys are checked, and vectors-versus-lists
   differences are resolved.

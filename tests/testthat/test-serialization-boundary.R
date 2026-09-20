@@ -4,9 +4,27 @@ skip_if_not_installed("jsonlite")
 # vignettes/serialization-boundary.Rmd. Kept here so the recipe itself is
 # under test; dagriculture deliberately ships no public serialization API.
 
-write_graph_json <- function(graph, pretty = FALSE) {
+# The named maps (kinds, nodes, edges, gates) are keyed collections, so the
+# writer emits their records in radix-sorted key order for stable bytes.
+# Unnamed arrays are passed through untouched.
+canonical_order <- function(x) {
+  x$registry$kinds <- x$registry$kinds[sort(names(x$registry$kinds), method = "radix")]
+  x$nodes <- x$nodes[sort(names(x$nodes), method = "radix")]
+  x$edges <- x$edges[sort(names(x$edges), method = "radix")]
+  x$gates <- x$gates[sort(names(x$gates), method = "radix")]
+  x
+}
+
+wrap_snapshot <- function(graph, graph_id = "graph_fixture") {
+  c(
+    list(schema_name = "dagri_graph_snapshot", schema_version = 1, graph_id = graph_id),
+    graph
+  )
+}
+
+write_graph_json <- function(snapshot, pretty = FALSE) {
   jsonlite::toJSON(
-    graph,
+    canonical_order(snapshot),
     auto_unbox = TRUE,
     null = "null",
     digits = NA,
@@ -49,7 +67,9 @@ check_snapshot_maps <- function(graph) {
 }
 
 read_graph_json <- function(txt) {
-  graph <- jsonlite::fromJSON(txt, simplifyVector = FALSE)
+  snapshot <- jsonlite::fromJSON(txt, simplifyVector = FALSE)
+  stopifnot(identical(snapshot$schema_name, "dagri_graph_snapshot"))
+  graph <- snapshot[c("registry", "nodes", "edges", "gates", "version", "metadata")]
   graph <- normalize_nulls(graph)
   check_snapshot_maps(graph)
   structure(graph, class = c("dagri_graph", "list"))
@@ -73,7 +93,7 @@ serialization_fixture_graph <- function() {
 describe("canonical writer options", {
   it("writes R NULL as JSON null, not {}", {
     g <- serialization_fixture_graph()
-    txt <- write_graph_json(g)
+    txt <- write_graph_json(wrap_snapshot(g))
     expect_match(txt, '"label":null', fixed = TRUE)
     expect_match(txt, '"param_schema":null', fixed = TRUE)
     expect_match(txt, '"output_type":null', fixed = TRUE)
@@ -89,22 +109,59 @@ describe("canonical writer options", {
     reg <- dagri_registry(dagri_kind("source"))
     g <- dagri_graph(reg) |>
       dagri_add_node("raw", "source", params = list(weight = 1.23456789))
-    txt <- write_graph_json(g)
+    txt <- write_graph_json(wrap_snapshot(g))
     expect_match(txt, "1.23456789", fixed = TRUE)
     back <- read_graph_json(txt)
     expect_identical(back$nodes$raw$params$weight, 1.23456789)
   })
 })
 
+describe("canonical map ordering", {
+  it("produces byte-identical JSON for permuted map insertions", {
+    g1 <- serialization_fixture_graph()
+
+    # Same records, rebuilt through public mutators in a different order.
+    reg2 <- dagri_registry(
+      dagri_kind("fit", param_schema = list(required = c("model"))),
+      dagri_kind("source", output_type = "data.frame"),
+      metadata = list(origin = "hand-authored")
+    )
+    g2 <- dagri_graph(reg2, metadata = list(project = "pilot")) |>
+      dagri_add_node("m2", "fit") |>
+      dagri_add_node("m1", "fit", params = list(model = "baseline")) |>
+      dagri_add_node("raw", "source", label = "Raw Data") |>
+      dagri_add_edge("m1", "m2", id = "e2") |>
+      dagri_add_edge("raw", "m1", id = "e1", metadata = list(weight = 2L)) |>
+      dagri_add_gate("e1", id = "g1", metadata = list(approver = "rev_a"))
+
+    txt1 <- write_graph_json(wrap_snapshot(g1))
+    txt2 <- write_graph_json(wrap_snapshot(g2))
+    expect_identical(txt1, txt2)
+
+    # The canonical key order is what equalizes them: without it, the two
+    # insertion orders serialize to different bytes.
+    unsorted <- function(x) {
+      jsonlite::toJSON(x, auto_unbox = TRUE, null = "null", digits = NA)
+    }
+    expect_false(identical(unsorted(wrap_snapshot(g1)), unsorted(wrap_snapshot(g2))))
+
+    # Unnamed arrays pass through untouched: default params = list() stays [].
+    expect_match(txt1, '"params":[]', fixed = TRUE)
+
+    expect_no_error(dagri_validate_graph(read_graph_json(txt1)))
+  })
+})
+
 describe("canonical reader round trip", {
   it("restores a graph that passes dagri_validate_graph()", {
     g <- serialization_fixture_graph()
-    back <- read_graph_json(write_graph_json(g))
+    back <- read_graph_json(write_graph_json(wrap_snapshot(g)))
 
     expect_no_error(dagri_validate_graph(back))
     expect_s3_class(back, "dagri_graph")
     expect_identical(back$version, g$version)
-    expect_identical(names(back$nodes), c("raw", "m1", "m2"))
+    # Map keys come back in the writer's canonical (radix-sorted) order.
+    expect_identical(names(back$nodes), c("m1", "m2", "raw"))
     expect_identical(names(back$edges), c("e1", "e2"))
     expect_identical(names(back$gates), "g1")
     expect_identical(back$nodes$raw$label, "Raw Data")
@@ -123,7 +180,7 @@ describe("canonical reader round trip", {
   })
 
   it("round-tripped graphs work through the public surface", {
-    back <- read_graph_json(write_graph_json(serialization_fixture_graph()))
+    back <- read_graph_json(write_graph_json(wrap_snapshot(serialization_fixture_graph())))
     expect_identical(dagri_topo_order(back), c("raw", "m1", "m2"))
     resolved <- dagri_resolve_gate(back, id = "g1")
     expect_identical(resolved$gates$g1$status, "resolved")
@@ -132,7 +189,7 @@ describe("canonical reader round trip", {
   it("keeps empty named maps as named lists under simplifyVector = FALSE", {
     reg <- dagri_registry(dagri_kind("source"))
     g <- dagri_graph(reg)
-    txt <- write_graph_json(g)
+    txt <- write_graph_json(wrap_snapshot(g))
     expect_match(txt, '"edges":{}', fixed = TRUE)
     expect_match(txt, '"gates":{}', fixed = TRUE)
 
@@ -149,7 +206,7 @@ describe("canonical reader round trip", {
       dagri_kind("fit", param_schema = list(required = c("model", "seed")))
     )
     g <- dagri_graph(reg)
-    back <- read_graph_json(write_graph_json(g))
+    back <- read_graph_json(write_graph_json(wrap_snapshot(g)))
 
     expect_type(g$registry$kinds$fit$param_schema$required, "character")
     expect_type(back$registry$kinds$fit$param_schema$required, "list")
@@ -166,7 +223,7 @@ describe("canonical reader round trip", {
 
 describe("null normalization", {
   it("restores nullable fields as R NULL after a canonical round trip", {
-    back <- read_graph_json(write_graph_json(serialization_fixture_graph()))
+    back <- read_graph_json(write_graph_json(wrap_snapshot(serialization_fixture_graph())))
     expect_null(back$nodes$m1$label)
     expect_true("label" %in% names(back$nodes$m1))
     expect_null(back$nodes$m2$label)
@@ -194,12 +251,12 @@ describe("null normalization", {
 
 describe("named-map keys vs embedded ids", {
   it("keys and embedded ids agree after a round trip", {
-    back <- read_graph_json(write_graph_json(serialization_fixture_graph()))
+    back <- read_graph_json(write_graph_json(wrap_snapshot(serialization_fixture_graph())))
     expect_no_error(check_snapshot_maps(back))
   })
 
   it("flags a key/id mismatch that dagri_validate_graph() accepts", {
-    back <- read_graph_json(write_graph_json(serialization_fixture_graph()))
+    back <- read_graph_json(write_graph_json(wrap_snapshot(serialization_fixture_graph())))
     tampered <- dagri_add_node(back, "iso", "source")
     names(tampered$nodes)[[4]] <- "renamed"
 
