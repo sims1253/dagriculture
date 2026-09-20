@@ -23,6 +23,24 @@
   `values` element carrying `list(before = ..., after = ...)` per changed
   field. `changed_*` ids are ordered by the named-map insertion order of
   `after`.
+- **Customization hooks for `dagri_mermaid()`:** the renderer gains
+  `gate_label`, `include_resolved_gates`, `class_defs`, and `header`
+  arguments without changing its pure graph-to-text contract. With every
+  argument at its default the output is byte-for-byte identical to before.
+- **`gate_label` callback:** `function(gate, edge) -> string` supplies
+  per-gate edge annotation labels (e.g. "pending review", reviewer names)
+  instead of the default `gate: <id>` text; `NULL`/`NA` returns fall back
+  to the default, and non-character or multi-element returns are coerced
+  exactly like `node_label` returns.
+- **`include_resolved_gates`:** opt-in flag that also annotates resolved
+  gates on their edge, each suffixed with `" (resolved)"`, in gate
+  insertion order; pending gates render exactly as before.
+- **`class_defs` / `header` styling injection:** Mermaid `classDef`
+  statements are sanitized and emitted after the `flowchart` line; raw
+  preamble lines (e.g. `%%{init: ...}%%` directives) pass through verbatim
+  before it, with only control characters stripped. Header lines are
+  trusted caller input; everything derived from graph data stays
+  sanitized.
 
 ## Behavior changes
 

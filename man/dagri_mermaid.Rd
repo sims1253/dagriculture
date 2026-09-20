@@ -4,7 +4,16 @@
 \alias{dagri_mermaid}
 \title{Render a dagriculture graph as Mermaid flowchart text}
 \usage{
-dagri_mermaid(graph, node_label = NULL, node_class = NULL, direction = "TD")
+dagri_mermaid(
+  graph,
+  node_label = NULL,
+  node_class = NULL,
+  direction = "TD",
+  gate_label = NULL,
+  include_resolved_gates = FALSE,
+  class_defs = character(),
+  header = character()
+)
 }
 \arguments{
 \item{graph}{A \code{dagri_graph}.}
@@ -22,11 +31,51 @@ function returns \code{NA}, no \code{class} line is emitted for that node.}
 \item{direction}{Single character string, the Mermaid flowchart
 direction. Defaults to \code{"TD"} (top-down). Common alternatives are
 \code{"LR"}, \code{"RL"}, and \code{"BT"}.}
+
+\item{gate_label}{\code{NULL} (default) or a function
+\code{(gate, edge) -> string} supplying the annotation label for each
+gate — e.g. \code{"pending review"}, \code{"signed off"}, or a reviewer name
+pulled from \code{gate$metadata} — instead of the default \verb{gate: <id>}
+text. \code{gate} is the full gate record (\code{id}, \code{edge_id}, \code{status},
+\code{metadata}) and \code{edge} is the full edge record (\code{id}, \code{from}, \code{to},
+\code{type}, \code{metadata}). The return contract mirrors \code{node_label}: a
+single string is used (after sanitization); \code{NULL} or a scalar \code{NA}
+(of any type) falls back to the default \verb{gate: <id>} label for that
+gate; non-character returns are coerced with \code{\link[=as.character]{as.character()}}; a
+return that is still not a single non-\code{NA} string after coercion
+(e.g. a multi-element vector) becomes \code{""}.}
+
+\item{include_resolved_gates}{Single non-\code{NA} logical, default \code{FALSE}.
+When \code{TRUE}, gates with \code{status == "resolved"} are also annotated on
+their edge, with the constant \code{" (resolved)"} appended to each
+resolved gate's label (after the callback/default label). Pending
+gates render exactly as they do with the default. With \code{FALSE} (the
+default), resolved gates produce no annotation.}
+
+\item{class_defs}{Character vector of Mermaid \code{classDef} statements
+(e.g. \code{"classDef ready fill:#e8f5e9"}), default \code{character()} (no
+lines). Each element must be a single non-\code{NA} string and is
+sanitized with the label sanitizer, then emitted on its own line
+after the \code{flowchart} line and before the node lines, in the given
+order. Because the sanitizer strips parentheses, prefer 8-digit hex
+color forms (e.g. \verb{fill:#3480db66}) over \code{rgba(...)} colors, whose
+parentheses are removed. \code{NULL} is treated as \code{character()}.}
+
+\item{header}{Character vector of raw Mermaid preamble lines, default
+\code{character()}. Each element must be a single non-\code{NA} string; lines
+are emitted before the \code{flowchart} line in the given order. Because
+legitimate directives such as \code{\%\%\{init: ...\}\%\%} contain
+braces and quotes that the label sanitizer would destroy, \code{header}
+lines are NOT run through the full sanitizer — control characters
+(including CR/LF) are replaced with spaces and whitespace runs are
+collapsed, nothing more. \code{header} is trusted caller input; everything
+derived from graph data (labels, classes, gate annotations,
+\code{class_defs}) stays sanitized. \code{NULL} is treated as \code{character()}.}
 }
 \value{
 A length-1 character scalar containing the full Mermaid
 flowchart block, with lines separated by \verb{\\n}. An empty graph yields
-just the header line (e.g. \code{"flowchart TD\\n"}).
+just the \code{flowchart} line (e.g. \code{"flowchart TD\\n"}).
 }
 \description{
 Emits a \href{https://mermaid.js.org/}{Mermaid} flowchart as a single
@@ -35,8 +84,18 @@ the literal \code{flowchart} block — paste it into a Mermaid renderer or
 wrap it in a fenced code block in Markdown.
 }
 \details{
-\strong{Output shape.} The first line is \verb{flowchart <direction>}. Node lines
-follow (one per node in \code{names(graph$nodes)} insertion order):
+\strong{Byte-compatibility.} With every argument at its default
+(\code{gate_label = NULL}, \code{include_resolved_gates = FALSE},
+\code{class_defs = character()}, \code{header = character()}) the output is
+byte-for-byte identical to the renderer without the customization
+hooks; the hooks only add lines or change annotations when they are
+explicitly enabled.
+
+\strong{Output shape.} Optional \code{header} lines come first (verbatim except
+control-character stripping), then the \verb{flowchart <direction>} line,
+then optional \code{classDef} lines (one per \code{class_defs} element, in
+order). Node lines follow (one per node in \code{names(graph$nodes)}
+insertion order):
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{  <id>["<sanitized_label>"]
 }\if{html}{\out{</div>}}
@@ -52,16 +111,27 @@ Edge lines follow all node/class lines:
 }\if{html}{\out{</div>}}
 
 Edges carrying one or more \strong{pending} gates are annotated with the
-gate ids joined by \code{", "}, e.g. \verb{  <from> -- "gate: g1, g2" --> <to>}.
-Resolved gates produce no annotation.
+gate labels joined by \code{", "} in gate insertion order, e.g.
+\verb{  <from> -- "gate: g1, g2" --> <to>}. With
+\code{include_resolved_gates = TRUE}, resolved gates join the annotation in
+the same insertion order, each suffixed with \code{ (resolved)}. When
+\code{gate_label} is supplied, each gate's label is the callback's return
+value (or the \verb{gate: <id>} fallback), joined by \code{", "}.
 
 \strong{Sanitization.} Mermaid breaks on \verb{"}, \code{(}, \verb{)}, \code{[}, \verb{]}, \verb{\{}, \verb{\}},
-\code{|}, \code{<}, \code{>}, and embedded newlines. Node labels and gate annotation
-text are sanitized: \verb{"} becomes \verb{'} and the other characters become
-single spaces (with runs of whitespace collapsed and trimmed). A
-\code{node_label} / \code{node_class} return value that is \code{NULL}, \code{NA},
-multi-element, or non-character is coerced to a length-1 character
-string (and becomes \code{""} if coercion yields \code{NA}).
+\code{|}, \code{<}, \code{>}, and embedded newlines. Node labels, gate annotation
+text, and \code{class_defs} lines are sanitized: \verb{"} becomes \verb{'} and the
+other characters become single spaces (with runs of whitespace
+collapsed and trimmed). A \code{node_label} / \code{node_class} return value that
+is \code{NULL}, \code{NA}, multi-element, or non-character is coerced to a
+length-1 character string (and becomes \code{""} if coercion yields \code{NA});
+\code{gate_label} returns follow the same coercion with the \verb{gate: <id>}
+fallback described above. The \code{" (resolved)"} suffix is a
+renderer-owned constant appended after sanitization, so it is the one
+place parentheses appear in annotation text. The \code{header} lines are
+the deliberate exception: they are trusted caller input and are only
+stripped of control characters with whitespace collapsed, because the
+full sanitizer would destroy legitimate init directives.
 
 \strong{Node ids are NOT sanitized.} They are emitted verbatim as Mermaid
 node identifiers, so they MUST be Mermaid-safe (alphanumeric /
@@ -72,6 +142,11 @@ must validate ids before rendering.
 validated (single non-NA non-empty string); the value is not checked
 against an allowlist, so an unknown value is emitted as-is and Mermaid
 will fail to render it.
+
+\strong{Determinism.} Nodes, edges, and gates are emitted in graph
+insertion order, and multi-gate annotations join in gate insertion
+order, so repeated calls on the same graph value always produce the
+same string (snapshot-friendly).
 }
 \examples{
 graph <- dagri_graph(dagri_registry(dagri_kind("source"), dagri_kind("fit")))
@@ -79,4 +154,26 @@ graph <- dagri_add_node(graph, "data", "source", label = "Data")
 graph <- dagri_add_node(graph, "fit", "fit", label = "Fit")
 graph <- dagri_add_edge(graph, "data", "fit", id = "e1")
 cat(dagri_mermaid(graph))
+
+# Custom gate labels via the gate_label callback
+graph <- dagri_add_gate(graph, "e1", id = "review")
+cat(dagri_mermaid(graph, gate_label = function(gate, edge) {
+  reviewer <- gate$metadata$reviewer
+  if (is.null(reviewer)) "pending review" else paste("review by", reviewer)
+}))
+
+# Resolved gates join the annotation when asked to
+graph <- dagri_resolve_gate(graph, "review")
+cat(dagri_mermaid(graph, include_resolved_gates = TRUE))
+
+# Style classes via class_defs (emitted right after the flowchart line)
+graph <- dagri_reopen_gate(graph, "review")
+cat(dagri_mermaid(
+  graph,
+  node_class = function(node) node$state,
+  class_defs = c(
+    "classDef ready fill:#e8f5e9",
+    "classDef new fill:#fff3e0"
+  )
+))
 }

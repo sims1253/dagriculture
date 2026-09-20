@@ -342,7 +342,16 @@ dagri_plan(graph, targets = NULL, external_holds = list())
 ### Visualization
 
 ```r
-dagri_mermaid(graph, node_label = NULL, node_class = NULL, direction = "TD")
+dagri_mermaid(
+  graph,
+  node_label = NULL,
+  node_class = NULL,
+  direction = "TD",
+  gate_label = NULL,
+  include_resolved_gates = FALSE,
+  class_defs = character(),
+  header = character()
+)
 ```
 
 Rules:
@@ -353,15 +362,40 @@ Rules:
 - `node_label` and `node_class` are optional `(node) -> string` injection
   functions; defaults use `node$label %||% node$id` and `node$state %||%
   NA_character_` (the `class` line is skipped when the class is `NA`/empty).
+- `gate_label` is an optional `(gate, edge) -> string` injection function
+  receiving the full gate record (`id`, `edge_id`, `status`, `metadata`) and
+  the full edge record. A `NULL` or scalar-`NA` return falls back to the
+  default `gate: <id>` label; non-character returns are coerced and
+  multi-element returns become `""`, mirroring the `node_label` contract.
 - Pending gates are rendered as edge annotations: an edge carrying one or more
   gates with `status == "pending"` is emitted as
-  `  <from> -- "gate: g1, g2" --> <to>`; resolved gates produce no annotation.
-- Labels and gate annotation text are sanitized (`"` -> `'`; `[](){}|<>` and
-  newlines -> space) because Mermaid breaks on those characters. Node ids are
-  NOT sanitized — they are Mermaid node identifiers and must be Mermaid-safe
-  (the editing API guarantees alphanumeric/underscore ids by convention).
-- consumers may layer label/class injection (via `node_label` / `node_class`)
-  on top of this domain-generic renderer.
+  `  <from> -- "gate: g1, g2" --> <to>`; with the default
+  `include_resolved_gates = FALSE`, resolved gates produce no annotation.
+  With `include_resolved_gates = TRUE`, resolved gates join the annotation in
+  the same gate insertion order, each suffixed with the renderer-owned
+  constant `" (resolved)"` (appended after sanitization so it survives).
+- `class_defs` (character vector, default `character()`) holds Mermaid
+  `classDef` statements; each element is sanitized and emitted on its own
+  line after the `flowchart` line and before the node lines, in given order.
+- `header` (character vector, default `character()`) holds raw Mermaid
+  preamble lines (e.g. `%%{init: ...}%%` directives) emitted verbatim before
+  the `flowchart` line. These are the deliberate exception to sanitization —
+  only control characters (CR/LF/...) are stripped and whitespace collapsed —
+  because the full sanitizer would destroy legitimate directives. `header`
+  lines are trusted caller input; everything derived from graph data stays
+  sanitized.
+- Labels, gate annotation text, and `class_defs` lines are sanitized
+  (`"` -> `'`; `[](){}|<>` and newlines -> space) because Mermaid breaks on
+  those characters. Node ids are NOT sanitized — they are Mermaid node
+  identifiers and must be Mermaid-safe (the editing API guarantees
+  alphanumeric/underscore ids by convention).
+- Node, edge, and gate ordering follows graph insertion order (multi-gate
+  annotations join in gate insertion order), so output is deterministic and
+  snapshot-friendly. With every argument at its default the output is
+  byte-for-byte identical to the renderer without the customization hooks.
+- consumers may layer label/class/gate injection (via `node_label`,
+  `node_class`, `gate_label`) and styling (via `class_defs` / `header`) on
+  top of this domain-generic renderer.
 
 ### Printing
 
