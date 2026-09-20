@@ -1,5 +1,47 @@
 # Changelog
 
+## dagriculture (development version)
+
+### Features
+
+- **Metadata support across constructors:**
+  [`dagri_kind()`](https://sims1253.github.io/dagriculture/reference/dagri_kind.md),
+  [`dagri_registry()`](https://sims1253.github.io/dagriculture/reference/dagri_registry.md),
+  and
+  [`dagri_graph()`](https://sims1253.github.io/dagriculture/reference/dagri_graph.md)
+  now accept a `metadata` argument (named plain data, stored as given),
+  so graph/registry/kind metadata no longer requires mutating package
+  internals.
+- **Edge and gate update mutators:** added
+  [`dagri_update_edge()`](https://sims1253.github.io/dagriculture/reference/dagri_update_edge.md)
+  (optional `type`/`metadata` replacement) and
+  [`dagri_update_gate()`](https://sims1253.github.io/dagriculture/reference/dagri_update_gate.md)
+  (optional `metadata` replacement). Both are immutable
+  value-in/value-out mutators using the same replace-not-merge semantics
+  as
+  [`dagri_update_node()`](https://sims1253.github.io/dagriculture/reference/dagri_update_node.md),
+  and both bump `graph$version` by 1. Known boundary:
+  [`dagri_graph_diff()`](https://sims1253.github.io/dagriculture/reference/dagri_graph_diff.md)
+  remains a structural id diff, so metadata and `type` edits do not
+  surface in its output.
+
+### Behavior changes
+
+- `metadata` is now validated at every entry point
+  ([`dagri_kind()`](https://sims1253.github.io/dagriculture/reference/dagri_kind.md),
+  [`dagri_registry()`](https://sims1253.github.io/dagriculture/reference/dagri_registry.md),
+  [`dagri_graph()`](https://sims1253.github.io/dagriculture/reference/dagri_graph.md),
+  [`dagri_add_node()`](https://sims1253.github.io/dagriculture/reference/dagri_add_node.md),
+  [`dagri_update_node()`](https://sims1253.github.io/dagriculture/reference/dagri_update_node.md),
+  [`dagri_add_edge()`](https://sims1253.github.io/dagriculture/reference/dagri_add_edge.md),
+  [`dagri_add_gate()`](https://sims1253.github.io/dagriculture/reference/dagri_add_gate.md)):
+  it must be a named list of plain data, and closures, environments,
+  formulas, language objects, S4 objects, external pointers, or weak
+  references are rejected with `dagri_error_invalid_argument`
+  (previously metadata was stored unvalidated, so code-bearing or
+  reference-bearing values could silently enter graphs and later break
+  serialization).
+
 ## dagriculture 0.3.0
 
 ### Behavior changes

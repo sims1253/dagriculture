@@ -52,10 +52,13 @@
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_terminal_impl.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_topo_order.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_topo_order_impl.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_update_edge.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_update_gate.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_update_node.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_upstream.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_validate_external_holds.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_validate_graph.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_validate_metadata.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_validate_node_ids.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagriculture-package.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/index.html</loc></url>

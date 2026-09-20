@@ -52,7 +52,7 @@ returned copy.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">dagri_graph</span><span class="op">(</span><span class="va">registry</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">dagri_graph</span><span class="op">(</span><span class="va">registry</span>, metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -62,13 +62,49 @@ returned copy.</p>
 <dl><dt id="arg-registry">registry<a class="anchor" aria-label="anchor" href="#arg-registry"></a></dt>
 <dd><p>A <code>dagri_registry</code> object.</p></dd>
 
+
+<dt id="arg-metadata">metadata<a class="anchor" aria-label="anchor" href="#arg-metadata"></a></dt>
+<dd><p>Opaque caller-owned extension data: a named list of plain
+data (nested lists, vectors, and scalars are fine). Closures,
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>dagri_graph</code> (a named list with S3 class
-<code>c("dagri_graph", "list")</code>).</p>
+<code>c("dagri_graph", "list")</code>) with fields <code>registry</code>, <code>nodes</code>, <code>edges</code>,
+<code>gates</code>, <code>version</code> (0L), and <code>metadata</code>.</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Graph-level <code>metadata</code> is opaque caller-owned extension data; every record
+type (kind, registry, graph, node, edge, gate) carries the same field. It
+must be a named list of plain data — closures, environments, formulas,
+language objects, S4 objects, external pointers, and weak references are
+rejected recursively — so it stays serializable under the persistence
+contract.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="errors">Errors<a class="anchor" aria-label="anchor" href="#errors"></a></h2>
 
+
+<ul><li><p><code>dagri_error_invalid_argument</code> when <code>metadata</code> is not a named list of
+plain data.</p></li>
+</ul></div>
+
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagri_registry.html">dagri_registry</a></span><span class="op">(</span><span class="fu"><a href="dagri_kind.html">dagri_kind</a></span><span class="op">(</span><span class="st">"source"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu">dagri_graph</span><span class="op">(</span><span class="va">reg</span>, metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>project <span class="op">=</span> <span class="st">"pilot"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">g</span><span class="op">$</span><span class="va">version</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0</span>
+<span class="r-in"><span><span class="va">g</span><span class="op">$</span><span class="va">metadata</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $project</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "pilot"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

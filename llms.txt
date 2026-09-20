@@ -196,10 +196,14 @@ Functions to structurally modify nodes, edges, and gates.
   : Remove a node from a dagriculture graph
 - [`dagri_add_edge()`](https://sims1253.github.io/dagriculture/reference/dagri_add_edge.md)
   : Add an edge to a dagriculture graph
+- [`dagri_update_edge()`](https://sims1253.github.io/dagriculture/reference/dagri_update_edge.md)
+  : Update an edge in a dagriculture graph
 - [`dagri_remove_edge()`](https://sims1253.github.io/dagriculture/reference/dagri_remove_edge.md)
   : Remove an edge from a dagriculture graph
 - [`dagri_add_gate()`](https://sims1253.github.io/dagriculture/reference/dagri_add_gate.md)
   : Add a gate to a dagriculture graph
+- [`dagri_update_gate()`](https://sims1253.github.io/dagriculture/reference/dagri_update_gate.md)
+  : Update a gate in a dagriculture graph
 - [`dagri_resolve_gate()`](https://sims1253.github.io/dagriculture/reference/dagri_resolve_gate.md)
   : Resolve a gate in a dagriculture graph
 - [`dagri_reopen_gate()`](https://sims1253.github.io/dagriculture/reference/dagri_reopen_gate.md)

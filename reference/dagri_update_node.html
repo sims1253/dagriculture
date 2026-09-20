@@ -66,9 +66,17 @@
 
 <dt id="arg-metadata">metadata<a class="anchor" aria-label="anchor" href="#arg-metadata"></a></dt>
 <dd><p>Node metadata. When non-<code>NULL</code>, <strong>replaces</strong> the existing
-<code>metadata</code> outright (see Details).</p></dd>
+<code>metadata</code> outright (see Details); must be a named list of plain data
+(closures, environments, formulas, language objects, S4 objects, external
+pointers, and weak references are rejected recursively).</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
+    <p>A new <code>dagri_graph</code> with the node updated and <code>version</code> bumped by 1
+(the bump happens even when every field argument is <code>NULL</code>); the input
+graph is not modified.</p>
+    </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code>params</code> (when non-<code>NULL</code>) <strong>replaces</strong> the node's <code>params</code> outright;
@@ -81,7 +89,26 @@ this a primitive (replace, not merge) means consumers (e.g. bayesgrove's
 <code>bg_update_node()</code>) must opt into merge explicitly, instead of silently
 having their partial update destroy sibling fields.</p>
     </div>
+    <div class="section level2">
+    <h2 id="errors">Errors<a class="anchor" aria-label="anchor" href="#errors"></a></h2>
 
+
+<ul><li><p><code>dagri_error_invalid_argument</code> when <code>graph</code> is malformed, <code>id</code> is not a
+single non-empty string, or <code>metadata</code> is not a named list of plain data.</p></li>
+<li><p><code>dagri_error_not_found</code> when <code>id</code> is not a node in the graph.</p></li>
+</ul></div>
+
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagri_registry.html">dagri_registry</a></span><span class="op">(</span><span class="fu"><a href="dagri_kind.html">dagri_kind</a></span><span class="op">(</span><span class="st">"source"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagri_add_node.html">dagri_add_node</a></span><span class="op">(</span><span class="fu"><a href="dagri_graph.html">dagri_graph</a></span><span class="op">(</span><span class="va">reg</span><span class="op">)</span>, <span class="st">"raw"</span>, <span class="st">"source"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">g2</span> <span class="op">&lt;-</span> <span class="fu">dagri_update_node</span><span class="op">(</span><span class="va">g</span>, <span class="st">"raw"</span>, metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reviewed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">g2</span><span class="op">$</span><span class="va">nodes</span><span class="op">[[</span><span class="st">"raw"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">metadata</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $reviewed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

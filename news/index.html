@@ -34,6 +34,21 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="dagriculture-development-version">dagriculture (development version)<a class="anchor" aria-label="anchor" href="#dagriculture-development-version"></a></h2>
+<div class="section level3">
+<h3 id="features-development-version">Features<a class="anchor" aria-label="anchor" href="#features-development-version"></a></h3>
+<ul><li>
+<strong>Metadata support across constructors:</strong> <code><a href="../reference/dagri_kind.html">dagri_kind()</a></code>, <code><a href="../reference/dagri_registry.html">dagri_registry()</a></code>, and <code><a href="../reference/dagri_graph.html">dagri_graph()</a></code> now accept a <code>metadata</code> argument (named plain data, stored as given), so graph/registry/kind metadata no longer requires mutating package internals.</li>
+<li>
+<strong>Edge and gate update mutators:</strong> added <code><a href="../reference/dagri_update_edge.html">dagri_update_edge()</a></code> (optional <code>type</code>/<code>metadata</code> replacement) and <code><a href="../reference/dagri_update_gate.html">dagri_update_gate()</a></code> (optional <code>metadata</code> replacement). Both are immutable value-in/value-out mutators using the same replace-not-merge semantics as <code><a href="../reference/dagri_update_node.html">dagri_update_node()</a></code>, and both bump <code>graph$version</code> by 1. Known boundary: <code><a href="../reference/dagri_graph_diff.html">dagri_graph_diff()</a></code> remains a structural id diff, so metadata and <code>type</code> edits do not surface in its output.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="behavior-changes-development-version">Behavior changes<a class="anchor" aria-label="anchor" href="#behavior-changes-development-version"></a></h3>
+<ul><li>
+<code>metadata</code> is now validated at every entry point (<code><a href="../reference/dagri_kind.html">dagri_kind()</a></code>, <code><a href="../reference/dagri_registry.html">dagri_registry()</a></code>, <code><a href="../reference/dagri_graph.html">dagri_graph()</a></code>, <code><a href="../reference/dagri_add_node.html">dagri_add_node()</a></code>, <code><a href="../reference/dagri_update_node.html">dagri_update_node()</a></code>, <code><a href="../reference/dagri_add_edge.html">dagri_add_edge()</a></code>, <code><a href="../reference/dagri_add_gate.html">dagri_add_gate()</a></code>): it must be a named list of plain data, and closures, environments, formulas, language objects, S4 objects, external pointers, or weak references are rejected with <code>dagri_error_invalid_argument</code> (previously metadata was stored unvalidated, so code-bearing or reference-bearing values could silently enter graphs and later break serialization).</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="dagriculture-030">dagriculture 0.3.0<a class="anchor" aria-label="anchor" href="#dagriculture-030"></a></h2>
 <div class="section level3">
 <h3 id="behavior-changes-0-3-0">Behavior changes<a class="anchor" aria-label="anchor" href="#behavior-changes-0-3-0"></a></h3>

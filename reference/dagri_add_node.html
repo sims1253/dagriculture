@@ -78,10 +78,43 @@ compute structural readiness (state becomes "ready" or "blocked").</p>
 
 
 <dt id="arg-metadata">metadata<a class="anchor" aria-label="anchor" href="#arg-metadata"></a></dt>
-<dd><p>Node metadata.</p></dd>
+<dd><p>Opaque caller-owned extension data: a named list of plain
+data (nested lists, vectors, and scalars are fine). Closures,
+environments, formulas, language objects, S4 objects, external pointers,
+and weak references are rejected recursively.</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
+    <p>A new <code>dagri_graph</code> with the node added and <code>version</code> bumped by 1;
+the input graph is not modified.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="errors">Errors<a class="anchor" aria-label="anchor" href="#errors"></a></h2>
 
+
+<ul><li><p><code>dagri_error_invalid_argument</code> when <code>graph</code> is malformed, <code>id</code>/<code>kind</code> is
+not a single non-empty string, params miss required <code>input_contract</code>
+fields, or <code>metadata</code> is not a named list of plain data.</p></li>
+<li><p><code>dagri_error_unknown_kind</code> when <code>kind</code> is not in the registry.</p></li>
+<li><p><code>dagri_error_duplicate_id</code> when <code>id</code> already exists.</p></li>
+</ul></div>
+
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagri_registry.html">dagri_registry</a></span><span class="op">(</span><span class="fu"><a href="dagri_kind.html">dagri_kind</a></span><span class="op">(</span><span class="st">"source"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu">dagri_add_node</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="dagri_graph.html">dagri_graph</a></span><span class="op">(</span><span class="va">reg</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  id <span class="op">=</span> <span class="st">"raw"</span>,</span></span>
+<span class="r-in"><span>  kind <span class="op">=</span> <span class="st">"source"</span>,</span></span>
+<span class="r-in"><span>  metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>uri <span class="op">=</span> <span class="st">"source:observations_v1"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">g</span><span class="op">$</span><span class="va">nodes</span><span class="op">[[</span><span class="st">"raw"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">metadata</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $uri</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "source:observations_v1"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
