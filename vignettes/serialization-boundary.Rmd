@@ -81,8 +81,27 @@ g$registry$kinds$source$param_schema  # also nullable -> NULL
 
 Note that `dagriculture` itself does not add `schema_name`/`schema_version`
 wrapper fields. If you persist snapshots under the persistence spec, wrap the
-graph yourself (for example `schema_name = "dagri_graph_snapshot"`,
-`schema_version = 1`) and unwrap before hydrating.
+graph yourself and unwrap before hydrating:
+
+```{r snapshot-wrap}
+snapshot <- c(
+  list(
+    schema_name = "dagri_graph_snapshot",
+    schema_version = 1,
+    graph_id = "graph_pilot"
+  ),
+  g
+)
+
+names(snapshot)
+```
+
+The wrapper supplies exactly the three fields the in-memory graph lacks, so
+the snapshot carries the spec's full required list (`graph_id`, `version`,
+`registry`, `nodes`, `edges`, `gates`, `metadata`). `graph_id` is required
+by the snapshot spec while the in-memory graph does not carry one, so pick a
+stable caller-chosen id at the wrap site and reuse it across rewrites of the
+same graph.
 
 ## Writing: one canonical call
 
@@ -133,8 +152,14 @@ Two caveats to know about, both consequences of JSON being shape-blind:
 For reproducible bytes (hashing, diffing), pin every option — including
 `pretty` — and sort your records before serializing. `toJSON()` preserves
 the insertion order of the R list; the persistence spec asks writers to emit
-keys in stable lexical order, so call `graph$nodes <- graph$nodes[sort(names(graph$nodes))]`
-(and likewise for edges, gates, kinds) when byte stability matters.
+keys in stable lexical order, so call
+`graph$nodes <- graph$nodes[sort(names(graph$nodes), method = "radix")]`
+(and likewise for edges, gates, kinds) when byte stability matters. The
+`method = "radix"` argument is what makes this safe across machines: radix
+sorting compares strings byte-wise in the C locale, so the written keys —
+and any hash of the bytes — are machine-independent, whereas `sort()`'s
+default collation (`LC_COLLATE`) orders the id charset's `-`, `_`, `.`
+differently in locales like `en_US.UTF-8`.
 
 ## Reading: simplify, normalize, check, validate
 
