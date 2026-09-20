@@ -39,6 +39,12 @@ reference:
   - dagri_roots
   - dagri_leaves
   - dagri_topo_order
+- title: Tabular Accessors
+  desc: Data-frame views of graph records for reporting consumers.
+  contents:
+  - dagri_nodes_df
+  - dagri_edges_df
+  - dagri_gates_df
 - title: Graph Boundary Helpers
   desc: |
     Graph-generic edge and diff helpers. They operate on edge objects and

@@ -277,6 +277,43 @@ dagri_leaves(graph)
 dagri_topo_order(graph, subset = NULL)
 ```
 
+### Tabular Accessors
+
+```r
+dagri_nodes_df(graph)
+dagri_edges_df(graph)
+dagri_gates_df(graph)
+```
+
+Rules:
+
+- Pure read-only views of the stored node/edge/gate records as base
+  `data.frame`s, for reporting consumers. No new dependencies, and no
+  `as.data.frame` S3 methods — explicit helpers only, because dispatch on the
+  list-based graph class risks surprising coercion.
+- Inputs: a valid `dagri_graph`, validated once via `dagri_validate_graph()`;
+  anything else aborts with `dagri_error_invalid_argument`.
+- Output columns and types (exact order):
+  - `dagri_nodes_df()`: `id`, `kind`, `label`, `state`, `block_reason`
+    (character; `label` is `NA_character_` when the node has no label), then
+    `params`, `metadata` (list-columns holding each record's stored list
+    verbatim — no widening of arbitrary keys).
+  - `dagri_edges_df()`: `id`, `from`, `to`, `type` (character), `metadata`
+    (list-column).
+  - `dagri_gates_df()`: `id`, `edge_id`, `status` (character), `metadata`
+    (list-column).
+- Ordering: rows follow graph insertion order (the order of the named maps).
+  Callers sort or subset explicitly when they need anything else.
+- Ids are data, not row names: they live in the `id` column as character
+  values and the frames carry plain automatic row names. (A base
+  `data.frame` always carries row names — `rownames()` never returns `NULL`
+  for one — so "no row-name semantics" means ids never become row names.)
+- Empty graphs return zero-row frames with the same column names and
+  per-column classes as the populated case.
+- `state`/`block_reason` mirror the STORED node fields (whatever
+  `dagri_recompute_state()` last wrote); these are accessors, not planners.
+- The input graph is never mutated.
+
 ### Graph Boundary Helpers
 
 Graph-generic edge and diff operations: pure value-oriented topology helpers
