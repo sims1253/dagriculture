@@ -1,5 +1,16 @@
 # dagriculture (development version)
 
+## Documentation
+
+- **Serialization vignette:** added "Serialization and the Consumer Boundary"
+  (`vignette("serialization-boundary")`): the graph snapshot shape, a canonical
+  jsonlite writer/reader recipe (`auto_unbox`/`null`/`digits` options,
+  `simplifyVector = FALSE`, null normalization, key/id consistency check),
+  the recommended safe id pattern, the exact no-code boundary of
+  `dagri_validate_graph()` on load (including the RDS path), and a direct
+  statement that `param_schema` is declarative and not enforced against node
+  params. `jsonlite` added to `Suggests`; the recipe is covered by tests.
+
 ## Features
 
 - **Metadata support across constructors:** `dagri_kind()`, `dagri_registry()`,

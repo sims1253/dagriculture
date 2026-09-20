@@ -18,6 +18,11 @@ them rather than silently preserving outdated storage shapes.
 
 ## Serialization Policy
 
+For a worked jsonlite writer/reader that applies this policy to
+`dagri_graph_snapshot` documents, see the serialization-boundary vignette
+(`vignette("serialization-boundary", package = "dagriculture")`) — it is the
+canonical example; keep the two in sync when this policy changes.
+
 - Persist only plain data.
 - Do not persist executable closures.
 - Do not persist class-dependent objects whose meaning depends on package load
