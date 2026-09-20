@@ -10,9 +10,8 @@
   `type`/`metadata` replacement) and `dagri_update_gate()` (optional `metadata`
   replacement). Both are immutable value-in/value-out mutators using the same
   replace-not-merge semantics as `dagri_update_node()`, and both bump
-  `graph$version` by 1. Known boundary: `dagri_graph_diff()` remains a
-  structural id diff, so metadata and `type` edits do not surface in its
-  output.
+  `graph$version` by 1. Value-aware `dagri_graph_diff()` now reports these
+  metadata and `type` edits through `changed_edges`/`changed_gates`.
 - **Value-aware graph diffing with gate support:** `dagri_graph_diff()` now
   also reports `added_gates`, `removed_gates`, and `changed_nodes` /
   `changed_edges` / `changed_gates` alongside the existing structural

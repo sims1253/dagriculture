@@ -38,9 +38,10 @@ A \code{NULL} \code{type}/\code{metadata} leaves that field untouched. This mirr
 into merge explicitly instead of silently having a partial update destroy
 sibling fields.
 
-Known boundary: \code{dagri_graph_diff()} is a structural id diff — it reports
-only added/removed node and edge ids, so metadata and \code{type} edits made
-here do not surface in its output.
+\code{\link[=dagri_graph_diff]{dagri_graph_diff()}} surfaces these edits: the edge id is reported in
+\code{changed_edges} whenever \code{type} or \code{metadata} differs, and with
+\code{include_values = TRUE} the \code{values$edges} entry carries the before/after
+values of the changed fields.
 }
 \section{Errors}{
 

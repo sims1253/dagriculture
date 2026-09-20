@@ -299,9 +299,23 @@ describe("graph boundary helpers", {
 
     it("applies the embedded-id fallback to changed_edges and values$edges", {
       graph_before <- base_graph()
-      # Edge type cannot change through the public editing API; re-adding
-      # under the same id with a new type keeps the key present in both
-      # graphs, so the change surfaces through changed_edges.
+
+      # Canonical path: dagri_update_edge() patches the type in place.
+      updated_after <- dagri_update_edge(graph_before, "edge_ab", type = "model")
+      updated_diff <- dagri_graph_diff(
+        graph_before,
+        updated_after,
+        include_values = TRUE
+      )
+      expect_equal(updated_diff$changed_edges, "edge_ab")
+      expect_equal(
+        updated_diff$values$edges$edge_ab,
+        list(type = list(before = "data", after = "model"))
+      )
+
+      # Fallback shape: rebuild via remove + re-add under the same id with a
+      # new type, keeping the key present in both graphs, so the change
+      # surfaces through changed_edges.
       typed_after <- dagri_remove_edge(graph_before, "edge_ab")
       typed_after <- dagri_add_edge(
         typed_after,
@@ -592,14 +606,13 @@ describe("graph boundary helpers", {
       expect_equal(diff$removed_gates, character())
     })
 
-    it("tracks gate metadata set at creation", {
-      # Gates have no public update; creating the same gate id with different
-      # metadata keeps the key present in both graphs.
+    it("tracks gate metadata edits via dagri_update_gate", {
+      # dagri_update_gate() replaces metadata in place; gate status stays
+      # with dagri_resolve_gate() / dagri_reopen_gate().
       plain <- dagri_add_gate(base_graph(), "edge_ab", id = "gate_ab")
-      annotated <- dagri_add_gate(
-        base_graph(),
-        "edge_ab",
-        id = "gate_ab",
+      annotated <- dagri_update_gate(
+        plain,
+        "gate_ab",
         metadata = list(signoff = "max")
       )
 
