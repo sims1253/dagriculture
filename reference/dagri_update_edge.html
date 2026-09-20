@@ -84,9 +84,10 @@ A <code>NULL</code> <code>type</code>/<code>metadata</code> leaves that field un
 <code><a href="dagri_update_node.html">dagri_update_node()</a></code>'s replace-not-merge primitive: consumers must opt
 into merge explicitly instead of silently having a partial update destroy
 sibling fields.</p>
-<p>Known boundary: <code><a href="dagri_graph_diff.html">dagri_graph_diff()</a></code> is a structural id diff — it reports
-only added/removed node and edge ids, so metadata and <code>type</code> edits made
-here do not surface in its output.</p>
+<p><code><a href="dagri_graph_diff.html">dagri_graph_diff()</a></code> surfaces these edits: the edge id is reported in
+<code>changed_edges</code> whenever <code>type</code> or <code>metadata</code> differs, and with
+<code>include_values = TRUE</code> the <code>values$edges</code> entry carries the before/after
+values of the changed fields.</p>
     </div>
     <div class="section level2">
     <h2 id="errors">Errors<a class="anchor" aria-label="anchor" href="#errors"></a></h2>

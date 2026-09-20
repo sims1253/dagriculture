@@ -45,10 +45,11 @@ replace-not-merge primitive. Gate `status` is not updatable here: use
 [`dagri_reopen_gate()`](https://sims1253.github.io/dagriculture/reference/dagri_reopen_gate.md),
 which own the status lifecycle.
 
-Known boundary:
 [`dagri_graph_diff()`](https://sims1253.github.io/dagriculture/reference/dagri_graph_diff.md)
-is a structural id diff — it reports only added/removed node and edge
-ids, so metadata edits made here do not surface in its output.
+surfaces these edits: the gate id is reported in `changed_gates`
+whenever `metadata` differs, and with `include_values = TRUE` the
+`values$gates` entry carries the before/after values of the changed
+fields.
 
 ## Errors
 

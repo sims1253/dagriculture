@@ -48,11 +48,11 @@ A `NULL` `type`/`metadata` leaves that field untouched. This mirrors
 replace-not-merge primitive: consumers must opt into merge explicitly
 instead of silently having a partial update destroy sibling fields.
 
-Known boundary:
 [`dagri_graph_diff()`](https://sims1253.github.io/dagriculture/reference/dagri_graph_diff.md)
-is a structural id diff — it reports only added/removed node and edge
-ids, so metadata and `type` edits made here do not surface in its
-output.
+surfaces these edits: the edge id is reported in `changed_edges`
+whenever `type` or `metadata` differs, and with `include_values = TRUE`
+the `values$edges` entry carries the before/after values of the changed
+fields.
 
 ## Errors
 

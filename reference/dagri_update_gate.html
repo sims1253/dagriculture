@@ -78,9 +78,10 @@ A <code>NULL</code> <code>metadata</code> leaves the field untouched. This mirro
 <code><a href="dagri_update_node.html">dagri_update_node()</a></code>'s replace-not-merge primitive. Gate <code>status</code> is not
 updatable here: use <code><a href="dagri_resolve_gate.html">dagri_resolve_gate()</a></code> / <code><a href="dagri_reopen_gate.html">dagri_reopen_gate()</a></code>, which
 own the status lifecycle.</p>
-<p>Known boundary: <code><a href="dagri_graph_diff.html">dagri_graph_diff()</a></code> is a structural id diff — it reports
-only added/removed node and edge ids, so metadata edits made here do not
-surface in its output.</p>
+<p><code><a href="dagri_graph_diff.html">dagri_graph_diff()</a></code> surfaces these edits: the gate id is reported in
+<code>changed_gates</code> whenever <code>metadata</code> differs, and with
+<code>include_values = TRUE</code> the <code>values$gates</code> entry carries the before/after
+values of the changed fields.</p>
     </div>
     <div class="section level2">
     <h2 id="errors">Errors<a class="anchor" aria-label="anchor" href="#errors"></a></h2>

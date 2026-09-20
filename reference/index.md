@@ -85,7 +85,7 @@ structural ids without workflow semantics.
 - [`dagri_edge_ids()`](https://sims1253.github.io/dagriculture/reference/dagri_edge_ids.md)
   : Sorted unique edge ids
 - [`dagri_graph_diff()`](https://sims1253.github.io/dagriculture/reference/dagri_graph_diff.md)
-  : Structural diff of two graphs
+  : Diff two graphs: structure and tracked field values
 
 ## State and Planning
 
