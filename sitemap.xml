@@ -35,10 +35,12 @@
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_leaves.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_mermaid.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_node.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_node_status_impl.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_nodes.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_order_edges.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_outgoing_edges.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_pending_gates.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_pending_gates_for_edges.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_plan.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_recompute_state.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_recompute_state_impl.html</loc></url>

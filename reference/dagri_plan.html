@@ -63,10 +63,81 @@ reason strings. These affect planning output without mutating graph state.</p></
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>dagri_plan</code> (a named list with S3 class
-<code>c("dagri_plan", "list")</code>) with components <code>targets</code>,
-<code>topo_order</code>, <code>eligible</code>, <code>blocked</code>, <code>external_blocked</code>,
-<code>terminal</code>, and <code>pending_gates</code>.</p>
-    </div>
+<code>c("dagri_plan", "list")</code>) with components:</p><dl><dt><code>targets</code></dt>
+<dd><p>Character vector of the planned target closure
+(the requested targets plus all their ancestors).</p></dd>
+
+<dt><code>topo_order</code></dt>
+<dd><p>Character vector of <code>targets</code> in
+topological order.</p></dd>
+
+<dt><code>eligible</code></dt>
+<dd><p>Character vector of structurally ready nodes
+within <code>targets</code>. External holds never remove a node from this
+set.</p></dd>
+
+<dt><code>blocked</code></dt>
+<dd><p>Named list mapping each structurally blocked
+target to its derived block reason (<code>"gate"</code> or
+<code>"upstream_blocked"</code>).</p></dd>
+
+<dt><code>external_blocked</code></dt>
+<dd><p>Named list mapping each externally held
+target — and every target downstream of it — to the propagated hold
+reason. A node can appear here and in <code>eligible</code> at the same
+time: structural eligibility and external blocking are separate.</p></dd>
+
+<dt><code>terminal</code></dt>
+<dd><p>Character vector of targets with no downstream
+neighbors inside <code>targets</code>.</p></dd>
+
+<dt><code>pending_gates</code></dt>
+<dd><p>Character vector of pending gate ids on
+inbound edges of the target closure, in gate insertion order.</p></dd>
+
+<dt><code>node_status</code></dt>
+<dd><p>Named list keyed by node id covering exactly
+<code>targets</code>, ordered by <code>topo_order</code>. Each entry is a named
+list with:</p><dl><dt><code>state</code></dt>
+<dd><p>Single string: the derived structural state
+(<code>"ready"</code> or <code>"blocked"</code>) after the internal
+recompute.</p></dd>
+
+<dt><code>block_reason</code></dt>
+<dd><p>Single string: the structural block
+reason (<code>"none"</code>, <code>"gate"</code>, or
+<code>"upstream_blocked"</code>).</p></dd>
+
+<dt><code>pending_gates</code></dt>
+<dd><p>Character vector of pending gate ids
+attached to the node's inbound edges, in deterministic order —
+edge insertion order, then gate insertion order within each
+edge; <code>character(0)</code> when none.</p></dd>
+
+<dt><code>external_hold</code></dt>
+<dd><p><code>NULL</code> when the node is not
+externally blocked; otherwise the single-string propagated hold
+reason (the same value <code>external_blocked[[id]]</code> carries).</p></dd>
+
+<dt><code>upstream_blockers</code></dt>
+<dd><p>Character vector of direct upstream
+neighbor ids (incoming-edge sources) whose derived state is not
+<code>"ready"</code>; unique, in incoming-edge insertion order;
+<code>character(0)</code> when none.</p></dd>
+
+<dt><code>eligible</code></dt>
+<dd><p>Single logical: structural eligibility,
+identical to membership in the plan's <code>eligible</code> field.
+Deliberately remains <code>TRUE</code> when the node is externally
+held — structural eligibility and external blocking are separate
+axes, so an entry can carry <code>eligible = TRUE</code> together with
+a non-<code>NULL</code> <code>external_hold</code>.</p></dd>
+
+
+</dl></dd>
+
+
+</dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>O(V+E). State is derived internally, so the plan is always current

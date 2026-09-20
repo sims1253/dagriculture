@@ -3,8 +3,9 @@
 Prints a concise multi-line summary of a `dagri_plan` produced by
 [`dagri_plan()`](https://sims1253.github.io/dagriculture/reference/dagri_plan.md):
 counts of targets, the topological order length, and the
-eligible/blocked/terminal sets plus the number of pending gates. Matches
-the style of base R print methods.
+eligible/blocked/terminal sets, the number of pending gates, and the
+number of per-node status entries. Matches the style of base R print
+methods.
 
 ## Usage
 
