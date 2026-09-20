@@ -75,4 +75,6 @@ reference:
 articles:
 - title: Getting Started
   contents: getting-started
+- title: Serialization
+  contents: serialization-boundary
 

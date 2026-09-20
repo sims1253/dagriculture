@@ -17,6 +17,7 @@ Depends:
 Suggests: 
     covr,
     devtools,
+    jsonlite,
     knitr,
     lintr,
     pkgdown,
