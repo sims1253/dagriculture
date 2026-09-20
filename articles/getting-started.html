@@ -87,6 +87,12 @@ until the gate is resolved.</li>
 <li>
 <strong>Planning:</strong> Topologically sorting and tracking the
 structural readiness of nodes.</li>
+<li>
+<strong>Diffing:</strong> Comparing two graph values id by id, down
+to individual field changes.</li>
+<li>
+<strong>Rendering:</strong> Turning a graph value into text formats
+such as Mermaid flowcharts.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -333,6 +339,195 @@ traversal and queries.</p>
 <span><span class="co">#&gt; [1] "plot"</span></span>
 <span><span class="fu"><a href="../reference/dagri_topo_order.html">dagri_topo_order</a></span><span class="op">(</span><span class="va">g_unblocked</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "data" "fit"  "plot"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="branching-and-comparing-graphs">Branching and Comparing Graphs<a class="anchor" aria-label="anchor" href="#branching-and-comparing-graphs"></a>
+</h2>
+<p>Because graphs are immutable values, exploring an alternative is
+cheap: bind the current graph to a new name and mutate from there. Every
+mutator returns a fresh graph value, so the shared history is never
+rewritten and the branches can be kept side by side.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Both branches start from `g`, where the approval gate is still pending.</span></span>
+<span></span>
+<span><span class="co"># Branch A: the reviewer signs off and the scope grows a summary node.</span></span>
+<span><span class="va">g_signed</span> <span class="op">&lt;-</span> <span class="va">g</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dagri_resolve_gate.html">dagri_resolve_gate</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"approval_gate"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dagri_add_node.html">dagri_add_node</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"summary"</span>, kind <span class="op">=</span> <span class="st">"report"</span>, label <span class="op">=</span> <span class="st">"Executive Summary"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dagri_add_edge.html">dagri_add_edge</a></span><span class="op">(</span>from <span class="op">=</span> <span class="st">"fit"</span>, to <span class="op">=</span> <span class="st">"summary"</span>, id <span class="op">=</span> <span class="st">"e_fit_summary"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Branch B: a quick-look variant that plots straight from the raw data.</span></span>
+<span><span class="va">g_quick</span> <span class="op">&lt;-</span> <span class="va">g</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dagri_remove_edge.html">dagri_remove_edge</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"e_fit_plot"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dagri_add_edge.html">dagri_add_edge</a></span><span class="op">(</span>from <span class="op">=</span> <span class="st">"data"</span>, to <span class="op">=</span> <span class="st">"plot"</span>, id <span class="op">=</span> <span class="st">"e_data_plot"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/dagri_update_node.html">dagri_update_node</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"plot"</span>, label <span class="op">=</span> <span class="st">"Quick Look"</span><span class="op">)</span></span></code></pre></div>
+<p>[dagri_graph_diff()] reports what it takes to go from one graph value
+(<code>before</code>) to another (<code>after</code>). The result is a
+pure structural comparison — nine id vectors, no planning or workflow
+semantics attached:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">diff</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagri_graph_diff.html">dagri_graph_diff</a></span><span class="op">(</span><span class="va">g_quick</span>, <span class="va">g_signed</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">diff</span><span class="op">$</span><span class="va">added_nodes</span>    <span class="co"># "summary" exists only in g_signed</span></span>
+<span><span class="co">#&gt; [1] "summary"</span></span>
+<span><span class="va">diff</span><span class="op">$</span><span class="va">removed_nodes</span>  <span class="co"># empty: neither branch drops a node</span></span>
+<span><span class="co">#&gt; character(0)</span></span>
+<span><span class="va">diff</span><span class="op">$</span><span class="va">added_edges</span>    <span class="co"># "e_fit_plot" and "e_fit_summary" exist only in g_signed</span></span>
+<span><span class="co">#&gt; [1] "e_fit_plot"    "e_fit_summary"</span></span>
+<span><span class="va">diff</span><span class="op">$</span><span class="va">removed_edges</span>  <span class="co"># "e_data_plot" exists only in g_quick</span></span>
+<span><span class="co">#&gt; [1] "e_data_plot"</span></span>
+<span><span class="va">diff</span><span class="op">$</span><span class="va">added_gates</span>    <span class="co"># empty: the gate exists in both branches</span></span>
+<span><span class="co">#&gt; character(0)</span></span>
+<span><span class="va">diff</span><span class="op">$</span><span class="va">removed_gates</span>  <span class="co"># empty</span></span>
+<span><span class="co">#&gt; character(0)</span></span></code></pre></div>
+<p>Read the direction as <code>before -&gt; after</code>:
+<code>added_*</code> ids are present only in <code>after</code>,
+<code>removed_*</code> ids only in <code>before</code>. Ids present in
+both graphs can still differ field by field, which the
+<code>changed_*</code> vectors report:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">diff</span><span class="op">$</span><span class="va">changed_nodes</span>  <span class="co"># "plot": its label differs between the branches</span></span>
+<span><span class="co">#&gt; [1] "plot"</span></span>
+<span><span class="va">diff</span><span class="op">$</span><span class="va">changed_edges</span>  <span class="co"># empty</span></span>
+<span><span class="co">#&gt; character(0)</span></span>
+<span><span class="va">diff</span><span class="op">$</span><span class="va">changed_gates</span>  <span class="co"># "approval_gate": pending in g_quick, resolved in g_signed</span></span>
+<span><span class="co">#&gt; [1] "approval_gate"</span></span></code></pre></div>
+<p>The tracked fields are the node
+<code>kind</code>/<code>label</code>/<code>params</code>/<code>state</code>/<code>block_reason</code>/<code>metadata</code>,
+the edge
+<code>from</code>/<code>to</code>/<code>type</code>/<code>metadata</code>,
+and the gate
+<code>edge_id</code>/<code>status</code>/<code>metadata</code>. The
+internal <code>$version</code> is deliberately ignored — it is derived
+bookkeeping, not content. Because node <code>state</code> and
+<code>block_reason</code> are tracked, recomputing state on one branch
+only (as [dagri_recompute_state()] did above) also surfaces as
+<code>changed_nodes</code>; that is still structural bookkeeping, not an
+execution record.</p>
+<p>To see <em>what</em> changed, not just <em>where</em>, pass
+<code>include_values = TRUE</code>. The result additionally carries a
+<code>values</code> element: a named list with <code>nodes</code>,
+<code>edges</code>, and <code>gates</code>, each keyed by the ids of the
+matching <code>changed_*</code> vector (same ids, same order). Every
+entry lists only the differing fields, each as
+<code>list(before = ..., after = ...)</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">value_diff</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagri_graph_diff.html">dagri_graph_diff</a></span><span class="op">(</span><span class="va">g_quick</span>, <span class="va">g_signed</span>, include_values <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The plot node's label on the way from g_quick to g_signed:</span></span>
+<span><span class="va">value_diff</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">nodes</span><span class="op">$</span><span class="va">plot</span><span class="op">$</span><span class="va">label</span></span>
+<span><span class="co">#&gt; $before</span></span>
+<span><span class="co">#&gt; [1] "Quick Look"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $after</span></span>
+<span><span class="co">#&gt; [1] "Final Plot"</span></span>
+<span></span>
+<span><span class="co"># The gate flipped from pending to resolved:</span></span>
+<span><span class="va">value_diff</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">gates</span><span class="op">$</span><span class="va">approval_gate</span><span class="op">$</span><span class="va">status</span></span>
+<span><span class="co">#&gt; $before</span></span>
+<span><span class="co">#&gt; [1] "pending"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $after</span></span>
+<span><span class="co">#&gt; [1] "resolved"</span></span></code></pre></div>
+<p>Ids that were only added or removed do not appear in
+<code>values</code> — there is nothing to compare them against. Edge
+fields follow the same shape; for example, re-typing an edge shows up
+like this:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">g_control</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagri_update_edge.html">dagri_update_edge</a></span><span class="op">(</span><span class="va">g</span>, <span class="st">"e_fit_plot"</span>, type <span class="op">=</span> <span class="st">"control"</span><span class="op">)</span></span>
+<span><span class="va">edge_diff</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagri_graph_diff.html">dagri_graph_diff</a></span><span class="op">(</span><span class="va">g</span>, <span class="va">g_control</span>, include_values <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">edge_diff</span><span class="op">$</span><span class="va">changed_edges</span></span>
+<span><span class="co">#&gt; [1] "e_fit_plot"</span></span>
+<span><span class="va">edge_diff</span><span class="op">$</span><span class="va">values</span><span class="op">$</span><span class="va">edges</span><span class="op">$</span><span class="va">e_fit_plot</span></span>
+<span><span class="co">#&gt; $type</span></span>
+<span><span class="co">#&gt; $type$before</span></span>
+<span><span class="co">#&gt; [1] "data"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $type$after</span></span>
+<span><span class="co">#&gt; [1] "control"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="visualizing-with-mermaid">Visualizing with Mermaid<a class="anchor" aria-label="anchor" href="#visualizing-with-mermaid"></a>
+</h2>
+<p>[dagri_mermaid()] renders any graph value as Mermaid flowchart text:
+one line per node carrying its label (the id when no label is set), a
+companion <code>class</code> line named after the node’s structural
+<code>state</code>, and one arrow per edge. Pending gates annotate the
+edge they block:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/dagri_mermaid.html">dagri_mermaid</a></span><span class="op">(</span><span class="va">g_state</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; flowchart TD</span></span>
+<span><span class="co">#&gt;   data["Raw Data"]</span></span>
+<span><span class="co">#&gt;   class data ready</span></span>
+<span><span class="co">#&gt;   fit["Statistical Fit"]</span></span>
+<span><span class="co">#&gt;   class fit blocked</span></span>
+<span><span class="co">#&gt;   plot["Final Plot"]</span></span>
+<span><span class="co">#&gt;   class plot blocked</span></span>
+<span><span class="co">#&gt;   data -- "gate: approval_gate" --&gt; fit</span></span>
+<span><span class="co">#&gt;   fit --&gt; plot</span></span></code></pre></div>
+<p>The <code>class</code> lines are inert until a <code>classDef</code>
+with a matching name exists, which is what the <code>class_defs</code>
+argument is for. Gate annotation text defaults to
+<code>gate: &lt;id&gt;</code> but can be replaced with the
+<code>gate_label</code> callback, which receives the full gate and edge
+records — so it can map <code>status</code> to review language or pull a
+reviewer name from <code>gate$metadata</code>:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="../reference/dagri_mermaid.html">dagri_mermaid</a></span><span class="op">(</span></span>
+<span>  <span class="va">g_state</span>,</span>
+<span>  gate_label <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">gate</span>, <span class="va">edge</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">gate</span><span class="op">$</span><span class="va">status</span>, <span class="st">"resolved"</span><span class="op">)</span><span class="op">)</span> <span class="st">"signed off"</span> <span class="kw">else</span> <span class="st">"pending review"</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  class_defs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="st">"classDef ready fill:#e8f5e9"</span>,</span>
+<span>    <span class="st">"classDef blocked fill:#ffebee"</span>,</span>
+<span>    <span class="st">"classDef new fill:#fff3e0"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; flowchart TD</span></span>
+<span><span class="co">#&gt;   classDef ready fill:#e8f5e9</span></span>
+<span><span class="co">#&gt;   classDef blocked fill:#ffebee</span></span>
+<span><span class="co">#&gt;   classDef new fill:#fff3e0</span></span>
+<span><span class="co">#&gt;   data["Raw Data"]</span></span>
+<span><span class="co">#&gt;   class data ready</span></span>
+<span><span class="co">#&gt;   fit["Statistical Fit"]</span></span>
+<span><span class="co">#&gt;   class fit blocked</span></span>
+<span><span class="co">#&gt;   plot["Final Plot"]</span></span>
+<span><span class="co">#&gt;   class plot blocked</span></span>
+<span><span class="co">#&gt;   data -- "pending review" --&gt; fit</span></span>
+<span><span class="co">#&gt;   fit --&gt; plot</span></span></code></pre></div>
+<p>Resolved gates are omitted by default — they no longer block
+anything. With <code>include_resolved_gates = TRUE</code> they rejoin
+the annotation, each suffixed with a renderer-owned
+<code>" (resolved)"</code> marker:</p>
+<pre class="mermaid"><code>flowchart TD
+  data["Raw Data"]
+  class data ready
+  fit["Statistical Fit"]
+  class fit ready
+  plot["Final Plot"]
+  class plot ready
+  data -- "signed off (resolved)" --&gt; fit
+  fit --&gt; plot</code></pre>
+<p>The chunk above sets <code>class.output = "mermaid"</code>, so its
+output block carries the <code>mermaid</code> class: documentation sites
+that load mermaid.js turn such blocks into live diagrams. pkgdown’s
+stock Bootstrap 5 template does not ship mermaid.js, so on a default
+pkgdown site — and in plain R documentation — the block simply stays the
+readable flowchart text you see above; a site owner can opt in to live
+rendering by adding mermaid.js to the site head (for example via
+pkgdown’s <code>includes</code>).</p>
+<p>Two properties worth knowing when embedding the output. Node labels,
+gate annotations, and <code>class_defs</code> lines are sanitized
+(<code>"</code> becomes <code>'</code>; brackets, braces, pipes, and
+angle brackets become spaces), so prefer paren-free color forms such as
+<code>fill:#3480db66</code> over <code>rgba(...)</code>, whose
+parentheses would be stripped. And emission follows graph insertion
+order deterministically, so the same graph value always renders to the
+same string — snapshot-friendly. Node ids are emitted verbatim as
+Mermaid identifiers, so keep them alphanumeric (the ids in this vignette
+are safe by construction).</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
