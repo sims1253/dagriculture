@@ -2,32 +2,80 @@
 % Please edit documentation in R/graph_boundary.R
 \name{dagri_graph_diff}
 \alias{dagri_graph_diff}
-\title{Structural diff of two graphs}
+\title{Diff two graphs: structure and tracked field values}
 \usage{
-dagri_graph_diff(before, after)
+dagri_graph_diff(before, after, include_values = FALSE)
 }
 \arguments{
 \item{before}{A \code{dagri_graph} (the prior state).}
 
 \item{after}{A \code{dagri_graph} (the new state).}
+
+\item{include_values}{Single \code{TRUE} or \code{FALSE}, default \code{FALSE}. When
+\code{TRUE}, the result additionally carries a \code{values} element with the
+before/after values of every changed field.}
 }
 \value{
-A list with \code{added_nodes}, \code{removed_nodes}, \code{added_edges}, and
-\code{removed_edges} (each a character vector).
+A named list, in this order:
+\itemize{
+\item \code{added_nodes}, \code{removed_nodes}, \code{added_edges}, \code{removed_edges},
+\code{added_gates}, \code{removed_gates}: character vectors of ids present in
+only one of the two graphs. The first four keep the exact semantics of
+the original structural-only diff: plain \code{\link[=setdiff]{setdiff()}} over node names
+and \code{\link[=dagri_edge_ids]{dagri_edge_ids()}}.
+\item \code{changed_nodes}, \code{changed_edges}, \code{changed_gates}: character vectors of
+ids present in both graphs (by key) where at least one tracked field
+differs. Deterministic: ids appear in the named-map insertion order of
+\code{after}.
+\item \code{values}: only present when \code{include_values = TRUE}. A named list with
+elements \code{nodes}, \code{edges}, and \code{gates}; each is a named list keyed by
+the changed ids (same ids and order as the matching \verb{changed_*}
+vector), and each entry is a named list of only the differing fields,
+each field \verb{list(before = <value>, after = <value>)}. Ids that were
+only added or removed do not appear in \code{values}.
+}
 }
 \description{
-Returns a pure structural diff with no workflow semantics: which node and
-edge ids were added or removed going from \code{before} to \code{after}. Nodes use
-\code{names(graph$nodes)}; edges use \code{dagri_edge_ids()} so both named-map storage
-and unnamed edge lists with embedded ids are supported.
+Returns a pure diff with no workflow semantics: which node, edge, and gate
+ids were added or removed going from \code{before} to \code{after}, which ids present
+in both graphs had tracked fields change, and (with \code{include_values = TRUE})
+the before/after values of every changed field. Nodes are keyed by
+\code{names(graph$nodes)}; edges by \code{\link[=dagri_edge_ids]{dagri_edge_ids()}} so both named-map storage
+and unnamed edge lists with embedded ids are supported; gates by
+\code{names(graph$gates)}.
+}
+\details{
+Tracked fields, compared per field with \code{\link[=identical]{identical()}} on the stored
+in-memory values (\code{NULL} vs \code{NULL} compares equal):
+\itemize{
+\item nodes: \code{kind}, \code{label}, \code{params}, \code{state}, \code{block_reason}, \code{metadata}
+\item edges: \code{from}, \code{to}, \code{type}, \code{metadata}
+\item gates: \code{edge_id}, \code{status}, \code{metadata}
+}
+
+\code{graph$version} is ignored: it is derived bookkeeping, not content.
+
+Because comparison is \code{identical()}-based on in-memory values, two graphs
+that serialize identically can still diff when their in-memory shapes
+differ (for example \code{NULL} vs \code{""}, or list attribute differences).
+Callers diffing JSON-round-tripped graphs should normalize values before
+diffing; the serialization rules live in \code{design/persistence-spec.md}.
 }
 \examples{
 reg <- dagri_registry(dagri_kind("source"), dagri_kind("fit"))
 before <- dagri_graph(reg) |>
   dagri_add_node("data", "source") |>
-  dagri_add_node("fit", "fit") |>
+  dagri_add_node("fit", "fit", label = "Fit") |>
   dagri_add_edge("data", "fit", id = "e1")
 after <- dagri_add_node(before, "diag", "fit")
 diff <- dagri_graph_diff(before, after)
 diff$added_nodes
+
+# A relabel is invisible to the structural vectors but shows up as a
+# change; include_values = TRUE carries the before/after values along.
+relabeled <- dagri_update_node(after, "fit", label = "Posterior fit")
+value_diff <- dagri_graph_diff(after, relabeled, include_values = TRUE)
+value_diff$changed_nodes
+value_diff$values$nodes$fit$label$before
+value_diff$values$nodes$fit$label$after
 }

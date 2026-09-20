@@ -34,9 +34,10 @@ A \code{NULL} \code{metadata} leaves the field untouched. This mirrors
 updatable here: use \code{\link[=dagri_resolve_gate]{dagri_resolve_gate()}} / \code{\link[=dagri_reopen_gate]{dagri_reopen_gate()}}, which
 own the status lifecycle.
 
-Known boundary: \code{dagri_graph_diff()} is a structural id diff — it reports
-only added/removed node and edge ids, so metadata edits made here do not
-surface in its output.
+\code{\link[=dagri_graph_diff]{dagri_graph_diff()}} surfaces these edits: the gate id is reported in
+\code{changed_gates} whenever \code{metadata} differs, and with
+\code{include_values = TRUE} the \code{values$gates} entry carries the before/after
+values of the changed fields.
 }
 \section{Errors}{
 

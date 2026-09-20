@@ -265,9 +265,10 @@ dagri_add_edge <- function(graph, from, to, type = "data", id = NULL, metadata =
 #'   into merge explicitly instead of silently having a partial update destroy
 #'   sibling fields.
 #'
-#'   Known boundary: `dagri_graph_diff()` is a structural id diff — it reports
-#'   only added/removed node and edge ids, so metadata and `type` edits made
-#'   here do not surface in its output.
+#'   [dagri_graph_diff()] surfaces these edits: the edge id is reported in
+#'   `changed_edges` whenever `type` or `metadata` differs, and with
+#'   `include_values = TRUE` the `values$edges` entry carries the before/after
+#'   values of the changed fields.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param edge_id Edge ID.
@@ -427,9 +428,10 @@ dagri_add_gate <- function(graph, edge_id, id = NULL, metadata = list()) {
 #'   updatable here: use [dagri_resolve_gate()] / [dagri_reopen_gate()], which
 #'   own the status lifecycle.
 #'
-#'   Known boundary: `dagri_graph_diff()` is a structural id diff — it reports
-#'   only added/removed node and edge ids, so metadata edits made here do not
-#'   surface in its output.
+#'   [dagri_graph_diff()] surfaces these edits: the gate id is reported in
+#'   `changed_gates` whenever `metadata` differs, and with
+#'   `include_values = TRUE` the `values$gates` entry carries the before/after
+#'   values of the changed fields.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param gate_id Gate ID.
