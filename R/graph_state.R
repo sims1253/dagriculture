@@ -39,16 +39,8 @@ dagri_recompute_state_impl <- function(graph, index) {
       next
     }
 
-    is_gate_blocked <- FALSE
-    for (e in up_edges) {
-      gates_on_edge <- Filter(function(g) g$edge_id == e$id && g$status == "pending", graph$gates)
-      if (length(gates_on_edge) > 0) {
-        is_gate_blocked <- TRUE
-        break
-      }
-    }
-
-    if (is_gate_blocked) {
+    pending_gates <- dagri_pending_gates_for_edges(index, index$reverse_edges[[n_id]])
+    if (length(pending_gates) > 0) {
       graph$nodes[[n_id]]$state <- "blocked"
       graph$nodes[[n_id]]$block_reason <- "gate"
       next
@@ -370,6 +362,88 @@ dagri_pending_gates <- function(graph, targets = NULL, index = NULL) {
   pending_gates
 }
 
+#' Collect pending gate ids on a set of edges
+#'
+#' Pure worker shared by [dagri_node_status_impl()] and
+#' [dagri_recompute_state_impl()]: returns the ids of gates with status
+#' "pending" attached to `edge_ids`, in deterministic order — `edge_ids` order
+#' first (incoming-edge insertion order), then gate insertion order within each
+#' edge. Reads the prebuilt `pending_gate_ids_by_edge` map from the adjacency
+#' index instead of rescanning `graph$gates` per edge.
+#'
+#' @param index Adjacency index from [dagri_adjacency()].
+#' @param edge_ids Character vector of edge ids in insertion order.
+#' @return Unnamed character vector of gate ids; `character(0)` when none are
+#'   pending.
+#' @keywords internal
+dagri_pending_gates_for_edges <- function(index, edge_ids) {
+  if (length(edge_ids) == 0) {
+    return(character(0))
+  }
+
+  unlist(
+    lapply(edge_ids, function(eid) index$pending_gate_ids_by_edge[[eid]]),
+    use.names = FALSE
+  ) %||%
+    character(0)
+}
+
+#' Build the per-node status view for a plan
+#'
+#' Pure worker shared by [dagri_plan()]: assembles the per-node `node_status`
+#' map — one entry per node in `topo_order`, each carrying the derived
+#' structural state, its block reason, the pending gates on the node's inbound
+#' edges, the propagated external hold reason, the direct structurally blocked
+#' upstream neighbors, and final structural eligibility.
+#'
+#' Structural eligibility and external blocking stay separate: `eligible` is
+#' `TRUE` whenever the derived state is "ready", even when the node carries an
+#' `external_hold` (mirroring the deliberate overlap between `plan$eligible`
+#' and `plan$external_blocked`).
+#'
+#' Deterministic ordering: entries follow `topo_order`; `pending_gates` follows
+#' incoming-edge insertion order, then gate insertion order within each edge;
+#' `upstream_blockers` follows incoming-edge insertion order and is unique.
+#'
+#' @param graph A \code{dagri_graph} with derived states from
+#'   [dagri_recompute_state_impl()].
+#' @param topo_order Character vector of node ids in topological order (the
+#'   plan's target closure).
+#' @param external_blocked Named list from [dagri_external_blocked()].
+#' @param index Adjacency index from [dagri_adjacency()].
+#' @return A named list keyed by node id, in `topo_order` order; each entry is
+#'   a named list with `state`, `block_reason`, `pending_gates`,
+#'   `external_hold`, `upstream_blockers`, and `eligible`.
+#' @keywords internal
+dagri_node_status_impl <- function(graph, topo_order, external_blocked, index) {
+  node_status <- dagri_empty_named_list()
+
+  for (node_id in topo_order) {
+    node <- graph$nodes[[node_id]]
+
+    upstream_ids <- index$reverse[[node_id]]
+    upstream_not_ready <- vapply(
+      upstream_ids,
+      function(up_id) graph$nodes[[up_id]]$state != "ready",
+      logical(1)
+    )
+
+    is_held <- node_id %in% names(external_blocked)
+    hold_reason <- if (is_held) external_blocked[[node_id]] else NULL
+
+    node_status[[node_id]] <- list(
+      state = node$state,
+      block_reason = node$block_reason,
+      pending_gates = dagri_pending_gates_for_edges(index, index$reverse_edges[[node_id]]),
+      external_hold = hold_reason,
+      upstream_blockers = upstream_ids[upstream_not_ready],
+      eligible = node$state == "ready"
+    )
+  }
+
+  node_status
+}
+
 #' Create a structural plan
 #'
 #' @details O(V+E). State is derived internally, so the plan is always current
@@ -386,9 +460,55 @@ dagri_pending_gates <- function(graph, targets = NULL, index = NULL) {
 #' @param external_holds Optional named list mapping node ids to external hold
 #'   reason strings. These affect planning output without mutating graph state.
 #' @return A `dagri_plan` (a named list with S3 class
-#'   \code{c("dagri_plan", "list")}) with components \code{targets},
-#'   \code{topo_order}, \code{eligible}, \code{blocked}, \code{external_blocked},
-#'   \code{terminal}, and \code{pending_gates}.
+#'   \code{c("dagri_plan", "list")}) with components:
+#'   \describe{
+#'     \item{\code{targets}}{Character vector of the planned target closure
+#'       (the requested targets plus all their ancestors).}
+#'     \item{\code{topo_order}}{Character vector of \code{targets} in
+#'       topological order.}
+#'     \item{\code{eligible}}{Character vector of structurally ready nodes
+#'       within \code{targets}. External holds never remove a node from this
+#'       set.}
+#'     \item{\code{blocked}}{Named list mapping each structurally blocked
+#'       target to its derived block reason (\code{"gate"} or
+#'       \code{"upstream_blocked"}).}
+#'     \item{\code{external_blocked}}{Named list mapping each externally held
+#'       target — and every target downstream of it — to the propagated hold
+#'       reason. A node can appear here and in \code{eligible} at the same
+#'       time: structural eligibility and external blocking are separate.}
+#'     \item{\code{terminal}}{Character vector of targets with no downstream
+#'       neighbors inside \code{targets}.}
+#'     \item{\code{pending_gates}}{Character vector of pending gate ids on
+#'       inbound edges of the target closure, in gate insertion order.}
+#'     \item{\code{node_status}}{Named list keyed by node id covering exactly
+#'       \code{targets}, ordered by \code{topo_order}. Each entry is a named
+#'       list with:
+#'       \describe{
+#'         \item{\code{state}}{Single string: the derived structural state
+#'           (\code{"ready"} or \code{"blocked"}) after the internal
+#'           recompute.}
+#'         \item{\code{block_reason}}{Single string: the structural block
+#'           reason (\code{"none"}, \code{"gate"}, or
+#'           \code{"upstream_blocked"}).}
+#'         \item{\code{pending_gates}}{Character vector of pending gate ids
+#'           attached to the node's inbound edges, in deterministic order —
+#'           edge insertion order, then gate insertion order within each
+#'           edge; \code{character(0)} when none.}
+#'         \item{\code{external_hold}}{\code{NULL} when the node is not
+#'           externally blocked; otherwise the single-string propagated hold
+#'           reason (the same value \code{external_blocked[[id]]} carries).}
+#'         \item{\code{upstream_blockers}}{Character vector of direct upstream
+#'           neighbor ids (incoming-edge sources) whose derived state is not
+#'           \code{"ready"}; unique, in incoming-edge insertion order;
+#'           \code{character(0)} when none.}
+#'         \item{\code{eligible}}{Single logical: structural eligibility,
+#'           identical to membership in the plan's \code{eligible} field.
+#'           Deliberately remains \code{TRUE} when the node is externally
+#'           held — structural eligibility and external blocking are separate
+#'           axes, so an entry can carry \code{eligible = TRUE} together with
+#'           a non-\code{NULL} \code{external_hold}.}
+#'       }}
+#'   }
 #' @export
 dagri_plan <- function(graph, targets = NULL, external_holds = list()) {
   dagri_validate_graph(graph)
@@ -419,7 +539,8 @@ dagri_plan <- function(graph, targets = NULL, external_holds = list()) {
       blocked = blocked_list,
       external_blocked = external_blocked,
       terminal = dagri_terminal_impl(targets, index),
-      pending_gates = dagri_pending_gates(graph, targets = targets, index = index)
+      pending_gates = dagri_pending_gates(graph, targets = targets, index = index),
+      node_status = dagri_node_status_impl(graph, topo, external_blocked, index)
     ),
     class = c("dagri_plan", "list")
   )

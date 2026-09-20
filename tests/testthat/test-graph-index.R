@@ -10,14 +10,19 @@ describe("dagri_adjacency()", {
     dagri_add_edge("n1", "n2", id = "e1") |>
     dagri_add_edge("n1", "n3", id = "e2")
 
-  it("returns all four named maps keyed by every node id", {
+  it("returns all five named maps", {
     idx <- dagri_adjacency(g)
 
-    expect_setequal(names(idx), c("forward", "reverse", "forward_edges", "reverse_edges"))
+    expect_setequal(
+      names(idx),
+      c("forward", "reverse", "forward_edges", "reverse_edges", "pending_gate_ids_by_edge")
+    )
 
     for (map_name in c("forward", "reverse", "forward_edges", "reverse_edges")) {
       expect_setequal(names(idx[[map_name]]), c("n1", "n2", "n3", "n4"))
     }
+    # the pending-gate map is keyed by edge id instead of node id
+    expect_setequal(names(idx$pending_gate_ids_by_edge), c("e1", "e2"))
   })
 
   it("builds forward and reverse neighbor maps", {
@@ -66,11 +71,44 @@ describe("dagri_adjacency()", {
     expect_setequal(idx$reverse_edges[["b"]], c("e1", "e2"))
   })
 
-  it("returns four empty named lists for an empty graph", {
+  it("indexes pending gate ids by edge in gate insertion order", {
+    g3 <- dagri_graph(reg) |>
+      dagri_add_node("n1", "a") |>
+      dagri_add_node("n2", "b") |>
+      dagri_add_node("n3", "b") |>
+      dagri_add_edge("n1", "n2", id = "e1") |>
+      dagri_add_edge("n2", "n3", id = "e2") |>
+      dagri_add_gate("e2", id = "g2b") |>
+      dagri_add_gate("e2", id = "g2a") |>
+      dagri_add_gate("e1", id = "g1")
+
+    idx <- dagri_adjacency(g3)
+
+    # every edge key exists; values are plain character vectors
+    expect_setequal(names(idx$pending_gate_ids_by_edge), c("e1", "e2"))
+    expect_identical(idx$pending_gate_ids_by_edge[["e1"]], "g1")
+    # within an edge, gate insertion order (g2b was added before g2a), not sorted
+    expect_identical(idx$pending_gate_ids_by_edge[["e2"]], c("g2b", "g2a"))
+
+    # resolved gates drop out of the index
+    resolved <- dagri_resolve_gate(g3, "g2a")
+    expect_identical(dagri_adjacency(resolved)$pending_gate_ids_by_edge[["e2"]], "g2b")
+  })
+
+  it("returns five empty named lists for an empty graph", {
     idx <- dagri_adjacency(dagri_graph(reg))
 
-    expect_setequal(names(idx), c("forward", "reverse", "forward_edges", "reverse_edges"))
-    for (map_name in c("forward", "reverse", "forward_edges", "reverse_edges")) {
+    expect_setequal(
+      names(idx),
+      c("forward", "reverse", "forward_edges", "reverse_edges", "pending_gate_ids_by_edge")
+    )
+    for (map_name in c(
+      "forward",
+      "reverse",
+      "forward_edges",
+      "reverse_edges",
+      "pending_gate_ids_by_edge"
+    )) {
       expect_identical(idx[[map_name]], stats::setNames(list(), character(0)))
     }
   })

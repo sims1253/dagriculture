@@ -11,27 +11,31 @@ dagri_adjacency(graph)
 }
 \value{
 A named list with components \code{forward}, \code{reverse},
-\code{forward_edges}, and \code{reverse_edges}, each a named list keyed by node id.
+\code{forward_edges}, \code{reverse_edges} (each a named list keyed by node id),
+and \code{pending_gate_ids_by_edge} (a named list keyed by edge id).
 }
 \description{
-Performs a single O(V+E) pass over \code{graph$edges} and returns four named
-lists keyed by every node id in \code{names(graph$nodes)} (each initialized to
-\code{character(0)} so no NULL-guarding is needed):
+Performs a single O(V+E+G) pass over \code{graph$edges} and \code{graph$gates} and
+returns five named lists (each initialized to \code{character(0)} entries so no
+NULL-guarding is needed):
 }
 \details{
 \itemize{
 \item \code{forward}: node -> unique vector of downstream neighbor ids
-(\code{edge$from -> edge$to})
+(\code{edge$from -> edge$to}), keyed by every node id
 \item \code{reverse}: node -> unique vector of upstream neighbor ids
-(\code{edge$to -> edge$from})
+(\code{edge$to -> edge$from}), keyed by every node id
 \item \code{forward_edges}: node -> vector of outgoing edge ids (not uniqued;
-each edge is distinct)
-\item \code{reverse_edges}: node -> vector of incoming edge ids (not uniqued)
+each edge is distinct), keyed by every node id
+\item \code{reverse_edges}: node -> vector of incoming edge ids (not uniqued),
+keyed by every node id
+\item \code{pending_gate_ids_by_edge}: edge -> vector of pending gate ids on that
+edge in gate insertion order, keyed by every edge id
 }
 
 The index is derived per call and is never stored on the graph, so the
 pure-value, immutable public API is unchanged. Internals that previously
-re-scanned the full edge list per neighbor lookup instead index into these
+re-scanned the full edge or gate lists per lookup instead index into these
 pre-built maps.
 }
 \keyword{internal}

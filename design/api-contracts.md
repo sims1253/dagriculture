@@ -193,6 +193,27 @@ Fields:
 - `external_blocked`: named list mapping node id to opaque external hold reason
 - `terminal`: character vector
 - `pending_gates`: character vector
+- `node_status`: named list keyed by node id, covering exactly `targets`
+  and ordered by `topo_order`. Each entry is a named list with:
+  - `state`: scalar string — the derived structural state after the plan's
+    internal recompute (`ready` or `blocked`)
+  - `block_reason`: scalar string — the structural block reason (`none`,
+    `gate`, or `upstream_blocked`)
+  - `pending_gates`: character vector of pending gate ids attached to the
+    node's inbound edges; deterministic order — edge insertion order, then
+    gate insertion order within each edge; `character(0)` when none
+  - `external_hold`: `NULL` when the node is not externally blocked;
+    otherwise the scalar propagated hold reason (the same value
+    `external_blocked[[id]]` carries after propagation)
+  - `upstream_blockers`: character vector of direct upstream neighbor ids
+    (incoming-edge sources) whose derived state is not `ready`; unique, in
+    incoming-edge insertion order; `character(0)` when none
+  - `eligible`: scalar logical — structural eligibility, identical to
+    membership in `plan$eligible`. Deliberately remains `TRUE` when the node
+    is externally held: structural eligibility and external blocking are
+    separate axes, so a node may appear in both `eligible` and
+    `external_blocked` (and carry `eligible = TRUE` with a non-`NULL`
+    `external_hold`)
 
 ## `dagriculture` Public API
 
@@ -361,8 +382,8 @@ Rules:
   and the registry kind names (`(none)` when the registry is empty). It returns
   `x` invisibly.
 - `print.dagri_plan()` writes target count, topological-order length, and the
-  eligible/blocked/terminal counts plus the pending-gate count. It returns `x`
-  invisibly.
+  eligible/blocked/terminal counts, the pending-gate count, and the
+  `node_status` entry count. It returns `x` invisibly.
 - These are ergonomic sugar only. Graph-mutating functions
   (`dagri_add_node()`, `dagri_add_edge()`, `dagri_resolve_gate()`,
   `dagri_recompute_state()`, ...) preserve the `dagri_graph` class on the
@@ -443,15 +464,48 @@ When relevant, `details` should include ids or paths that localize the failure.
 
 ### `dagri_plan`
 
+For a chain `node_data` (kind `data_source`) -> `node_fit` (kind `process`)
+-> `node_diag` (kind `process`), where the inbound edge of `node_fit` carries
+the pending gate `gate_prior_review`, produced by
+`dagri_plan(graph, targets = c("node_fit", "node_diag"), external_holds = list(node_diag = "manual_review"))`
+(`targets` carries the planned closure in request order — each requested
+target followed by its ancestors — which is not necessarily `topo_order`):
+
 ```r
 list(
-  targets = c("node_fit", "node_diag"),
+  targets = c("node_fit", "node_data", "node_diag"),
   topo_order = c("node_data", "node_fit", "node_diag"),
-  eligible = character(),
-  blocked = list(node_fit = "gate"),
+  eligible = c("node_data"),
+  blocked = list(node_fit = "gate", node_diag = "upstream_blocked"),
   external_blocked = list(node_diag = "manual_review"),
   terminal = c("node_diag"),
-  pending_gates = c("gate_prior_review")
+  pending_gates = c("gate_prior_review"),
+  node_status = list(
+    node_data = list(
+      state = "ready",
+      block_reason = "none",
+      pending_gates = character(0),
+      external_hold = NULL,
+      upstream_blockers = character(0),
+      eligible = TRUE
+    ),
+    node_fit = list(
+      state = "blocked",
+      block_reason = "gate",
+      pending_gates = "gate_prior_review",
+      external_hold = NULL,
+      upstream_blockers = character(0),
+      eligible = FALSE
+    ),
+    node_diag = list(
+      state = "blocked",
+      block_reason = "upstream_blocked",
+      pending_gates = character(0),
+      external_hold = "manual_review",
+      upstream_blockers = "node_fit",
+      eligible = FALSE
+    )
+  )
 )
 ```
 
