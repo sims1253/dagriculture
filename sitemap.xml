@@ -22,11 +22,13 @@
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_edge_ids.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_edge_map.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_edges.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_edges_df.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_eligible.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_empty_named_list.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_external_blocked.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_gate.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_gates.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_gates_df.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_graph.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_graph_diff.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_has_path.html</loc></url>
@@ -37,6 +39,7 @@
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_node.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_node_status_impl.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_nodes.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_nodes_df.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_order_edges.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_outgoing_edges.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_pending_gates.html</loc></url>
@@ -51,6 +54,9 @@
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_reopen_gate.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_resolve_gate.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_roots.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_table_chr.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_table_frame.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_table_list.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_target_closure.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_terminal.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_terminal_impl.html</loc></url>

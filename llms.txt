@@ -244,6 +244,17 @@ Accessors and topological traversal functions.
 - [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)
   : Get topological order
 
+## Tabular Accessors
+
+Data-frame views of graph records for reporting consumers.
+
+- [`dagri_nodes_df()`](https://sims1253.github.io/dagriculture/reference/dagri_nodes_df.md)
+  : Tabular view of graph nodes
+- [`dagri_edges_df()`](https://sims1253.github.io/dagriculture/reference/dagri_edges_df.md)
+  : Tabular view of graph edges
+- [`dagri_gates_df()`](https://sims1253.github.io/dagriculture/reference/dagri_gates_df.md)
+  : Tabular view of graph gates
+
 ## Graph Boundary Helpers
 
 Graph-generic edge and diff helpers. They operate on edge objects and

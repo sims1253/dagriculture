@@ -37,6 +37,16 @@
   `include_values = TRUE` adds a `values` element carrying
   `list(before = ..., after = ...)` per changed field. `changed_*` ids
   are ordered by the named-map insertion order of `after`.
+- **Tabular accessors:** added
+  [`dagri_nodes_df()`](https://sims1253.github.io/dagriculture/reference/dagri_nodes_df.md),
+  [`dagri_edges_df()`](https://sims1253.github.io/dagriculture/reference/dagri_edges_df.md),
+  and
+  [`dagri_gates_df()`](https://sims1253.github.io/dagriculture/reference/dagri_gates_df.md)
+  — base `data.frame` views of the stored node, edge, and gate records
+  for reporting consumers. Rows follow graph insertion order,
+  `params`/`metadata` stay list-columns holding the stored lists
+  verbatim, ids live in the `id` column instead of row names, and empty
+  graphs yield zero-row frames with identical column names and classes.
 - **Customization hooks for
   [`dagri_mermaid()`](https://sims1253.github.io/dagriculture/reference/dagri_mermaid.md):**
   the renderer gains `gate_label`, `include_resolved_gates`,
