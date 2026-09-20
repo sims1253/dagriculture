@@ -49,7 +49,16 @@ wrap it in a fenced code block in Markdown.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">dagri_mermaid</span><span class="op">(</span><span class="va">graph</span>, node_label <span class="op">=</span> <span class="cn">NULL</span>, node_class <span class="op">=</span> <span class="cn">NULL</span>, direction <span class="op">=</span> <span class="st">"TD"</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">dagri_mermaid</span><span class="op">(</span></span>
+<span>  <span class="va">graph</span>,</span>
+<span>  node_label <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  node_class <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  direction <span class="op">=</span> <span class="st">"TD"</span>,</span>
+<span>  gate_label <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_resolved_gates <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  class_defs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  header <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -79,32 +88,100 @@ function returns <code>NA</code>, no <code>class</code> line is emitted for that
 direction. Defaults to <code>"TD"</code> (top-down). Common alternatives are
 <code>"LR"</code>, <code>"RL"</code>, and <code>"BT"</code>.</p></dd>
 
+
+<dt id="arg-gate-label">gate_label<a class="anchor" aria-label="anchor" href="#arg-gate-label"></a></dt>
+<dd><p><code>NULL</code> (default) or a function
+<code>(gate, edge) -&gt; string</code> supplying the annotation label for each
+gate — e.g. <code>"pending review"</code>, <code>"signed off"</code>, or a reviewer name
+pulled from <code>gate$metadata</code> — instead of the default <code>gate: &lt;id&gt;</code>
+text. <code>gate</code> is the full gate record (<code>id</code>, <code>edge_id</code>, <code>status</code>,
+<code>metadata</code>) and <code>edge</code> is the full edge record (<code>id</code>, <code>from</code>, <code>to</code>,
+<code>type</code>, <code>metadata</code>). The return contract mirrors <code>node_label</code>: a
+single string is used (after sanitization); <code>NULL</code> or a scalar <code>NA</code>
+(of any type) falls back to the default <code>gate: &lt;id&gt;</code> label for that
+gate; non-character returns are coerced with <code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code>; a
+return that is still not a single non-<code>NA</code> string after coercion
+(e.g. a multi-element vector) becomes <code>""</code>.</p></dd>
+
+
+<dt id="arg-include-resolved-gates">include_resolved_gates<a class="anchor" aria-label="anchor" href="#arg-include-resolved-gates"></a></dt>
+<dd><p>Single non-<code>NA</code> logical, default <code>FALSE</code>.
+When <code>TRUE</code>, gates with <code>status == "resolved"</code> are also annotated on
+their edge, with the constant <code>" (resolved)"</code> appended to each
+resolved gate's label (after the callback/default label). Pending
+gates render exactly as they do with the default. With <code>FALSE</code> (the
+default), resolved gates produce no annotation.</p></dd>
+
+
+<dt id="arg-class-defs">class_defs<a class="anchor" aria-label="anchor" href="#arg-class-defs"></a></dt>
+<dd><p>Character vector of Mermaid <code>classDef</code> statements
+(e.g. <code>"classDef ready fill:#e8f5e9"</code>), default <code><a href="https://rdrr.io/r/base/character.html" class="external-link">character()</a></code> (no
+lines). Each element must be a single non-<code>NA</code> string and is
+sanitized with the label sanitizer, then emitted on its own line
+after the <code>flowchart</code> line and before the node lines, in the given
+order. Because the sanitizer strips parentheses, prefer 8-digit hex
+color forms (e.g. <code>fill:#3480db66</code>) over <code>rgba(...)</code> colors, whose
+parentheses are removed. <code>NULL</code> is treated as <code><a href="https://rdrr.io/r/base/character.html" class="external-link">character()</a></code>.</p></dd>
+
+
+<dt id="arg-header">header<a class="anchor" aria-label="anchor" href="#arg-header"></a></dt>
+<dd><p>Character vector of raw Mermaid preamble lines, default
+<code><a href="https://rdrr.io/r/base/character.html" class="external-link">character()</a></code>. Each element must be a single non-<code>NA</code> string; lines
+are emitted before the <code>flowchart</code> line in the given order. Because
+legitimate directives such as <code>%%{init: ...}%%</code> contain
+braces and quotes that the label sanitizer would destroy, <code>header</code>
+lines are NOT run through the full sanitizer — control characters
+(including CR/LF) are replaced with spaces and whitespace runs are
+collapsed, nothing more. <code>header</code> is trusted caller input; everything
+derived from graph data (labels, classes, gate annotations,
+<code>class_defs</code>) stays sanitized. <code>NULL</code> is treated as <code><a href="https://rdrr.io/r/base/character.html" class="external-link">character()</a></code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A length-1 character scalar containing the full Mermaid
 flowchart block, with lines separated by <code>\n</code>. An empty graph yields
-just the header line (e.g. <code>"flowchart TD\n"</code>).</p>
+just the <code>flowchart</code> line (e.g. <code>"flowchart TD\n"</code>).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><strong>Output shape.</strong> The first line is <code>flowchart &lt;direction&gt;</code>. Node lines
-follow (one per node in <code>names(graph$nodes)</code> insertion order):</p>
+    <p><strong>Byte-compatibility.</strong> With every argument at its default
+(<code>gate_label = NULL</code>, <code>include_resolved_gates = FALSE</code>,
+<code>class_defs = character()</code>, <code>header = character()</code>) the output is
+byte-for-byte identical to the renderer without the customization
+hooks; the hooks only add lines or change annotations when they are
+explicitly enabled.</p>
+<p><strong>Output shape.</strong> Optional <code>header</code> lines come first (verbatim except
+control-character stripping), then the <code>flowchart &lt;direction&gt;</code> line,
+then optional <code>classDef</code> lines (one per <code>class_defs</code> element, in
+order). Node lines follow (one per node in <code>names(graph$nodes)</code>
+insertion order):</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>  <span class="sc">&lt;</span>id<span class="sc">&gt;</span>[<span class="st">"&lt;sanitized_label&gt;"</span>]</span></code></pre><p></p></div>
 <p>and, when a non-<code>NA</code> class string is produced, a companion line:</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>  class <span class="sc">&lt;</span>id<span class="sc">&gt;</span> <span class="er">&lt;</span>class<span class="sc">&gt;</span></span></code></pre><p></p></div>
 <p>Edge lines follow all node/class lines:</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>  <span class="sc">&lt;</span>from<span class="sc">&gt;</span> <span class="sc">-</span><span class="ot">-&gt;</span> <span class="er">&lt;</span>to<span class="sc">&gt;</span></span></code></pre><p></p></div>
 <p>Edges carrying one or more <strong>pending</strong> gates are annotated with the
-gate ids joined by <code>", "</code>, e.g. <code>  &lt;from&gt; -- "gate: g1, g2" --&gt; &lt;to&gt;</code>.
-Resolved gates produce no annotation.</p>
+gate labels joined by <code>", "</code> in gate insertion order, e.g.
+<code>  &lt;from&gt; -- "gate: g1, g2" --&gt; &lt;to&gt;</code>. With
+<code>include_resolved_gates = TRUE</code>, resolved gates join the annotation in
+the same insertion order, each suffixed with <code> (resolved)</code>. When
+<code>gate_label</code> is supplied, each gate's label is the callback's return
+value (or the <code>gate: &lt;id&gt;</code> fallback), joined by <code>", "</code>.</p>
 <p><strong>Sanitization.</strong> Mermaid breaks on <code>"</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>]</code>, <code>{</code>, <code>}</code>,
-<code>|</code>, <code>&lt;</code>, <code>&gt;</code>, and embedded newlines. Node labels and gate annotation
-text are sanitized: <code>"</code> becomes <code>'</code> and the other characters become
-single spaces (with runs of whitespace collapsed and trimmed). A
-<code>node_label</code> / <code>node_class</code> return value that is <code>NULL</code>, <code>NA</code>,
-multi-element, or non-character is coerced to a length-1 character
-string (and becomes <code>""</code> if coercion yields <code>NA</code>).</p>
+<code>|</code>, <code>&lt;</code>, <code>&gt;</code>, and embedded newlines. Node labels, gate annotation
+text, and <code>class_defs</code> lines are sanitized: <code>"</code> becomes <code>'</code> and the
+other characters become single spaces (with runs of whitespace
+collapsed and trimmed). A <code>node_label</code> / <code>node_class</code> return value that
+is <code>NULL</code>, <code>NA</code>, multi-element, or non-character is coerced to a
+length-1 character string (and becomes <code>""</code> if coercion yields <code>NA</code>);
+<code>gate_label</code> returns follow the same coercion with the <code>gate: &lt;id&gt;</code>
+fallback described above. The <code>" (resolved)"</code> suffix is a
+renderer-owned constant appended after sanitization, so it is the one
+place parentheses appear in annotation text. The <code>header</code> lines are
+the deliberate exception: they are trusted caller input and are only
+stripped of control characters with whitespace collapsed, because the
+full sanitizer would destroy legitimate init directives.</p>
 <p><strong>Node ids are NOT sanitized.</strong> They are emitted verbatim as Mermaid
 node identifiers, so they MUST be Mermaid-safe (alphanumeric /
 underscore is safe). Callers building graphs from untrusted sources
@@ -113,6 +190,10 @@ must validate ids before rendering.</p>
 validated (single non-NA non-empty string); the value is not checked
 against an allowlist, so an unknown value is emitted as-is and Mermaid
 will fail to render it.</p>
+<p><strong>Determinism.</strong> Nodes, edges, and gates are emitted in graph
+insertion order, and multi-gate annotations join in gate insertion
+order, so repeated calls on the same graph value always produce the
+same string (snapshot-friendly).</p>
     </div>
 
     <div class="section level2">
@@ -128,6 +209,48 @@ will fail to render it.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   fit["Fit"]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   class fit new</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   data --&gt; fit</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Custom gate labels via the gate_label callback</span></span></span>
+<span class="r-in"><span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagri_add_gate.html">dagri_add_gate</a></span><span class="op">(</span><span class="va">graph</span>, <span class="st">"e1"</span>, id <span class="op">=</span> <span class="st">"review"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">dagri_mermaid</span><span class="op">(</span><span class="va">graph</span>, gate_label <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">gate</span>, <span class="va">edge</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">reviewer</span> <span class="op">&lt;-</span> <span class="va">gate</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">reviewer</span></span></span>
+<span class="r-in"><span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">reviewer</span><span class="op">)</span><span class="op">)</span> <span class="st">"pending review"</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"review by"</span>, <span class="va">reviewer</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> flowchart TD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   data["Data"]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   class data new</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   fit["Fit"]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   class fit new</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   data -- "pending review" --&gt; fit</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Resolved gates join the annotation when asked to</span></span></span>
+<span class="r-in"><span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagri_resolve_gate.html">dagri_resolve_gate</a></span><span class="op">(</span><span class="va">graph</span>, <span class="st">"review"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">dagri_mermaid</span><span class="op">(</span><span class="va">graph</span>, include_resolved_gates <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> flowchart TD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   data["Data"]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   class data new</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   fit["Fit"]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   class fit new</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   data -- "gate: review (resolved)" --&gt; fit</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Style classes via class_defs (emitted right after the flowchart line)</span></span></span>
+<span class="r-in"><span><span class="va">graph</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagri_reopen_gate.html">dagri_reopen_gate</a></span><span class="op">(</span><span class="va">graph</span>, <span class="st">"review"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">dagri_mermaid</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">graph</span>,</span></span>
+<span class="r-in"><span>  node_class <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">node</span><span class="op">)</span> <span class="va">node</span><span class="op">$</span><span class="va">state</span>,</span></span>
+<span class="r-in"><span>  class_defs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="st">"classDef ready fill:#e8f5e9"</span>,</span></span>
+<span class="r-in"><span>    <span class="st">"classDef new fill:#fff3e0"</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> flowchart TD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   classDef ready fill:#e8f5e9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   classDef new fill:#fff3e0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   data["Data"]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   class data new</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   fit["Fit"]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   class fit new</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   data -- "gate: review" --&gt; fit</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
