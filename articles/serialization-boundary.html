@@ -457,16 +457,17 @@ data.frames),</li>
 <li>
 <code>version</code> is a single non-<code>NA</code> integer,</li>
 <li>every edge’s <code>from</code>/<code>to</code> resolves against
-<code>names(graph$nodes)</code>,</li>
+<code>names(graph$nodes)</code>, and no edge runs from a node to
+itself,</li>
 <li>every gate’s <code>edge_id</code> resolves against
 <code>names(graph$edges)</code>.</li>
 </ol>
 <p>It does <strong>not</strong> scan <code>params</code>,
 <code>metadata</code>, or <code>param_schema</code> for closures or
-other reference-bearing values, and it does not detect cycles (that is
-<code><a href="../reference/dagri_topo_order.html">dagri_topo_order()</a></code>’s job when you traverse). Concretely, a
-graph smuggled through <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> with a closure in
-<code>params</code> passes every structural check:</p>
+other reference-bearing values, and it does not detect cycles longer
+than a self-loop (that is <code><a href="../reference/dagri_topo_order.html">dagri_topo_order()</a></code>’s job when you
+traverse). Concretely, a graph smuggled through <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code>
+with a closure in <code>params</code> passes every structural check:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">suspicious</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagri_graph.html">dagri_graph</a></span><span class="op">(</span><span class="va">reg</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/dagri_add_node.html">dagri_add_node</a></span><span class="op">(</span><span class="st">"raw"</span>, <span class="st">"source"</span>, params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>loader <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
@@ -496,8 +497,8 @@ pointers, and weak references are rejected recursively.</li>
 — but only when <code><a href="../reference/dagri_kind.html">dagri_kind()</a></code> runs.</li>
 <li>Nothing re-scans the caller-owned fields of an <em>already
 assembled</em> graph. <code><a href="../reference/dagri_validate_graph.html">dagri_validate_graph()</a></code>, which every
-public call runs, checks structure and referential integrity only;
-cycles surface later, through traversal calls like
+public call runs, checks structure, referential integrity and self-loops
+only; longer cycles surface later, through traversal calls like
 <code><a href="../reference/dagri_topo_order.html">dagri_topo_order()</a></code>. So the <code>params</code>,
 <code>metadata</code>, and <code>param_schema</code> of a graph loaded
 from RDS — or handed in after direct assignment like

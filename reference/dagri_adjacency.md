@@ -1,6 +1,6 @@
 # Build the internal adjacency index for a graph
 
-Performs a single O(V+E+G) pass over `graph$edges` and `graph$gates` and
+Performs one pass over `graph$edges` and one over `graph$gates` and
 returns five named lists (each initialized to `character(0)` entries so
 no NULL-guarding is needed):
 

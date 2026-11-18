@@ -389,12 +389,13 @@ structure only:
 1.  required top-level fields are present and components are lists (not
     data.frames),
 2.  `version` is a single non-`NA` integer,
-3.  every edge’s `from`/`to` resolves against `names(graph$nodes)`,
+3.  every edge’s `from`/`to` resolves against `names(graph$nodes)`, and
+    no edge runs from a node to itself,
 4.  every gate’s `edge_id` resolves against `names(graph$edges)`.
 
 It does **not** scan `params`, `metadata`, or `param_schema` for
 closures or other reference-bearing values, and it does not detect
-cycles (that is
+cycles longer than a self-loop (that is
 [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md)’s
 job when you traverse). Concretely, a graph smuggled through
 [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) with a closure in
@@ -438,8 +439,9 @@ points*, not from the load boundary. Stated precisely:
 - Nothing re-scans the caller-owned fields of an *already assembled*
   graph.
   [`dagri_validate_graph()`](https://sims1253.github.io/dagriculture/reference/dagri_validate_graph.md),
-  which every public call runs, checks structure and referential
-  integrity only; cycles surface later, through traversal calls like
+  which every public call runs, checks structure, referential integrity
+  and self-loops only; longer cycles surface later, through traversal
+  calls like
   [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md).
   So the `params`, `metadata`, and `param_schema` of a graph loaded from
   RDS — or handed in after direct assignment like

@@ -21,7 +21,3 @@ dagri_has_path(graph, from, to)
 - to:
 
   Target Node ID.
-
-## Details
-
-O(V+E).

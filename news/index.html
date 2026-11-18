@@ -54,9 +54,11 @@
 <li>
 <code>metadata</code> is now validated at every entry point (<code><a href="../reference/dagri_kind.html">dagri_kind()</a></code>, <code><a href="../reference/dagri_registry.html">dagri_registry()</a></code>, <code><a href="../reference/dagri_graph.html">dagri_graph()</a></code>, <code><a href="../reference/dagri_add_node.html">dagri_add_node()</a></code>, <code><a href="../reference/dagri_update_node.html">dagri_update_node()</a></code>, <code><a href="../reference/dagri_add_edge.html">dagri_add_edge()</a></code>, <code><a href="../reference/dagri_update_edge.html">dagri_update_edge()</a></code>, <code><a href="../reference/dagri_add_gate.html">dagri_add_gate()</a></code>, <code><a href="../reference/dagri_update_gate.html">dagri_update_gate()</a></code>): it must be a named list of plain data, and closures, environments, formulas, language objects, S4 objects, external pointers, or weak references are rejected with <code>dagri_error_invalid_argument</code> (previously metadata was stored unvalidated, so code-bearing or reference-bearing values could silently enter graphs and later break serialization).</li>
 <li>
-<strong>Cycle detection in <code><a href="../reference/dagri_topo_order.html">dagri_topo_order()</a></code>:</strong> Kahn’s algorithm aborts with <code>dagri_error_cycle</code> (<code>details$cycle_nodes</code>) instead of silently returning a partial order; closes a hole for graphs deserialized from JSON.</li>
+<strong>Cycle detection in <code><a href="../reference/dagri_topo_order.html">dagri_topo_order()</a></code>:</strong> Kahn’s algorithm aborts with <code>dagri_error_cycle</code> (<code>details$cycle_nodes</code>) instead of silently returning a partial order; closes a hole for graphs deserialized from JSON. <code>details$cycle_nodes</code> and the message name only the nodes that lie on a cycle, not the nodes downstream of one. Two edges between the same pair of nodes are no longer reported as a cycle.</li>
 <li>
 <strong>Referential integrity in <code><a href="../reference/dagri_validate_graph.html">dagri_validate_graph()</a></code>:</strong> dangling edge <code>from</code>/<code>to</code> or gate <code>edge_id</code> references abort with <code>dagri_error_invalid_argument</code>; guards data loaded from disk.</li>
+<li>
+<strong>Self-loops are refused:</strong> <code>dagri_add_edge(graph, "a", "a")</code> now aborts with <code>dagri_error_cycle</code> instead of storing an edge from <code>a</code> to itself. A graph that already holds a self-loop, for example one loaded from disk, is refused with the same class by every function that takes a graph, except the print methods, with the edge id in <code>details$edge_id</code> and the node in <code>details$cycle_nodes</code>. Before, such a graph passed validation: <code>dagri_has_path(graph, "a", "a")</code> returned <code>TRUE</code>, <code><a href="../reference/dagri_mermaid.html">dagri_mermaid()</a></code> drew the loop, and only the topological functions aborted.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="features-0-3-0">Features<a class="anchor" aria-label="anchor" href="#features-0-3-0"></a></h3>
@@ -106,6 +108,8 @@
 <strong>Decision record — generic execution layer:</strong> documented that execution, caching, and artifact storage stay out of dagriculture (see <code>design/boundary-contract.md</code>).</li>
 <li>
 <strong>Real package Title</strong> in DESCRIPTION.</li>
+<li>
+<strong>Complexity notes removed:</strong> the help pages no longer claim O(V+E) for traversals, topological ordering, state recomputation and planning, or O(E) for <code><a href="../reference/dagri_upstream.html">dagri_upstream()</a></code> and <code><a href="../reference/dagri_downstream.html">dagri_downstream()</a></code>. The code does not meet those bounds: every call validates the graph first, and the validation and the traversals use <code>%in%</code>, <code><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff()</a></code> and lookups by name in named lists, each of which takes time proportional to the length of the vector or list it searches.</li>
 </ul></div>
 </div>
     <div class="section level2">

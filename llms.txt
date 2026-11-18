@@ -177,8 +177,8 @@ it. Neither check looks at attributes, so a value can still carry code
 there. Node `params` are not checked, except that
 [`dagri_add_node()`](https://sims1253.github.io/dagriculture/reference/dagri_add_node.md)
 requires the names in the kind’s input contract. A graph loaded from an
-RDS file or edited by hand is checked only for its structure and
-references, and for cycles by
+RDS file or edited by hand is checked only for its structure, its
+references and self-loops. Longer cycles are found by
 [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md),
 [`dagri_recompute_state()`](https://sims1253.github.io/dagriculture/reference/dagri_recompute_state.md)
 and

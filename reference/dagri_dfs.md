@@ -1,8 +1,8 @@
 # Depth-first traversal over a dagriculture graph
 
 Internal helper. Callers must validate the graph and pass a pre-built
-adjacency `index`. Neighbors are read from `index` (O(1) per lookup), so
-the walk is O(V+E).
+adjacency `index`. Neighbors are read from `index` instead of scanning
+the edge list.
 
 ## Usage
 

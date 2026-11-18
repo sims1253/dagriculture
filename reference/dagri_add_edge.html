@@ -88,7 +88,8 @@ is not a single non-empty string, <code>type</code> is not a single non-empty st
 or <code>metadata</code> is not a named list of plain data.</p></li>
 <li><p><code>dagri_error_not_found</code> when <code>from</code> or <code>to</code> is not a node in the graph.</p></li>
 <li><p><code>dagri_error_duplicate_id</code> when <code>id</code> already exists as an edge.</p></li>
-<li><p><code>dagri_error_cycle</code> when the edge would create a cycle.</p></li>
+<li><p><code>dagri_error_cycle</code> when the edge would create a cycle, including an edge
+from a node to itself.</p></li>
 </ul></div>
 
     <div class="section level2">

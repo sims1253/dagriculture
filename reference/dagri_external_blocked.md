@@ -41,7 +41,3 @@ dagri_external_blocked(
 ## Value
 
 Named list of externally blocked nodes and their reasons.
-
-## Details
-
-O(V+E).

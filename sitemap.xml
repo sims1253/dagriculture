@@ -41,6 +41,7 @@
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_node_status_impl.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_nodes.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_nodes_df.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_nodes_on_cycle.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_order_edges.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_outgoing_edges.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_pending_gates.html</loc></url>
@@ -71,6 +72,7 @@
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_validate_graph.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_validate_metadata.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagri_validate_node_ids.html</loc></url>
+<url><loc>https://sims1253.github.io/dagriculture/reference/dagri_validate_not_self_loop.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/dagriculture-package.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/index.html</loc></url>
 <url><loc>https://sims1253.github.io/dagriculture/reference/print.dagri_graph.html</loc></url>

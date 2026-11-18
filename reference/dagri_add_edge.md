@@ -54,7 +54,8 @@ input graph is not modified.
 
 - `dagri_error_duplicate_id` when `id` already exists as an edge.
 
-- `dagri_error_cycle` when the edge would create a cycle.
+- `dagri_error_cycle` when the edge would create a cycle, including an
+  edge from a node to itself.
 
 ## Examples
 

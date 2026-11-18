@@ -57,11 +57,10 @@
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>O(V+E).</p>
-<p>Cycles are detected here: after the Kahn loop, any node that was not
-emitted (i.e. still has non-zero in-degree) participates in a cycle, and
-the function aborts with class <code>dagri_error_cycle</code>, naming the
-cycle-participating nodes in <code>details$cycle_nodes</code>. <code><a href="dagri_add_edge.html">dagri_add_edge()</a></code>
+    <p>Cycles are detected here: after the Kahn loop, any node that was not
+emitted (i.e. still has non-zero in-degree) lies on a cycle or downstream
+of one, and the function aborts with class <code>dagri_error_cycle</code>, naming
+the nodes that lie on a cycle in <code>details$cycle_nodes</code>. <code><a href="dagri_add_edge.html">dagri_add_edge()</a></code>
 prevents cycles at edit time, but consumers (e.g. bayesgrove) deserialize
 graphs from JSON, so a corrupted or hand-edited file can smuggle a cycle
 past the editing layer; this check ensures a planner never silently drops

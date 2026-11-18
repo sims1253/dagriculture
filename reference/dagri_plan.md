@@ -107,8 +107,8 @@ with components:
 
 ## Details
 
-O(V+E). State is derived internally, so the plan is always current even
-if the input graph was never passed through
+State is derived internally, so the plan is always current even if the
+input graph was never passed through
 [`dagri_recompute_state()`](https://sims1253.github.io/dagriculture/reference/dagri_recompute_state.md);
 the input graph value itself is not mutated.
 

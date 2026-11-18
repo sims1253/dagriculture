@@ -85,11 +85,24 @@ released; its changes are listed here.
   [`dagri_topo_order()`](https://sims1253.github.io/dagriculture/reference/dagri_topo_order.md):**
   Kahn’s algorithm aborts with `dagri_error_cycle`
   (`details$cycle_nodes`) instead of silently returning a partial order;
-  closes a hole for graphs deserialized from JSON.
+  closes a hole for graphs deserialized from JSON. `details$cycle_nodes`
+  and the message name only the nodes that lie on a cycle, not the nodes
+  downstream of one. Two edges between the same pair of nodes are no
+  longer reported as a cycle.
 - **Referential integrity in
   [`dagri_validate_graph()`](https://sims1253.github.io/dagriculture/reference/dagri_validate_graph.md):**
   dangling edge `from`/`to` or gate `edge_id` references abort with
   `dagri_error_invalid_argument`; guards data loaded from disk.
+- **Self-loops are refused:** `dagri_add_edge(graph, "a", "a")` now
+  aborts with `dagri_error_cycle` instead of storing an edge from `a` to
+  itself. A graph that already holds a self-loop, for example one loaded
+  from disk, is refused with the same class by every function that takes
+  a graph, except the print methods, with the edge id in
+  `details$edge_id` and the node in `details$cycle_nodes`. Before, such
+  a graph passed validation: `dagri_has_path(graph, "a", "a")` returned
+  `TRUE`,
+  [`dagri_mermaid()`](https://sims1253.github.io/dagriculture/reference/dagri_mermaid.md)
+  drew the loop, and only the topological functions aborted.
 
 ### Features
 
@@ -251,6 +264,17 @@ released; its changes are listed here.
   execution, caching, and artifact storage stay out of dagriculture (see
   `design/boundary-contract.md`).
 - **Real package Title** in DESCRIPTION.
+- **Complexity notes removed:** the help pages no longer claim O(V+E)
+  for traversals, topological ordering, state recomputation and
+  planning, or O(E) for
+  [`dagri_upstream()`](https://sims1253.github.io/dagriculture/reference/dagri_upstream.md)
+  and
+  [`dagri_downstream()`](https://sims1253.github.io/dagriculture/reference/dagri_downstream.md).
+  The code does not meet those bounds: every call validates the graph
+  first, and the validation and the traversals use `%in%`,
+  [`setdiff()`](https://rdrr.io/r/base/sets.html) and lookups by name in
+  named lists, each of which takes time proportional to the length of
+  the vector or list it searches.
 
 ## dagriculture 0.1.6
 

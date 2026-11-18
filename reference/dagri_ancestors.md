@@ -18,7 +18,3 @@ dagri_ancestors(graph, node_id)
 - node_id:
 
   Node ID.
-
-## Details
-
-O(V+E).

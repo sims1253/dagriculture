@@ -22,7 +22,3 @@ dagri_target_closure(graph, targets = NULL, index = NULL)
 
   Optional pre-built adjacency index from
   [`dagri_adjacency()`](https://sims1253.github.io/dagriculture/reference/dagri_adjacency.md).
-
-## Details
-
-O(V+E).
