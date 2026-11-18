@@ -127,8 +127,8 @@ dagri_validate_graph <- function(graph) {
 #' @return `edge`, invisibly, if it joins two different nodes.
 #' @keywords internal
 dagri_validate_not_self_loop <- function(edge) {
-  # `==` compares the ids and ignores names: c(src = "a") is the node "a".
-  if (isTRUE(edge$from == edge$to)) {
+  # Compare the ids by value: c(src = "a") and matrix("a") are the node "a".
+  if (identical(as.vector(edge$from), as.vector(edge$to))) {
     abort_dagri(
       "dagri_error_cycle",
       sprintf(

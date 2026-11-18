@@ -160,6 +160,14 @@ describe("self-loops", {
     )
   })
 
+  it("dagri_add_edge() compares ids of different shapes by value", {
+    expect_error(
+      dagri_add_edge(g, matrix("n1", 1, 1), array("n1", 1)),
+      class = "dagri_error_cycle"
+    )
+    expect_no_error(dagri_add_edge(g, matrix("n1", 1, 1), array("n2", 1)))
+  })
+
   it("refuses a graph that already holds a self-loop at every public entry", {
     looped <- dagri_force_edge(g, "n1", "n1", id = "loop")
     calls <- list(
