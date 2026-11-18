@@ -9,7 +9,7 @@
 [![R-CMD-check](https://github.com/sims1253/dagriculture/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sims1253/dagriculture/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/sims1253/dagriculture/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/sims1253/dagriculture/actions/workflows/pkgdown.yaml)
 [![Codecov test
-coverage](https://codecov.io/gh/sims1253/dagriculture/branch/main/graph/badge.svg)](https://app.codecov.io/gh/sims1253/dagriculture)
+coverage](https://codecov.io/gh/sims1253/dagriculture/graph/badge.svg)](https://app.codecov.io/gh/sims1253/dagriculture)
 <!-- badges: end -->
 
 **dagriculture** is a pure, value-oriented directed-acyclic-graph
