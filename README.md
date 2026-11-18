@@ -15,8 +15,8 @@ coverage](https://codecov.io/gh/sims1253/dagriculture/graph/badge.svg)](https://
 dagriculture is an R package for task graphs: directed acyclic graphs
 whose nodes are steps of a workflow and whose edges are dependencies
 between them. It stores the graph, rejects edits that would make it
-invalid, and tells you which nodes are ready to run and which are
-blocked. It does not run anything.
+invalid, and tells you which nodes nothing in the graph blocks (it calls
+them eligible) and which are blocked. It does not run anything.
 
 It is meant for people who write a workflow tool or pipeline runner in R
 and want the graph model kept apart from execution.
@@ -68,7 +68,9 @@ dagri_blocked(graph)
 `dagri_plan()` computes state itself, so you can call it on a graph that
 was never passed through `dagri_recompute_state()`. External holds are
 reasons a caller gives for keeping a node back, for example a policy
-check. They change the plan but not the graph:
+check. They change the plan but not the graph. A held node stays in
+`plan$eligible`, because nothing in the graph blocks it, and also
+appears in `plan$external_blocked`:
 
 ``` r
 plan <- dagri_plan(
@@ -144,14 +146,22 @@ It handles typed task graphs, not general network analysis. Use igraph
 for that.
 
 It does not read or write files. A graph that holds only plain data can
-be written as JSON; `vignette("serialization-boundary")` gives a writer
-and reader that round-trip a graph.
+be written as JSON; the [serialization
+article](https://sims1253.github.io/dagriculture/articles/serialization-boundary.html)
+gives a writer and reader that round-trip a graph.
 
-The package checks `metadata` and `param_schema` for closures and other
-code-bearing values when you create them, but it does not check node
-`params`, and it does not re-check a graph that was loaded from an RDS
-file or edited by hand. Load graphs only from sources you trust, or
-check them as the serialization vignette shows.
+Every function that takes `metadata` rejects closures, environments,
+formulas and other code-bearing values in it. `dagri_kind()` requires a
+`param_schema`, if given, to be a named list without functions, but
+accepts formulas and environments in it. Node `params` are not checked,
+except that `dagri_add_node()` requires the names in the kind’s input
+contract. A graph loaded from an RDS file or edited by hand is checked
+only for its structure and references, and for cycles by
+`dagri_topo_order()`, `dagri_recompute_state()` and `dagri_plan()`.
+Nothing checks it again for code-bearing values, so load graphs only
+from sources you trust, or check them as the [serialization
+article](https://sims1253.github.io/dagriculture/articles/serialization-boundary.html)
+shows.
 
 ## Design documents
 
