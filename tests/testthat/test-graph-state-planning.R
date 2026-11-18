@@ -401,7 +401,7 @@ describe("graph state and planning", {
   # These validation tests assert the error behavior of the unexported
   # helpers dagri_target_closure and dagri_pending_gates directly, which
   # requires reaching into the package namespace via `:::`.
-  # jarl-ignore internal_function: tests unexported helpers via `:::`
+  # jarl-ignore undesirable_operator: tests unexported helpers via `:::`
   describe("graph validation in state functions", {
     bad_graph <- list(nodes = list())
 

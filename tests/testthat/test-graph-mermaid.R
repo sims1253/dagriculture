@@ -214,6 +214,7 @@ describe("dagri_mermaid", {
     graph <- dagri_add_gate(graph, "edge_b", id = "g1", metadata = list(reviewer = "mara"))
     seen <- FALSE
     out <- dagri_mermaid(graph, gate_label = function(gate, edge) {
+      # jarl-ignore undesirable_operator: the flag proves the callback ran
       seen <<- TRUE
       expect_identical(gate$id, "g1")
       expect_identical(gate$edge_id, "edge_b")
