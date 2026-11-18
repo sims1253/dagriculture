@@ -1,30 +1,63 @@
-# dagriculture (development version)
+# dagriculture 0.3.0
 
-## Documentation
+This release covers all changes since 0.1.6. Version 0.2.0 was never
+released; its changes are listed here.
 
-- **Serialization vignette:** added "Serialization and the Consumer Boundary"
-  (`vignette("serialization-boundary")`): the graph snapshot shape, a canonical
-  jsonlite writer/reader recipe (`auto_unbox`/`null`/`digits` options,
-  `simplifyVector = FALSE`, null normalization, key/id consistency check),
-  the recommended safe id pattern, the exact no-code boundary of
-  `dagri_validate_graph()` on load (including the RDS path), and a direct
-  statement that `param_schema` is declarative and not enforced against node
-  params. `jsonlite` added to `Suggests`; the recipe is covered by tests.
+## Breaking changes
+
+- Minimum R version raised to 4.4.0; `%||%` relies on base R, which provides
+  it since 4.4.0.
+- `dagri_ancestors()`, `dagri_descendants()`, `dagri_upstream()`,
+  `dagri_downstream()`, and `dagri_has_path()` now abort with
+  `dagri_error_not_found` for unknown node ids (previously they returned silent
+  empties or `FALSE`).
+- The id arguments (`id`/`node_id`/`from`/`to`/`edge_id`/`gate_id`/`name`) of
+  `dagri_kind()`, `dagri_add_node()`, `dagri_update_node()`,
+  `dagri_remove_node()`, `dagri_add_edge()`, `dagri_update_edge()`,
+  `dagri_remove_edge()`, `dagri_add_gate()`, `dagri_update_gate()`,
+  `dagri_remove_gate()`, `dagri_resolve_gate()`, `dagri_reopen_gate()`,
+  `dagri_upstream()`, `dagri_downstream()`, `dagri_ancestors()`,
+  `dagri_descendants()`, `dagri_has_path()`, `dagri_incoming_edges()` and
+  `dagri_outgoing_edges()` now reject vectors, `NA`, and empty strings with
+  `dagri_error_invalid_argument`. The getters `dagri_node()`, `dagri_edge()` and
+  `dagri_gate()` do not check their `id` this way.
+- `dagri_add_gate(graph, edge, ...)`'s `edge` parameter has been renamed to
+  `edge_id` for consistency with the rest of the API. Update named call sites.
+- `abort_dagri()`, `dagri_target_closure()`, and `dagri_pending_gates()` are no
+  longer exported; their results are reachable through `dagri_plan()`'s
+  `targets` and `pending_gates` fields.
+
+## Behavior changes
+
+- `dagri_plan()` now derives node state internally on a local copy of the
+  graph, so the returned `eligible`/`blocked` are always current even when the
+  input graph was never passed through `dagri_recompute_state()`. The input
+  graph value is not mutated.
+- `metadata` is now validated at every entry point (`dagri_kind()`,
+  `dagri_registry()`, `dagri_graph()`, `dagri_add_node()`, `dagri_update_node()`,
+  `dagri_add_edge()`, `dagri_update_edge()`, `dagri_add_gate()`,
+  `dagri_update_gate()`): it must be a named list of plain
+  data, and closures, environments, formulas, language objects, S4 objects,
+  external pointers, or weak references are rejected
+  with `dagri_error_invalid_argument` (previously metadata was stored
+  unvalidated, so code-bearing or reference-bearing values could silently enter
+  graphs and later break serialization).
+- **Cycle detection in `dagri_topo_order()`:** Kahn's algorithm aborts with
+  `dagri_error_cycle` (`details$cycle_nodes`) instead of silently returning a
+  partial order; closes a hole for graphs deserialized from JSON.
+- **Referential integrity in `dagri_validate_graph()`:** dangling edge
+  `from`/`to` or gate `edge_id` references abort with
+  `dagri_error_invalid_argument`; guards data loaded from disk.
 
 ## Features
 
-- **Vignette: branching and comparing graphs:** the getting-started vignette
-  now demonstrates forking a graph into two alternatives with the public
-  mutators and reading `dagri_graph_diff()` results — structural
-  added/removed id vectors as well as value-aware `include_values = TRUE`
-  output with per-field before/after values for changed nodes, edges, and
-  gates.
-- **Vignette: Mermaid rendering:** the getting-started vignette now renders
-  its running example with `dagri_mermaid()` — the default output plus a
-  customized one exercising `gate_label` and `class_defs`, and a
-  `class.output = "mermaid"` chunk that documentation sites loading
-  mermaid.js render as a live diagram while plain R documentation keeps the
-  readable flowchart text.
+- **Graph boundary helpers:** added `dagri_incoming_edges()`,
+  `dagri_outgoing_edges()`, `dagri_order_edges()`, and `dagri_edge_ids()`.
+- **Mermaid flowchart export:** added `dagri_mermaid()` — a pure graph-to-text
+  renderer with injectable label/class functions and pending-gate annotations.
+- **Print methods and S3 classes:** `dagri_graph()` and `dagri_plan()` stamp S3
+  classes (still plain lists underneath) and gain `print.dagri_graph()` /
+  `print.dagri_plan()` summaries.
 - **Metadata support across constructors:** `dagri_kind()`, `dagri_registry()`,
   and `dagri_graph()` now accept a `metadata` argument (named plain data,
   stored as given), so graph/registry/kind metadata no longer requires
@@ -33,12 +66,12 @@
   `type`/`metadata` replacement) and `dagri_update_gate()` (optional `metadata`
   replacement). Both are immutable value-in/value-out mutators using the same
   replace-not-merge semantics as `dagri_update_node()`, and both bump
-  `graph$version` by 1. Value-aware `dagri_graph_diff()` now reports these
+  `graph$version` by 1. `dagri_graph_diff()` reports these
   metadata and `type` edits through `changed_edges`/`changed_gates`.
-- **Value-aware graph diffing with gate support:** `dagri_graph_diff()` now
-  also reports `added_gates`, `removed_gates`, and `changed_nodes` /
-  `changed_edges` / `changed_gates` alongside the existing structural
-  vectors (which are unchanged). `changed_*` covers ids present in both
+- **Graph diffing:** added `dagri_graph_diff()`, a pure diff of two graphs.
+  It reports `added_nodes`, `removed_nodes`, `added_edges`, `removed_edges`,
+  `added_gates`, `removed_gates`, and `changed_nodes` / `changed_edges` /
+  `changed_gates`. `changed_*` covers ids present in both
   graphs whose tracked fields differ — node `kind`/`label`/`params`/`state`/
   `block_reason`/`metadata`, edge `from`/`to`/`type`/`metadata`, gate
   `edge_id`/`status`/`metadata` — compared with `identical()` on in-memory
@@ -64,23 +97,17 @@
 - **`include_resolved_gates`:** opt-in flag that also annotates resolved
   gates on their edge, each suffixed with `" (resolved)"`, in gate
   insertion order; pending gates render exactly as before.
-- **`class_defs` / `header` styling injection:** Mermaid `classDef`
-  statements are sanitized and emitted after the `flowchart` line; raw
-  preamble lines (e.g. `%%{init: ...}%%` directives) pass through verbatim
-  before it, with only control characters stripped. Header lines are
-  trusted caller input; everything derived from graph data stays
-  sanitized.
-
-## Behavior changes
-
-- `metadata` is now validated at every entry point (`dagri_kind()`,
-  `dagri_registry()`, `dagri_graph()`, `dagri_add_node()`, `dagri_update_node()`,
-  `dagri_add_edge()`, `dagri_add_gate()`): it must be a named list of plain
-  data, and closures, environments, formulas, language objects, S4 objects,
-  external pointers, or weak references are rejected
-  with `dagri_error_invalid_argument` (previously metadata was stored
-  unvalidated, so code-bearing or reference-bearing values could silently enter
-  graphs and later break serialization).
+- **`class_defs` / `header` styling injection:** `class_defs` adds Mermaid
+  `classDef` statements after the `flowchart` line, and `header` adds
+  preamble lines (e.g. `%%{init: ...}%%` directives) before it. `class_defs`
+  go through the same sanitizer as node labels and gate annotations: double
+  quotes become single quotes, brackets, braces, parentheses, pipes, angle
+  brackets and line breaks become spaces, runs of spaces and tabs become
+  one space, and leading and trailing whitespace is trimmed. Header lines
+  are trusted caller input: control characters become spaces, runs of spaces
+  and tabs become one space, and the ends are trimmed, nothing else. Node
+  ids, edge endpoints and `direction` are emitted verbatim, and so is a
+  class name that `node_class` returns.
 - **Per-node status view in `dagri_plan()`:** plans now carry a `node_status`
   field — a named list keyed by node id covering the target closure in
   `topo_order` order — so consumers no longer re-derive why each node is
@@ -94,72 +121,49 @@
   between structural eligibility and external blocking. Existing plan fields
   are unchanged; the new field is additive.
 
-# dagriculture 0.3.0
+## Performance
 
-## Behavior changes
+- **Internal adjacency index:** traversals, topological ordering, state
+  recomputation and planning build one adjacency index per call, in one pass
+  over the edges, and look up each node's neighbours and incoming edges in
+  it. Before, every lookup scanned all edges. One more pass, over the gates,
+  groups pending gates by edge, so per-edge gate lookups no longer scan all
+  gates. `dagri_plan()` builds the index once and shares it among the steps
+  that look up neighbours; it still scans the gates to fill
+  `plan$pending_gates`. The index is internal; public functions build it
+  themselves.
+  `dagri_upstream()` and `dagri_downstream()` still scan the edge list.
 
-- `dagri_plan()` now derives node state internally on a local copy of the
-  graph, so the returned `eligible`/`blocked` are always current even when the
-  input graph was never passed through `dagri_recompute_state()`. The input
-  graph value is not mutated.
+## Documentation
 
-## Breaking changes
-
-- `dagri_ancestors()`, `dagri_descendants()`, `dagri_upstream()`,
-  `dagri_downstream()`, and `dagri_has_path()` now abort with
-  `dagri_error_not_found` for unknown node ids (previously they returned silent
-  empties or `FALSE`).
-- Id-taking public arguments (`id`/`from`/`to`/`edge_id`/`name`) now reject
-  vectors, `NA`, and empty strings with `dagri_error_invalid_argument` instead
-  of dying with a base-R "condition has length > 1" error.
-- `dagri_add_gate(graph, edge, ...)`'s `edge` parameter has been renamed to
-  `edge_id` for consistency with the rest of the API. Update named call sites.
-- `abort_dagri()`, `dagri_target_closure()`, and `dagri_pending_gates()` are no
-  longer exported; their results are reachable through `dagri_plan()`'s
-  `targets` and `pending_gates` fields.
-- `dagri_topo_order()` and `dagri_terminal()` no longer accept an `index`
-  argument; they build the adjacency index themselves. The index type has no
-  public constructor, so threading it through the public API was a footgun.
-
-## Internal
-
-- Minimum R version raised to 4.4.0; `%||%` relies on base R, which provides
-  it since 4.4.0.
-
-# dagriculture 0.2.0
-
-## Features
-
-- **Cycle detection in `dagri_topo_order()`:** Kahn's algorithm aborts with
-  `dagri_error_cycle` (`details$cycle_nodes`) instead of silently returning a
-  partial order; closes a hole for graphs deserialized from JSON.
+- **Serialization vignette:** added "Serialization and the Consumer Boundary"
+  (`vignette("serialization-boundary")`): the graph snapshot shape, a canonical
+  jsonlite writer/reader recipe (`auto_unbox`/`null`/`digits` options,
+  `simplifyVector = FALSE`, null normalization, key/id consistency check),
+  the recommended safe id pattern, the exact no-code boundary of
+  `dagri_validate_graph()` on load (including the RDS path), and a direct
+  statement that `param_schema` is declarative and not enforced against node
+  params. `jsonlite` added to `Suggests`; the recipe is covered by tests.
+- **Vignette: branching and comparing graphs:** the getting-started vignette
+  now demonstrates forking a graph into two alternatives with the public
+  mutators and reading `dagri_graph_diff()` results — structural
+  added/removed id vectors as well as value-aware `include_values = TRUE`
+  output with per-field before/after values for changed nodes, edges, and
+  gates.
+- **Vignette: Mermaid rendering:** the getting-started vignette now renders
+  its running example with `dagri_mermaid()` — the default output plus a
+  customized one exercising `gate_label` and `class_defs`, and a
+  `class.output = "mermaid"` chunk that documentation sites loading
+  mermaid.js render as a live diagram while plain R documentation keeps the
+  readable flowchart text.
 - **`dagri_update_node()` replace semantics documented:** `params`/`metadata`
   **replace** the existing fields outright (use `utils::modifyList()` to merge);
   the merge belongs in the consumer, not in this primitive.
-- **Referential integrity in `dagri_validate_graph()`:** dangling edge
-  `from`/`to` or gate `edge_id` references abort with
-  `dagri_error_invalid_argument`; guards data loaded from disk.
-- **Graph boundary helpers:** added `dagri_incoming_edges()`,
-  `dagri_outgoing_edges()`, `dagri_order_edges()`, `dagri_edge_ids()`, and
-  `dagri_graph_diff()` (pure structural diff).
-- **Mermaid flowchart export:** added `dagri_mermaid()` — a pure graph-to-text
-  renderer with injectable label/class functions and pending-gate annotations.
-- **Print methods and S3 classes:** `dagri_graph()` and `dagri_plan()` stamp S3
-  classes (still plain lists underneath) and gain `print.dagri_graph()` /
-  `print.dagri_plan()` summaries.
 - **Getting-started vignette:** added a Structural State Semantics section.
-- **Real package Title** in DESCRIPTION.
 - **Decision record — generic execution layer:** documented that execution,
   caching, and artifact storage stay out of dagriculture (see
   `design/boundary-contract.md`).
-
-## Performance
-
-- **Internal adjacency index:** `dagri_adjacency()` builds forward/reverse
-  neighbor maps in one O(V+E) pass; traversals and planning thread it through,
-  taking walks from O(V*E) to O(V+E). Single-node `dagri_upstream()` /
-  `dagri_downstream()` keep their O(E) scan.
-- **Re-validation collapse:** `dagri_has_path()` now runs the downstream walk inline via the shared index, instead of delegating to `dagri_descendants()` (which re-built the index). `dagri_plan()` builds one shared index across its `dagri_topo_order()` and `dagri_external_blocked()` calls. Each public boundary still does its own cheap structural validation but scans the edge list once per call.
+- **Real package Title** in DESCRIPTION.
 
 # dagriculture 0.1.6
 

@@ -9,33 +9,25 @@
 [![R-CMD-check](https://github.com/sims1253/dagriculture/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sims1253/dagriculture/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/sims1253/dagriculture/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/sims1253/dagriculture/actions/workflows/pkgdown.yaml)
 [![Codecov test
-coverage](https://codecov.io/gh/sims1253/dagriculture/branch/main/graph/badge.svg)](https://app.codecov.io/gh/sims1253/dagriculture)
+coverage](https://codecov.io/gh/sims1253/dagriculture/graph/badge.svg)](https://app.codecov.io/gh/sims1253/dagriculture)
 <!-- badges: end -->
 
-**dagriculture** is a pure, value-oriented directed-acyclic-graph
-library for R. It manages graph structure, topological dependencies,
-structural validity, and task planning — and deliberately nothing else.
-Every operation takes a graph value and returns a new graph value:
+dagriculture is an R package for task graphs: directed acyclic graphs
+whose nodes are steps of a workflow and whose edges are dependencies
+between them. It stores the graph, rejects edits that would make it
+invalid, and tells you which nodes nothing in the graph blocks (it calls
+them eligible) and which are blocked. It does not run anything.
 
-  - **No mutation.** Graphs are plain R lists; editing verbs return
-    modified copies, so snapshots, diffs, and rollbacks are just
-    variable assignments.
-  - **No execution.** dagriculture tells you *what could run*
-    (`dagri_plan()`), never runs anything itself, and holds no opinions
-    about what a node does.
-  - **No IO and no code.** Graphs contain only data. Node kinds can
-    declare parameter schemas, but executable closures are rejected by
-    construction — a graph loaded from disk can never smuggle code into
-    your session.
-  - **Validity by construction.** Duplicate ids, unknown kinds, dangling
-    edges, and cycle-creating edges are rejected at edit time with a
-    typed error taxonomy (`dagri_error_*`).
+It is meant for people who write a workflow tool or pipeline runner in R
+and want the graph model kept apart from execution.
+[bayesgrove](https://github.com/sims1253/bayesgrove) uses it this way:
+it adds caching, execution and Bayesian-workflow semantics on top.
 
-This makes it a safe structural core for runtime layers built on top.
-Its primary consumer is
-[bayesgrove](https://github.com/sims1253/bayesgrove), which layers
-caching, execution, and Bayesian-workflow semantics over these
-primitives.
+A graph is a list with a class attribute. Functions that edit a graph
+return a new graph and leave their input unchanged, so keeping an old
+version means keeping a variable. The editing functions reject duplicate
+ids, unknown node kinds, edges to missing nodes and edges that would
+create a cycle, each with a typed error (`dagri_error_*`).
 
 ## Installation
 
@@ -44,42 +36,25 @@ primitives.
 pak::pak("sims1253/dagriculture")
 ```
 
-## Core concepts
-
-| Concept             | What it is                                                                                       |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| **Registry / kind** | The vocabulary of allowed node types, with optional input contracts and parameter schemas        |
-| **Node**            | A typed vertex with params, metadata, and a structural state (`new`, `ready`, `blocked`)         |
-| **Edge**            | A typed, id-carrying dependency between nodes; cycle-creating edges are rejected                 |
-| **Gate**            | A pending/resolved blocker attached to an edge — downstream nodes stay blocked until it resolves |
-| **Plan**            | A pure description of targets, topological order, eligible/blocked nodes, and pending gates      |
-
-Structural state is intentionally minimal: `dagri_recompute_state()`
-knows whether a node is *structurally* ready or blocked (upstream not
-ready, or a pending gate in the way). Execution states like “done” or
-“failed” belong to whatever runtime you build on top.
-
 ## Example
 
 ``` r
 library(dagriculture)
 
-# 1. Define the kinds of nodes allowed in your graph
+# The registry lists the kinds of node a graph may hold.
 registry <- dagri_registry(
   dagri_kind("data_source"),
   dagri_kind("transform")
 )
 
-# 2. Build a graph; every verb returns a new value
 graph <- dagri_graph(registry) |>
   dagri_add_node("raw_data", "data_source") |>
   dagri_add_node("cleaned_data", "transform") |>
   dagri_add_edge(from = "raw_data", to = "cleaned_data", id = "edge_1")
 
-# 3. Gate the edge: downstream work is blocked until the gate resolves
+# A pending gate on the edge blocks everything downstream of it.
 graph <- dagri_add_gate(graph, edge_id = "edge_1", id = "review_gate")
 
-# 4. Compute structural state
 graph <- dagri_recompute_state(graph)
 
 dagri_eligible(graph)
@@ -90,21 +65,31 @@ dagri_blocked(graph)
 #> [1] "gate"
 ```
 
-Planning is a pure query that derives state internally — you don’t need
-to recompute first — and external holds (reasons imposed by a caller,
-such as a policy layer) affect the plan without ever touching graph
-state:
+`dagri_plan()` computes state itself, so you can call it on a graph that
+was never passed through `dagri_recompute_state()`. External holds are
+reasons a caller gives for keeping a node back, for example a policy
+check. They change the plan but not the graph, and they do not change
+which nodes the graph itself blocks. Here `raw_data` is held: it stays
+in `plan$eligible`, because nothing in the graph blocks it, and also
+appears in `plan$external_blocked`, as does `cleaned_data` downstream of
+it:
 
 ``` r
 plan <- dagri_plan(
   graph,
-  external_holds = list(cleaned_data = "manual_review")
+  external_holds = list(raw_data = "manual_review")
 )
 
 plan$topo_order
 #> [1] "raw_data"     "cleaned_data"
 
+plan$eligible
+#> [1] "raw_data"
+
 plan$external_blocked
+#> $raw_data
+#> [1] "manual_review"
+#> 
 #> $cleaned_data
 #> [1] "manual_review"
 
@@ -122,39 +107,75 @@ dagri_eligible(graph)
 #> [1] "raw_data"     "cleaned_data"
 ```
 
-Because graphs are values, “what changed?” never requires an event log —
-keep the old value and compare:
+To see what changed between two versions, keep both and compare them:
 
 ``` r
 before <- graph
 after <- dagri_add_node(graph, "report", "transform")
 
-setdiff(names(after$nodes), names(before$nodes))
+dagri_graph_diff(before, after)$added_nodes
 #> [1] "report"
 ```
 
-## Queries
+## Concepts
 
-Beyond editing and planning, the package provides pure structural
-queries: `dagri_upstream()` / `dagri_downstream()` for direct neighbors,
-`dagri_ancestors()` / `dagri_descendants()` for reachability,
-`dagri_roots()` / `dagri_leaves()` / `dagri_terminal()` for boundary
-nodes, `dagri_topo_order()` for ordering, and `dagri_has_path()` for
-connectivity.
+| Concept | What it is |
+|----|----|
+| Registry and kind | The node types a graph allows, each with an optional input contract and parameter schema |
+| Node | A vertex of one kind, with params, metadata and a structural state (`new`, `ready` or `blocked`) |
+| Edge | A dependency between two nodes, with its own id and type |
+| Gate | A blocker on an edge, `pending` or `resolved`; nodes downstream of a pending gate are blocked |
+| Plan | The targets, their topological order, the eligible and blocked nodes, and the pending gates |
 
-## What dagriculture is not
+The state is structural only. `dagri_recompute_state()` marks a node
+`blocked` when a node upstream is blocked or a pending gate sits on an
+incoming edge, and `ready` otherwise. States such as “done” or “failed”
+belong to the runtime you build on top.
 
-  - Not a workflow runner — nothing here executes, caches, or schedules.
-    Pair it with a runtime layer (see bayesgrove) or write your own.
-  - Not a general graph-theory package — it targets typed task DAGs, not
-    arbitrary network analysis; use igraph for that.
-  - Not a persistence layer — graphs serialize cleanly to JSON because
-    they are plain data, but reading and writing them is the caller’s
-    job. The contracts are documented in [`design/`](design/).
+## Other functions
+
+- Neighbors and reachability: `dagri_upstream()`, `dagri_downstream()`,
+  `dagri_ancestors()`, `dagri_descendants()`, `dagri_has_path()`.
+- Boundary nodes and order: `dagri_roots()`, `dagri_leaves()`,
+  `dagri_terminal()`, `dagri_topo_order()`.
+- Comparison: `dagri_graph_diff()` lists added, removed and changed
+  nodes, edges and gates, and with `include_values = TRUE` the old and
+  new values.
+- Tables: `dagri_nodes_df()`, `dagri_edges_df()` and `dagri_gates_df()`
+  return data frames.
+- Diagrams: `dagri_mermaid()` returns Mermaid flowchart text.
+
+## Limits
+
+dagriculture does not execute, cache or schedule nodes. Write a runtime
+for that, or use one such as bayesgrove.
+
+It handles typed task graphs, not general network analysis. Use igraph
+for that.
+
+It does not read or write files. A graph that holds only plain data can
+be written as JSON; the [serialization
+article](https://sims1253.github.io/dagriculture/articles/serialization-boundary.html)
+gives a writer and reader that round-trip a graph.
+
+Every function that takes `metadata` rejects closures, environments,
+formulas and other code-bearing values among its elements, at any depth.
+`dagri_kind()` requires a `param_schema`, if given, to be a named list
+with no functions among its elements, but accepts formulas and
+environments in it. Neither check looks at attributes, so a value can
+still carry code there. Node `params` are not checked, except that
+`dagri_add_node()` requires the names in the kind’s input contract. A
+graph loaded from an RDS file or edited by hand is checked only for its
+structure and references, and for cycles by `dagri_topo_order()`,
+`dagri_recompute_state()` and `dagri_plan()`. Nothing checks it again
+for code-bearing values, so load graphs only from sources you trust, or
+check them as the [serialization
+article](https://sims1253.github.io/dagriculture/articles/serialization-boundary.html)
+shows.
 
 ## Design documents
 
-The `design/` directory is authoritative for the API surface and
-boundary guarantees: [`api-contracts.md`](design/api-contracts.md),
-[`boundary-contract.md`](design/boundary-contract.md), and
+The `design/` directory describes the API and its guarantees:
+[`api-contracts.md`](design/api-contracts.md),
+[`boundary-contract.md`](design/boundary-contract.md) and
 [`persistence-spec.md`](design/persistence-spec.md).
