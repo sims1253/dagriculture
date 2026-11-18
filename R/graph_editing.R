@@ -199,7 +199,8 @@ dagri_remove_node <- function(graph, id) {
 #'   or `metadata` is not a named list of plain data.
 #' - `dagri_error_not_found` when `from` or `to` is not a node in the graph.
 #' - `dagri_error_duplicate_id` when `id` already exists as an edge.
-#' - `dagri_error_cycle` when the edge would create a cycle.
+#' - `dagri_error_cycle` when the edge would create a cycle, including an edge
+#'   from a node to itself.
 #'
 #' @examples
 #' reg <- dagri_registry(dagri_kind("source"), dagri_kind("process"))
@@ -237,10 +238,6 @@ dagri_add_edge <- function(graph, from, to, type = "data", id = NULL, metadata =
     abort_dagri("dagri_error_duplicate_id", sprintf("Duplicate edge id: %s.", id))
   }
 
-  if (dagri_has_path(graph, to, from)) {
-    abort_dagri("dagri_error_cycle", "Cycle detected.")
-  }
-
   edge <- list(
     id = id,
     from = from,
@@ -248,6 +245,11 @@ dagri_add_edge <- function(graph, from, to, type = "data", id = NULL, metadata =
     type = type,
     metadata = metadata
   )
+
+  dagri_validate_not_self_loop(edge)
+  if (dagri_has_path(graph, to, from)) {
+    abort_dagri("dagri_error_cycle", "Cycle detected.")
+  }
 
   graph$edges[[id]] <- edge
   graph$version <- graph$version + 1L

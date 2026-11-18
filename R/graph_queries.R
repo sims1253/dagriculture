@@ -72,7 +72,7 @@ dagri_gates <- function(graph) {
 
 #' Get upstream nodes
 #'
-#' Returns the unique node ids with an edge into `node_id`. O(E).
+#' Returns the unique node ids with an edge into `node_id`.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
@@ -87,7 +87,7 @@ dagri_upstream <- function(graph, node_id) {
 
 #' Get downstream nodes
 #'
-#' Returns the unique node ids with an edge out of `node_id`. O(E).
+#' Returns the unique node ids with an edge out of `node_id`.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
@@ -103,8 +103,8 @@ dagri_downstream <- function(graph, node_id) {
 #' Depth-first traversal over a dagriculture graph
 #'
 #' Internal helper. Callers must validate the graph and pass a pre-built
-#' adjacency `index`. Neighbors are read from `index` (O(1) per lookup), so the
-#' walk is O(V+E).
+#' adjacency `index`. Neighbors are read from `index` instead of scanning the
+#' edge list.
 #'
 #' @param start Starting node ID.
 #' @param direction One of `"forward"` (downstream, via `index$forward`) or
@@ -133,8 +133,6 @@ dagri_dfs <- function(start, direction = c("forward", "reverse"), index) {
 #'
 #' Returns all node ids reachable from `node_id` by following edges upstream.
 #'
-#' @details O(V+E).
-#'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
 #' @export
@@ -149,8 +147,6 @@ dagri_ancestors <- function(graph, node_id) {
 #'
 #' Returns all node ids reachable from `node_id` by following edges downstream.
 #'
-#' @details O(V+E).
-#'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
 #' @export
@@ -162,8 +158,6 @@ dagri_descendants <- function(graph, node_id) {
 }
 
 #' Check path existence
-#'
-#' @details O(V+E).
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param from Source Node ID.
@@ -210,12 +204,10 @@ dagri_leaves <- function(graph) {
 
 #' Get topological order
 #'
-#' @details O(V+E).
-#'
-#'   Cycles are detected here: after the Kahn loop, any node that was not
-#'   emitted (i.e. still has non-zero in-degree) participates in a cycle, and
-#'   the function aborts with class `dagri_error_cycle`, naming the
-#'   cycle-participating nodes in `details$cycle_nodes`. [dagri_add_edge()]
+#' @details Cycles are detected here: after the Kahn loop, any node that was not
+#'   emitted (i.e. still has non-zero in-degree) lies on a cycle or downstream
+#'   of one, and the function aborts with class `dagri_error_cycle`, naming
+#'   the nodes that lie on a cycle in `details$cycle_nodes`. [dagri_add_edge()]
 #'   prevents cycles at edit time, but consumers (e.g. bayesgrove) deserialize
 #'   graphs from JSON, so a corrupted or hand-edited file can smuggle a cycle
 #'   past the editing layer; this check ensures a planner never silently drops
@@ -252,15 +244,11 @@ dagri_topo_order_impl <- function(graph, subset = NULL, index) {
 
   in_degree <- stats::setNames(integer(length(nodes_to_consider)), nodes_to_consider)
   scope <- nodes_to_consider
-  # Count, per node, the incoming edges whose source is also in scope.
-  # Build a from-of map once so this stays O(V+E).
-  from_of <- vapply(graph$edges, function(e) e$from, character(1))
+  # Count, per node, the in-scope nodes with an edge into it. The loop below
+  # lowers the count once per such node, so two edges between the same pair
+  # of nodes must count once here.
   for (nid in scope) {
-    rev_edges <- index$reverse_edges[[nid]]
-    if (length(rev_edges) == 0) {
-      next
-    }
-    in_degree[nid] <- sum(from_of[rev_edges] %in% scope)
+    in_degree[nid] <- sum(index$reverse[[nid]] %in% scope)
   }
 
   queue <- names(in_degree)[in_degree == 0]
@@ -281,8 +269,9 @@ dagri_topo_order_impl <- function(graph, subset = NULL, index) {
     }
   }
 
-  cycle_nodes <- setdiff(nodes_to_consider, order)
-  if (length(cycle_nodes) > 0) {
+  stuck <- setdiff(nodes_to_consider, order)
+  if (length(stuck) > 0) {
+    cycle_nodes <- dagri_nodes_on_cycle(stuck, index)
     abort_dagri(
       "dagri_error_cycle",
       sprintf(
@@ -294,4 +283,32 @@ dagri_topo_order_impl <- function(graph, subset = NULL, index) {
   }
 
   order
+}
+
+#' Nodes that lie on a cycle
+#'
+#' Internal helper for the cycle error in [dagri_topo_order_impl()]. The nodes
+#' Kahn's algorithm cannot emit include every in-scope cycle and also the nodes
+#' downstream of one, which are on no cycle. A node is on a cycle exactly when
+#' it can reach itself; every in-scope cycle lies inside `stuck`, so the search
+#' stays inside `stuck`. Runs only when a cycle has already been found.
+#'
+#' @param stuck Character vector of node ids Kahn's algorithm did not emit.
+#' @param index Adjacency index from [dagri_adjacency()].
+#' @return The ids in `stuck` that can reach themselves, in `stuck` order.
+#' @keywords internal
+dagri_nodes_on_cycle <- function(stuck, index) {
+  reaches_itself <- function(start) {
+    seen <- character(0)
+    frontier <- intersect(index$forward[[start]], stuck)
+    while (length(frontier) > 0) {
+      if (start %in% frontier) {
+        return(TRUE)
+      }
+      seen <- union(seen, frontier)
+      frontier <- setdiff(intersect(unlist(index$forward[frontier]), stuck), seen)
+    }
+    FALSE
+  }
+  stuck[vapply(stuck, reaches_itself, logical(1))]
 }

@@ -14,6 +14,3 @@ dagri_terminal(graph, targets = NULL)
 \description{
 Get terminal nodes
 }
-\details{
-O(V+E).
-}

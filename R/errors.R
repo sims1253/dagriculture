@@ -15,11 +15,14 @@ abort_dagri <- function(class, message, details = list()) {
 #' that \code{version} is a single integer, and enforces referential integrity:
 #' every edge's \code{$from}/\code{$to} must reference a node in \code{graph$nodes},
 #' and every gate's \code{$edge_id} must reference an edge in \code{graph$edges}.
+#' An edge whose \code{$from} equals its \code{$to} (a self-loop) aborts with
+#' class \code{dagri_error_cycle}.
 #'
 #' This is the load-time / entry-point validator: it guards every public
-#' boundary, so it is kept cheap and structural (O(V+E) referential checks). It
-#' does NOT detect cycles, because cycle detection is O(V+E) and only needed for
-#' topological operations; [dagri_topo_order()] performs that check explicitly.
+#' boundary, so it is kept to structural checks of each record. It does NOT
+#' detect cycles longer than a self-loop, because that needs a traversal of
+#' the graph and is only needed for topological operations;
+#' [dagri_topo_order()] performs that check explicitly.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @return The graph, invisibly, if valid.
@@ -65,7 +68,7 @@ dagri_validate_graph <- function(graph) {
     )
   }
 
-  # Referential integrity (edge -> node). O(E). The editing API prevents
+  # Referential integrity (edge -> node). The editing API prevents
   # dangling edges, but graphs deserialized from JSON bypass it, so this guards
   # the same threat model as the cycle check in dagri_topo_order().
   node_ids <- names(graph$nodes)
@@ -88,9 +91,10 @@ dagri_validate_graph <- function(graph) {
         details = list(edge_id = e$id %||% NA, missing_nodes = dangling)
       )
     }
+    dagri_validate_not_self_loop(e)
   }
 
-  # Referential integrity (gate -> edge). O(G).
+  # Referential integrity (gate -> edge).
   edge_ids <- names(graph$edges)
   for (g in graph$gates) {
     if (!is.list(g) || is.null(g$edge_id)) {
@@ -109,6 +113,33 @@ dagri_validate_graph <- function(graph) {
   }
 
   invisible(graph)
+}
+
+#' Refuse an edge from a node to itself
+#'
+#' A self-loop is a cycle on its own. In an acyclic graph no node reaches
+#' itself, so the path search in [dagri_add_edge()] finds nothing for an edge
+#' from a node to itself. [dagri_add_edge()] calls this before it stores an edge, and
+#' [dagri_validate_graph()] calls it for every stored edge, which covers graphs
+#' that were loaded or assembled without the editing API.
+#'
+#' @param edge An edge record with `from`, `to`, and `id`.
+#' @return `edge`, invisibly, if it joins two different nodes.
+#' @keywords internal
+dagri_validate_not_self_loop <- function(edge) {
+  # Compare the ids by value: c(src = "a") and matrix("a") are the node "a".
+  if (identical(as.vector(edge$from), as.vector(edge$to))) {
+    abort_dagri(
+      "dagri_error_cycle",
+      sprintf(
+        "Edge `%s` is a self-loop on node %s; an edge must join two different nodes.",
+        edge$id %||% "<unnamed>",
+        edge$from
+      ),
+      details = list(edge_id = edge$id %||% NA, cycle_nodes = edge$from)
+    )
+  }
+  invisible(edge)
 }
 
 #' Validate caller-owned metadata

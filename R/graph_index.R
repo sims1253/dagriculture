@@ -1,6 +1,7 @@
 # Internal adjacency index for traversal and planning.
 #
-# Building the index is O(V+E+G) and is performed once per public call.
+# The index is built in one pass over the edges and one over the gates, once
+# per public call.
 # The index is a derived value: it is never stored on the graph, so the
 # pure-value, immutable public API is unchanged. Internals that previously
 # re-scanned the full edge list per neighbor lookup (or the full gate list
@@ -16,7 +17,7 @@ dagri_empty_adjacency_maps <- function(ids) {
 
 #' Build the internal adjacency index for a graph
 #'
-#' Performs a single O(V+E+G) pass over `graph$edges` and `graph$gates` and
+#' Performs one pass over `graph$edges` and one over `graph$gates` and
 #' returns five named lists (each initialized to `character(0)` entries so no
 #' NULL-guarding is needed):
 #'

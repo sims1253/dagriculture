@@ -56,6 +56,42 @@ describe("dagri_topo_order() cycle detection", {
     expect_setequal(err$details$cycle_nodes, c("n2", "n3"))
   })
 
+  it("names only the nodes on a cycle, not the nodes downstream of it", {
+    g <- dagri_graph(reg) |>
+      dagri_add_node("n1", "a") |>
+      dagri_add_node("n2", "b") |>
+      dagri_add_node("n3", "b")
+    # n1 <-> n2 is the cycle; n3 hangs off it and is on no cycle.
+    g <- dagri_force_edge(g, "n1", "n2", id = "e1")
+    g <- dagri_force_edge(g, "n2", "n1", id = "e2")
+    g <- dagri_force_edge(g, "n2", "n3", id = "e3")
+
+    err <- tryCatch(dagri_topo_order(g), error = function(e) e)
+    expect_s3_class(err, "dagri_error_cycle")
+    expect_setequal(err$details$cycle_nodes, c("n1", "n2"))
+    expect_no_match(conditionMessage(err), "n3", fixed = TRUE)
+  })
+
+  it("leaves out a node that sits between two cycles", {
+    g <- dagri_graph(reg) |>
+      dagri_add_node("n1", "a") |>
+      dagri_add_node("n2", "b") |>
+      dagri_add_node("n3", "b") |>
+      dagri_add_node("n4", "b") |>
+      dagri_add_node("n5", "b")
+    # n1 <-> n2 and n4 <-> n5 are cycles; n2 -> n3 -> n4 joins them.
+    g <- dagri_force_edge(g, "n1", "n2", id = "e1")
+    g <- dagri_force_edge(g, "n2", "n1", id = "e2")
+    g <- dagri_force_edge(g, "n2", "n3", id = "e3")
+    g <- dagri_force_edge(g, "n3", "n4", id = "e4")
+    g <- dagri_force_edge(g, "n4", "n5", id = "e5")
+    g <- dagri_force_edge(g, "n5", "n4", id = "e6")
+
+    err <- tryCatch(dagri_topo_order(g), error = function(e) e)
+    expect_s3_class(err, "dagri_error_cycle")
+    expect_setequal(err$details$cycle_nodes, c("n1", "n2", "n4", "n5"))
+  })
+
   it("regression: returns the full order for an acyclic graph", {
     g <- dagri_graph(reg) |>
       dagri_add_node("n1", "a") |>
@@ -77,5 +113,84 @@ describe("dagri_topo_order() cycle detection", {
       dagri_add_node("n2", "b") |>
       dagri_add_edge("n1", "n2", id = "e1")
     expect_error(dagri_add_edge(g, "n2", "n1"), class = "dagri_error_cycle")
+  })
+})
+
+describe("two edges between the same pair of nodes", {
+  reg <- dagri_registry(dagri_kind("a"))
+  g <- dagri_graph(reg) |>
+    dagri_add_node("n1", "a") |>
+    dagri_add_node("n2", "a") |>
+    dagri_add_node("n3", "a") |>
+    dagri_add_edge("n1", "n2", id = "e1") |>
+    dagri_add_edge("n1", "n2", id = "e2") |>
+    dagri_add_edge("n2", "n3", id = "e3")
+
+  it("are no cycle: dagri_topo_order() orders the graph", {
+    expect_identical(dagri_topo_order(g), c("n1", "n2", "n3"))
+    expect_identical(dagri_topo_order(g, subset = c("n2", "n3")), c("n2", "n3"))
+  })
+
+  it("leave a real cycle reported with its nodes", {
+    cyclic <- dagri_force_edge(g, "n3", "n2", id = "back")
+    err <- tryCatch(dagri_topo_order(cyclic), error = function(e) e)
+    expect_s3_class(err, "dagri_error_cycle")
+    expect_setequal(err$details$cycle_nodes, c("n2", "n3"))
+  })
+})
+
+describe("self-loops", {
+  reg <- dagri_registry(dagri_kind("a"))
+  g <- dagri_graph(reg) |>
+    dagri_add_node("n1", "a") |>
+    dagri_add_node("n2", "a") |>
+    dagri_add_edge("n1", "n2", id = "e1")
+
+  it("dagri_add_edge() refuses an edge from a node to itself, naming the node", {
+    err <- tryCatch(dagri_add_edge(g, "n1", "n1"), error = function(e) e)
+    expect_s3_class(err, "dagri_error_cycle")
+    expect_match(conditionMessage(err), "n1", fixed = TRUE)
+    expect_identical(err$details$cycle_nodes, "n1")
+  })
+
+  it("dagri_add_edge() refuses a self-loop whose node id is a named string", {
+    expect_error(
+      dagri_add_edge(g, c(src = "n1"), "n1"),
+      class = "dagri_error_cycle"
+    )
+  })
+
+  it("dagri_add_edge() compares ids of different shapes by value", {
+    expect_error(
+      dagri_add_edge(g, matrix("n1", 1, 1), array("n1", 1)),
+      class = "dagri_error_cycle"
+    )
+    expect_no_error(dagri_add_edge(g, matrix("n1", 1, 1), array("n2", 1)))
+  })
+
+  it("refuses a graph that already holds a self-loop at every public entry", {
+    looped <- dagri_force_edge(g, "n1", "n1", id = "loop")
+    calls <- list(
+      topo_order = function() dagri_topo_order(looped),
+      recompute_state = function() dagri_recompute_state(looped),
+      plan = function() dagri_plan(looped),
+      eligible = function() dagri_eligible(looped),
+      roots = function() dagri_roots(looped),
+      has_path = function() dagri_has_path(looped, "n1", "n1"),
+      mermaid = function() dagri_mermaid(looped),
+      add_edge = function() dagri_add_edge(looped, "n2", "n1")
+    )
+    for (name in names(calls)) {
+      err <- tryCatch(
+        {
+          calls[[name]]()
+          NULL
+        },
+        error = function(e) e
+      )
+      expect_true(inherits(err, "dagri_error_cycle"), info = name)
+      expect_identical(err$details$cycle_nodes, "n1", info = name)
+      expect_identical(err$details$edge_id, "loop", info = name)
+    }
   })
 })

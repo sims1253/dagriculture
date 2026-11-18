@@ -91,14 +91,17 @@ boundary crossing:
    reference a node that exists in `graph$nodes` (O(E))
 5. **referential integrity (gate -> edge):** every gate's `$edge_id` references
    an edge that exists in `graph$edges` (O(G))
+6. **no self-loops:** no edge has `$from` equal to `$to`
 
 A dangling edge aborts with class `dagri_error_invalid_argument` and
 `details = list(edge_id, missing_nodes)`; a dangling gate aborts with the same
-class and `details = list(gate_id, missing_edge_id)`.
+class and `details = list(gate_id, missing_edge_id)`. A self-loop aborts with
+class `dagri_error_cycle` and `details = list(edge_id, cycle_nodes)`.
 
 ### Per-call check (topological operations): cycle detection in `dagri_topo_order()`
 
-Cycle detection is **not** part of `dagri_validate_graph()`. It is an explicit,
+Cycle detection, beyond refusing self-loops, is **not** part of
+`dagri_validate_graph()`. It is an explicit,
 O(V+E) check performed by `dagri_topo_order()` (and therefore by its callers
 `dagri_recompute_state()` and `dagri_plan()`), because:
 
@@ -111,8 +114,8 @@ O(V+E) check performed by `dagri_topo_order()` (and therefore by its callers
 bypass it. After the Kahn loop, if any node could not be emitted (it still has
 non-zero in-degree), the function aborts with class `dagri_error_cycle` and
 `details = list(cycle_nodes)`, where `cycle_nodes` are exactly the nodes that
-participate in (or are downstream-trapped-by) a cycle. This guarantees a
-planner never silently drops cycle-locked nodes from the order.
+lie on a cycle; nodes that are only downstream of a cycle are left out. This
+guarantees a planner never silently drops cycle-locked nodes from the order.
 
 ### Per-call checks (editing API)
 

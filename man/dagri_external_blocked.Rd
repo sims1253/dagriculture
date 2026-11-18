@@ -30,7 +30,4 @@ Named list of externally blocked nodes and their reasons.
 Propagates external holds through the topological order, marking downstream
 nodes as blocked by the nearest upstream hold.
 }
-\details{
-O(V+E).
-}
 \keyword{internal}

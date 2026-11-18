@@ -158,9 +158,10 @@ no functions among its elements, but accepts formulas and environments in
 it. Neither check looks at attributes, so a value can still carry code
 there. Node `params` are not checked, except that
 `dagri_add_node()` requires the names in the kind's input contract. A graph
-loaded from an RDS file or edited by hand is checked only for its structure
-and references, and for cycles by `dagri_topo_order()`,
-`dagri_recompute_state()` and `dagri_plan()`. Nothing checks it again for
+loaded from an RDS file or edited by hand is checked only for its structure,
+its references and self-loops. Longer cycles are found by
+`dagri_topo_order()`, `dagri_recompute_state()` and `dagri_plan()`. Nothing
+checks it again for
 code-bearing values, so load graphs only from sources you trust, or check
 them as the [serialization article](https://sims1253.github.io/dagriculture/articles/serialization-boundary.html) shows.
 

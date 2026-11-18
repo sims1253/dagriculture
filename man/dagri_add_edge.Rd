@@ -37,7 +37,8 @@ is not a single non-empty string, \code{type} is not a single non-empty string,
 or \code{metadata} is not a named list of plain data.
 \item \code{dagri_error_not_found} when \code{from} or \code{to} is not a node in the graph.
 \item \code{dagri_error_duplicate_id} when \code{id} already exists as an edge.
-\item \code{dagri_error_cycle} when the edge would create a cycle.
+\item \code{dagri_error_cycle} when the edge would create a cycle, including an edge
+from a node to itself.
 }
 }
 

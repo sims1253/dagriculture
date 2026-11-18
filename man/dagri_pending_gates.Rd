@@ -16,7 +16,4 @@ dagri_pending_gates(graph, targets = NULL, index = NULL)
 \description{
 Get pending gates
 }
-\details{
-O(V+E).
-}
 \keyword{internal}
