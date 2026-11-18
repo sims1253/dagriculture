@@ -213,9 +213,9 @@ dagri_leaves <- function(graph) {
 #' @details O(V+E).
 #'
 #'   Cycles are detected here: after the Kahn loop, any node that was not
-#'   emitted (i.e. still has non-zero in-degree) participates in a cycle, and
-#'   the function aborts with class `dagri_error_cycle`, naming the
-#'   cycle-participating nodes in `details$cycle_nodes`. [dagri_add_edge()]
+#'   emitted (i.e. still has non-zero in-degree) lies on a cycle or downstream
+#'   of one, and the function aborts with class `dagri_error_cycle`, naming
+#'   the nodes that lie on a cycle in `details$cycle_nodes`. [dagri_add_edge()]
 #'   prevents cycles at edit time, but consumers (e.g. bayesgrove) deserialize
 #'   graphs from JSON, so a corrupted or hand-edited file can smuggle a cycle
 #'   past the editing layer; this check ensures a planner never silently drops
@@ -281,8 +281,9 @@ dagri_topo_order_impl <- function(graph, subset = NULL, index) {
     }
   }
 
-  cycle_nodes <- setdiff(nodes_to_consider, order)
-  if (length(cycle_nodes) > 0) {
+  stuck <- setdiff(nodes_to_consider, order)
+  if (length(stuck) > 0) {
+    cycle_nodes <- dagri_nodes_on_cycle(stuck, index)
     abort_dagri(
       "dagri_error_cycle",
       sprintf(
@@ -294,4 +295,32 @@ dagri_topo_order_impl <- function(graph, subset = NULL, index) {
   }
 
   order
+}
+
+#' Nodes that lie on a cycle
+#'
+#' Internal helper for the cycle error in [dagri_topo_order_impl()]. The nodes
+#' Kahn's algorithm cannot emit include every in-scope cycle and also the nodes
+#' downstream of one, which are on no cycle. A node is on a cycle exactly when
+#' it can reach itself; every in-scope cycle lies inside `stuck`, so the search
+#' stays inside `stuck`. Runs only when a cycle has already been found.
+#'
+#' @param stuck Character vector of node ids Kahn's algorithm did not emit.
+#' @param index Adjacency index from [dagri_adjacency()].
+#' @return The ids in `stuck` that can reach themselves, in `stuck` order.
+#' @keywords internal
+dagri_nodes_on_cycle <- function(stuck, index) {
+  reaches_itself <- function(start) {
+    seen <- character(0)
+    frontier <- intersect(index$forward[[start]], stuck)
+    while (length(frontier) > 0) {
+      if (start %in% frontier) {
+        return(TRUE)
+      }
+      seen <- union(seen, frontier)
+      frontier <- setdiff(intersect(unlist(index$forward[frontier]), stuck), seen)
+    }
+    FALSE
+  }
+  stuck[vapply(stuck, reaches_itself, logical(1))]
 }

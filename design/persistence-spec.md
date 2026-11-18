@@ -114,8 +114,8 @@ O(V+E) check performed by `dagri_topo_order()` (and therefore by its callers
 bypass it. After the Kahn loop, if any node could not be emitted (it still has
 non-zero in-degree), the function aborts with class `dagri_error_cycle` and
 `details = list(cycle_nodes)`, where `cycle_nodes` are exactly the nodes that
-participate in (or are downstream-trapped-by) a cycle. This guarantees a
-planner never silently drops cycle-locked nodes from the order.
+lie on a cycle; nodes that are only downstream of a cycle are left out. This
+guarantees a planner never silently drops cycle-locked nodes from the order.
 
 ### Per-call checks (editing API)
 

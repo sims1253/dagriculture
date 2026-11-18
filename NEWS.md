@@ -45,6 +45,8 @@ released; its changes are listed here.
 - **Cycle detection in `dagri_topo_order()`:** Kahn's algorithm aborts with
   `dagri_error_cycle` (`details$cycle_nodes`) instead of silently returning a
   partial order; closes a hole for graphs deserialized from JSON.
+  `details$cycle_nodes` and the message name only the nodes that lie on a
+  cycle, not the nodes downstream of one.
 - **Referential integrity in `dagri_validate_graph()`:** dangling edge
   `from`/`to` or gate `edge_id` references abort with
   `dagri_error_invalid_argument`; guards data loaded from disk.

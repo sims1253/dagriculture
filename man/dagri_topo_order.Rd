@@ -18,9 +18,9 @@ Get topological order
 O(V+E).
 
 Cycles are detected here: after the Kahn loop, any node that was not
-emitted (i.e. still has non-zero in-degree) participates in a cycle, and
-the function aborts with class \code{dagri_error_cycle}, naming the
-cycle-participating nodes in \code{details$cycle_nodes}. \code{\link[=dagri_add_edge]{dagri_add_edge()}}
+emitted (i.e. still has non-zero in-degree) lies on a cycle or downstream
+of one, and the function aborts with class \code{dagri_error_cycle}, naming
+the nodes that lie on a cycle in \code{details$cycle_nodes}. \code{\link[=dagri_add_edge]{dagri_add_edge()}}
 prevents cycles at edit time, but consumers (e.g. bayesgrove) deserialize
 graphs from JSON, so a corrupted or hand-edited file can smuggle a cycle
 past the editing layer; this check ensures a planner never silently drops

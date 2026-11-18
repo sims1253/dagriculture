@@ -56,6 +56,42 @@ describe("dagri_topo_order() cycle detection", {
     expect_setequal(err$details$cycle_nodes, c("n2", "n3"))
   })
 
+  it("names only the nodes on a cycle, not the nodes downstream of it", {
+    g <- dagri_graph(reg) |>
+      dagri_add_node("n1", "a") |>
+      dagri_add_node("n2", "b") |>
+      dagri_add_node("n3", "b")
+    # n1 <-> n2 is the cycle; n3 hangs off it and is on no cycle.
+    g <- dagri_force_edge(g, "n1", "n2", id = "e1")
+    g <- dagri_force_edge(g, "n2", "n1", id = "e2")
+    g <- dagri_force_edge(g, "n2", "n3", id = "e3")
+
+    err <- tryCatch(dagri_topo_order(g), error = function(e) e)
+    expect_s3_class(err, "dagri_error_cycle")
+    expect_setequal(err$details$cycle_nodes, c("n1", "n2"))
+    expect_no_match(conditionMessage(err), "n3", fixed = TRUE)
+  })
+
+  it("leaves out a node that sits between two cycles", {
+    g <- dagri_graph(reg) |>
+      dagri_add_node("n1", "a") |>
+      dagri_add_node("n2", "b") |>
+      dagri_add_node("n3", "b") |>
+      dagri_add_node("n4", "b") |>
+      dagri_add_node("n5", "b")
+    # n1 <-> n2 and n4 <-> n5 are cycles; n2 -> n3 -> n4 joins them.
+    g <- dagri_force_edge(g, "n1", "n2", id = "e1")
+    g <- dagri_force_edge(g, "n2", "n1", id = "e2")
+    g <- dagri_force_edge(g, "n2", "n3", id = "e3")
+    g <- dagri_force_edge(g, "n3", "n4", id = "e4")
+    g <- dagri_force_edge(g, "n4", "n5", id = "e5")
+    g <- dagri_force_edge(g, "n5", "n4", id = "e6")
+
+    err <- tryCatch(dagri_topo_order(g), error = function(e) e)
+    expect_s3_class(err, "dagri_error_cycle")
+    expect_setequal(err$details$cycle_nodes, c("n1", "n2", "n4", "n5"))
+  })
+
   it("regression: returns the full order for an acyclic graph", {
     g <- dagri_graph(reg) |>
       dagri_add_node("n1", "a") |>
