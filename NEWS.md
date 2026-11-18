@@ -11,17 +11,22 @@ released; its changes are listed here.
   `dagri_downstream()`, and `dagri_has_path()` now abort with
   `dagri_error_not_found` for unknown node ids (previously they returned silent
   empties or `FALSE`).
-- Id-taking public arguments (`id`/`from`/`to`/`edge_id`/`name`) now reject
-  vectors, `NA`, and empty strings with `dagri_error_invalid_argument` instead
-  of dying with a base-R "condition has length > 1" error.
+- The id arguments (`id`/`node_id`/`from`/`to`/`edge_id`/`gate_id`/`name`) of
+  `dagri_kind()`, `dagri_add_node()`, `dagri_update_node()`,
+  `dagri_remove_node()`, `dagri_add_edge()`, `dagri_update_edge()`,
+  `dagri_remove_edge()`, `dagri_add_gate()`, `dagri_update_gate()`,
+  `dagri_remove_gate()`, `dagri_resolve_gate()`, `dagri_reopen_gate()`,
+  `dagri_upstream()`, `dagri_downstream()`, `dagri_ancestors()`,
+  `dagri_descendants()`, `dagri_has_path()`, `dagri_incoming_edges()` and
+  `dagri_outgoing_edges()` now reject vectors, `NA`, and empty strings with
+  `dagri_error_invalid_argument` instead of dying with a base-R "condition has
+  length > 1" error. The getters `dagri_node()`, `dagri_edge()` and
+  `dagri_gate()` do not check their `id` this way.
 - `dagri_add_gate(graph, edge, ...)`'s `edge` parameter has been renamed to
   `edge_id` for consistency with the rest of the API. Update named call sites.
 - `abort_dagri()`, `dagri_target_closure()`, and `dagri_pending_gates()` are no
   longer exported; their results are reachable through `dagri_plan()`'s
   `targets` and `pending_gates` fields.
-- `dagri_topo_order()` and `dagri_terminal()` no longer accept an `index`
-  argument; they build the adjacency index themselves. The index type has no
-  public constructor, so threading it through the public API was a footgun.
 
 ## Behavior changes
 
@@ -41,15 +46,14 @@ released; its changes are listed here.
 - **Cycle detection in `dagri_topo_order()`:** Kahn's algorithm aborts with
   `dagri_error_cycle` (`details$cycle_nodes`) instead of silently returning a
   partial order; closes a hole for graphs deserialized from JSON.
-- **Referential integrity on every public call:** dangling edge
+- **Referential integrity in `dagri_validate_graph()`:** dangling edge
   `from`/`to` or gate `edge_id` references abort with
   `dagri_error_invalid_argument`; guards data loaded from disk.
 
 ## Features
 
 - **Graph boundary helpers:** added `dagri_incoming_edges()`,
-  `dagri_outgoing_edges()`, `dagri_order_edges()`, `dagri_edge_ids()`, and
-  `dagri_graph_diff()` (pure structural diff).
+  `dagri_outgoing_edges()`, `dagri_order_edges()`, and `dagri_edge_ids()`.
 - **Mermaid flowchart export:** added `dagri_mermaid()` — a pure graph-to-text
   renderer with injectable label/class functions and pending-gate annotations.
 - **Print methods and S3 classes:** `dagri_graph()` and `dagri_plan()` stamp S3
@@ -63,12 +67,12 @@ released; its changes are listed here.
   `type`/`metadata` replacement) and `dagri_update_gate()` (optional `metadata`
   replacement). Both are immutable value-in/value-out mutators using the same
   replace-not-merge semantics as `dagri_update_node()`, and both bump
-  `graph$version` by 1. Value-aware `dagri_graph_diff()` now reports these
+  `graph$version` by 1. `dagri_graph_diff()` reports these
   metadata and `type` edits through `changed_edges`/`changed_gates`.
-- **Value-aware graph diffing with gate support:** `dagri_graph_diff()` now
-  also reports `added_gates`, `removed_gates`, and `changed_nodes` /
-  `changed_edges` / `changed_gates` alongside the existing structural
-  vectors (which are unchanged). `changed_*` covers ids present in both
+- **Graph diffing:** added `dagri_graph_diff()`, a pure diff of two graphs.
+  It reports `added_nodes`, `removed_nodes`, `added_edges`, `removed_edges`,
+  `added_gates`, `removed_gates`, and `changed_nodes` / `changed_edges` /
+  `changed_gates`. `changed_*` covers ids present in both
   graphs whose tracked fields differ — node `kind`/`label`/`params`/`state`/
   `block_reason`/`metadata`, edge `from`/`to`/`type`/`metadata`, gate
   `edge_id`/`status`/`metadata` — compared with `identical()` on in-memory
@@ -94,12 +98,16 @@ released; its changes are listed here.
 - **`include_resolved_gates`:** opt-in flag that also annotates resolved
   gates on their edge, each suffixed with `" (resolved)"`, in gate
   insertion order; pending gates render exactly as before.
-- **`class_defs` / `header` styling injection:** Mermaid `classDef`
-  statements are sanitized and emitted after the `flowchart` line; raw
-  preamble lines (e.g. `%%{init: ...}%%` directives) pass through verbatim
-  before it, with only control characters stripped. Header lines are
-  trusted caller input; everything derived from graph data stays
-  sanitized.
+- **`class_defs` / `header` styling injection:** `class_defs` adds Mermaid
+  `classDef` statements after the `flowchart` line, and `header` adds
+  preamble lines (e.g. `%%{init: ...}%%` directives) before it. `class_defs`
+  go through the same sanitizer as node labels and gate annotations: double
+  quotes become single quotes, brackets, braces, parentheses, pipes, angle
+  brackets and line breaks become spaces, and runs of whitespace are
+  collapsed and trimmed. Header lines are trusted caller input: control
+  characters become spaces and whitespace is collapsed and trimmed, nothing
+  else. Node ids, edge endpoints, `node_class` results and `direction` are
+  emitted verbatim.
 - **Per-node status view in `dagri_plan()`:** plans now carry a `node_status`
   field — a named list keyed by node id covering the target closure in
   `topo_order` order — so consumers no longer re-derive why each node is
@@ -115,11 +123,14 @@ released; its changes are listed here.
 
 ## Performance
 
-- **Internal adjacency index:** `dagri_adjacency()` builds forward/reverse
-  neighbor maps in one O(V+E) pass; traversals and planning thread it through,
-  taking walks from O(V*E) to O(V+E). Single-node `dagri_upstream()` /
-  `dagri_downstream()` keep their O(E) scan.
-- **Re-validation collapse:** `dagri_has_path()` now runs the downstream walk inline via the shared index, instead of delegating to `dagri_descendants()` (which re-built the index). `dagri_plan()` builds one shared index across its `dagri_topo_order()` and `dagri_external_blocked()` calls. Each public boundary still does its own cheap structural validation but scans the edge list once per call.
+- **Internal adjacency index:** traversals, topological ordering, state
+  recomputation and planning build one adjacency index per call, in one pass
+  over the edges, and look up each node's neighbours and incoming edges in
+  it. Before, every lookup scanned all edges. The same pass groups pending
+  gates by edge, so per-edge gate lookups no longer scan all gates.
+  `dagri_plan()` builds the index once and reuses it for every step. The
+  index is internal; public functions build it themselves.
+  `dagri_upstream()` and `dagri_downstream()` still scan the edge list.
 
 ## Documentation
 
