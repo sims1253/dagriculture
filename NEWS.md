@@ -19,8 +19,7 @@ released; its changes are listed here.
   `dagri_upstream()`, `dagri_downstream()`, `dagri_ancestors()`,
   `dagri_descendants()`, `dagri_has_path()`, `dagri_incoming_edges()` and
   `dagri_outgoing_edges()` now reject vectors, `NA`, and empty strings with
-  `dagri_error_invalid_argument` instead of dying with a base-R "condition has
-  length > 1" error. The getters `dagri_node()`, `dagri_edge()` and
+  `dagri_error_invalid_argument`. The getters `dagri_node()`, `dagri_edge()` and
   `dagri_gate()` do not check their `id` this way.
 - `dagri_add_gate(graph, edge, ...)`'s `edge` parameter has been renamed to
   `edge_id` for consistency with the rest of the API. Update named call sites.
@@ -103,11 +102,12 @@ released; its changes are listed here.
   preamble lines (e.g. `%%{init: ...}%%` directives) before it. `class_defs`
   go through the same sanitizer as node labels and gate annotations: double
   quotes become single quotes, brackets, braces, parentheses, pipes, angle
-  brackets and line breaks become spaces, and runs of whitespace are
-  collapsed and trimmed. Header lines are trusted caller input: control
-  characters become spaces and whitespace is collapsed and trimmed, nothing
-  else. Node ids, edge endpoints, `node_class` results and `direction` are
-  emitted verbatim.
+  brackets and line breaks become spaces, runs of spaces and tabs become
+  one space, and leading and trailing whitespace is trimmed. Header lines
+  are trusted caller input: control characters become spaces, runs of spaces
+  and tabs become one space, and the ends are trimmed, nothing else. Node
+  ids, edge endpoints and `direction` are emitted verbatim, and so is a
+  class name that `node_class` returns.
 - **Per-node status view in `dagri_plan()`:** plans now carry a `node_status`
   field — a named list keyed by node id covering the target closure in
   `topo_order` order — so consumers no longer re-derive why each node is
@@ -126,10 +126,12 @@ released; its changes are listed here.
 - **Internal adjacency index:** traversals, topological ordering, state
   recomputation and planning build one adjacency index per call, in one pass
   over the edges, and look up each node's neighbours and incoming edges in
-  it. Before, every lookup scanned all edges. The same pass groups pending
-  gates by edge, so per-edge gate lookups no longer scan all gates.
-  `dagri_plan()` builds the index once and reuses it for every step. The
-  index is internal; public functions build it themselves.
+  it. Before, every lookup scanned all edges. One more pass, over the gates,
+  groups pending gates by edge, so per-edge gate lookups no longer scan all
+  gates. `dagri_plan()` builds the index once and shares it among the steps
+  that look up neighbours; it still scans the gates to fill
+  `plan$pending_gates`. The index is internal; public functions build it
+  themselves.
   `dagri_upstream()` and `dagri_downstream()` still scan the edge list.
 
 ## Documentation
