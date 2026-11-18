@@ -184,20 +184,19 @@ Two caveats to know about, both consequences of JSON being shape-blind:
   back as empty lists and both are valid metadata.
 
 For reproducible bytes (hashing, diffing), pin every option — including
-`pretty`.
-[`toJSON()`](https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html)
+`pretty`. [`toJSON()`](https://rdrr.io/pkg/jsonlite/man/fromJSON.html)
 preserves the insertion order of the R list, and two graphs holding the
 same records can carry them in different insertion orders, so the writer
 canonicalizes key order itself: `canonical_order()` re-indexes `nodes`,
 `edges`, `gates`, and the registry’s `kinds` with
 `sort(names(...), method = "radix")` before
-[`toJSON()`](https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html)
-runs — exactly the stable lexical order the persistence spec asks of
-writers. Two graphs built by inserting the same records in different
-orders therefore serialize to identical bytes. The `method = "radix"`
-argument is what makes this safe across machines: radix sorting compares
-strings byte-wise in the C locale, so the written keys — and any hash of
-the bytes — are machine-independent, whereas
+[`toJSON()`](https://rdrr.io/pkg/jsonlite/man/fromJSON.html) runs —
+exactly the stable lexical order the persistence spec asks of writers.
+Two graphs built by inserting the same records in different orders
+therefore serialize to identical bytes. The `method = "radix"` argument
+is what makes this safe across machines: radix sorting compares strings
+byte-wise in the C locale, so the written keys — and any hash of the
+bytes — are machine-independent, whereas
 [`sort()`](https://rdrr.io/r/base/sort.html)’s default collation
 (`LC_COLLATE`) orders the id charset’s `-`, `_`, `.` differently in
 locales like `en_US.UTF-8`. Only the four named maps are re-ordered;
@@ -297,9 +296,9 @@ The validation is deliberately kept cheap and structural, so note what
 it does *not* do (next sections).
 
 One asymmetry to remember when comparing:
-[`toJSON()`](https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html)
-writes R atomic vectors as JSON arrays, and `simplifyVector = FALSE`
-reads JSON arrays back as R *lists*. So
+[`toJSON()`](https://rdrr.io/pkg/jsonlite/man/fromJSON.html) writes R
+atomic vectors as JSON arrays, and `simplifyVector = FALSE` reads JSON
+arrays back as R *lists*. So
 `param_schema = list(required = c("model"))` round-trips as
 `list(required = list("model"))` — semantically equal, not
 [`identical()`](https://rdrr.io/r/base/identical.html). Normalize both
@@ -378,8 +377,8 @@ consumers. Two more key-shape rules worth respecting:
 
 The persistence rule is: persist plain data, never executable code. JSON
 gives you that by construction — a closure cannot survive
-[`toJSON()`](https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html).
-An RDS file can, which is where the boundary needs stating precisely.
+[`toJSON()`](https://rdrr.io/pkg/jsonlite/man/fromJSON.html). An RDS
+file can, which is where the boundary needs stating precisely.
 
 Every public `dagriculture` function runs the same cheap structural
 check before doing anything with a graph — the validator behind it
