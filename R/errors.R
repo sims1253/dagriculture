@@ -117,9 +117,9 @@ dagri_validate_graph <- function(graph) {
 
 #' Refuse an edge from a node to itself
 #'
-#' A self-loop is a cycle on its own, and [dagri_has_path()] never counts its
-#' start node as reached, so the cycle check in [dagri_add_edge()] cannot see
-#' one. [dagri_add_edge()] calls this before it stores an edge, and
+#' A self-loop is a cycle on its own. In an acyclic graph no node reaches
+#' itself, so the path search in [dagri_add_edge()] finds nothing for an edge
+#' from a node to itself. [dagri_add_edge()] calls this before it stores an edge, and
 #' [dagri_validate_graph()] calls it for every stored edge, which covers graphs
 #' that were loaded or assembled without the editing API.
 #'
@@ -127,7 +127,8 @@ dagri_validate_graph <- function(graph) {
 #' @return `edge`, invisibly, if it joins two different nodes.
 #' @keywords internal
 dagri_validate_not_self_loop <- function(edge) {
-  if (identical(edge$from, edge$to)) {
+  # `==` compares the ids and ignores names: c(src = "a") is the node "a".
+  if (isTRUE(edge$from == edge$to)) {
     abort_dagri(
       "dagri_error_cycle",
       sprintf(

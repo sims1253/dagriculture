@@ -13,9 +13,9 @@ dagri_validate_not_self_loop(edge)
 \code{edge}, invisibly, if it joins two different nodes.
 }
 \description{
-A self-loop is a cycle on its own, and \code{\link[=dagri_has_path]{dagri_has_path()}} never counts its
-start node as reached, so the cycle check in \code{\link[=dagri_add_edge]{dagri_add_edge()}} cannot see
-one. \code{\link[=dagri_add_edge]{dagri_add_edge()}} calls this before it stores an edge, and
+A self-loop is a cycle on its own. In an acyclic graph no node reaches
+itself, so the path search in \code{\link[=dagri_add_edge]{dagri_add_edge()}} finds nothing for an edge
+from a node to itself. \code{\link[=dagri_add_edge]{dagri_add_edge()}} calls this before it stores an edge, and
 \code{\link[=dagri_validate_graph]{dagri_validate_graph()}} calls it for every stored edge, which covers graphs
 that were loaded or assembled without the editing API.
 }

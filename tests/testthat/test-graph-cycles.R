@@ -116,6 +116,29 @@ describe("dagri_topo_order() cycle detection", {
   })
 })
 
+describe("two edges between the same pair of nodes", {
+  reg <- dagri_registry(dagri_kind("a"))
+  g <- dagri_graph(reg) |>
+    dagri_add_node("n1", "a") |>
+    dagri_add_node("n2", "a") |>
+    dagri_add_node("n3", "a") |>
+    dagri_add_edge("n1", "n2", id = "e1") |>
+    dagri_add_edge("n1", "n2", id = "e2") |>
+    dagri_add_edge("n2", "n3", id = "e3")
+
+  it("are no cycle: dagri_topo_order() orders the graph", {
+    expect_identical(dagri_topo_order(g), c("n1", "n2", "n3"))
+    expect_identical(dagri_topo_order(g, subset = c("n2", "n3")), c("n2", "n3"))
+  })
+
+  it("leave a real cycle reported with its nodes", {
+    cyclic <- dagri_force_edge(g, "n3", "n2", id = "back")
+    err <- tryCatch(dagri_topo_order(cyclic), error = function(e) e)
+    expect_s3_class(err, "dagri_error_cycle")
+    expect_setequal(err$details$cycle_nodes, c("n2", "n3"))
+  })
+})
+
 describe("self-loops", {
   reg <- dagri_registry(dagri_kind("a"))
   g <- dagri_graph(reg) |>
@@ -128,6 +151,13 @@ describe("self-loops", {
     expect_s3_class(err, "dagri_error_cycle")
     expect_match(conditionMessage(err), "n1", fixed = TRUE)
     expect_identical(err$details$cycle_nodes, "n1")
+  })
+
+  it("dagri_add_edge() refuses a self-loop whose node id is a named string", {
+    expect_error(
+      dagri_add_edge(g, c(src = "n1"), "n1"),
+      class = "dagri_error_cycle"
+    )
   })
 
   it("refuses a graph that already holds a self-loop at every public entry", {

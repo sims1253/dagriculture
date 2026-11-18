@@ -244,15 +244,11 @@ dagri_topo_order_impl <- function(graph, subset = NULL, index) {
 
   in_degree <- stats::setNames(integer(length(nodes_to_consider)), nodes_to_consider)
   scope <- nodes_to_consider
-  # Count, per node, the incoming edges whose source is also in scope.
-  # Build a from-of map once instead of looking up each edge's source.
-  from_of <- vapply(graph$edges, function(e) e$from, character(1))
+  # Count, per node, the in-scope nodes with an edge into it. The loop below
+  # lowers the count once per such node, so two edges between the same pair
+  # of nodes must count once here.
   for (nid in scope) {
-    rev_edges <- index$reverse_edges[[nid]]
-    if (length(rev_edges) == 0) {
-      next
-    }
-    in_degree[nid] <- sum(from_of[rev_edges] %in% scope)
+    in_degree[nid] <- sum(index$reverse[[nid]] %in% scope)
   }
 
   queue <- names(in_degree)[in_degree == 0]
