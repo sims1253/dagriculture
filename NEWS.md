@@ -48,6 +48,14 @@ released; its changes are listed here.
 - **Referential integrity in `dagri_validate_graph()`:** dangling edge
   `from`/`to` or gate `edge_id` references abort with
   `dagri_error_invalid_argument`; guards data loaded from disk.
+- **Self-loops are refused:** `dagri_add_edge(graph, "a", "a")` now aborts
+  with `dagri_error_cycle` instead of storing an edge from `a` to itself. A
+  graph that already holds a self-loop, for example one loaded from disk, is
+  refused with the same class by every function that takes a graph, except
+  the print methods, with the edge id in `details$edge_id` and the node in
+  `details$cycle_nodes`. Before, such a graph
+  passed validation: `dagri_has_path(graph, "a", "a")` returned `TRUE`,
+  `dagri_mermaid()` drew the loop, and only the topological functions aborted.
 
 ## Features
 

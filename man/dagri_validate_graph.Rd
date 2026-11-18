@@ -18,11 +18,14 @@ for \code{registry}, \code{nodes}, \code{edges}, and \code{gates}, checks
 that \code{version} is a single integer, and enforces referential integrity:
 every edge's \code{$from}/\code{$to} must reference a node in \code{graph$nodes},
 and every gate's \code{$edge_id} must reference an edge in \code{graph$edges}.
+An edge whose \code{$from} equals its \code{$to} (a self-loop) aborts with
+class \code{dagri_error_cycle}.
 }
 \details{
 This is the load-time / entry-point validator: it guards every public
 boundary, so it is kept cheap and structural (O(V+E) referential checks). It
-does NOT detect cycles, because cycle detection is O(V+E) and only needed for
-topological operations; \code{\link[=dagri_topo_order]{dagri_topo_order()}} performs that check explicitly.
+does NOT detect cycles longer than a self-loop, because cycle detection is
+O(V+E) and only needed for topological operations; \code{\link[=dagri_topo_order]{dagri_topo_order()}}
+performs that check explicitly.
 }
 \keyword{internal}

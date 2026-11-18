@@ -79,3 +79,44 @@ describe("dagri_topo_order() cycle detection", {
     expect_error(dagri_add_edge(g, "n2", "n1"), class = "dagri_error_cycle")
   })
 })
+
+describe("self-loops", {
+  reg <- dagri_registry(dagri_kind("a"))
+  g <- dagri_graph(reg) |>
+    dagri_add_node("n1", "a") |>
+    dagri_add_node("n2", "a") |>
+    dagri_add_edge("n1", "n2", id = "e1")
+
+  it("dagri_add_edge() refuses an edge from a node to itself, naming the node", {
+    err <- tryCatch(dagri_add_edge(g, "n1", "n1"), error = function(e) e)
+    expect_s3_class(err, "dagri_error_cycle")
+    expect_match(conditionMessage(err), "n1", fixed = TRUE)
+    expect_identical(err$details$cycle_nodes, "n1")
+  })
+
+  it("refuses a graph that already holds a self-loop at every public entry", {
+    looped <- dagri_force_edge(g, "n1", "n1", id = "loop")
+    calls <- list(
+      topo_order = function() dagri_topo_order(looped),
+      recompute_state = function() dagri_recompute_state(looped),
+      plan = function() dagri_plan(looped),
+      eligible = function() dagri_eligible(looped),
+      roots = function() dagri_roots(looped),
+      has_path = function() dagri_has_path(looped, "n1", "n1"),
+      mermaid = function() dagri_mermaid(looped),
+      add_edge = function() dagri_add_edge(looped, "n2", "n1")
+    )
+    for (name in names(calls)) {
+      err <- tryCatch(
+        {
+          calls[[name]]()
+          NULL
+        },
+        error = function(e) e
+      )
+      expect_true(inherits(err, "dagri_error_cycle"), info = name)
+      expect_identical(err$details$cycle_nodes, "n1", info = name)
+      expect_identical(err$details$edge_id, "loop", info = name)
+    }
+  })
+})
