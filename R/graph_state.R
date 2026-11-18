@@ -1,7 +1,5 @@
 #' Recompute graph state
 #'
-#' @details O(V+E).
-#'
 #' @param graph A \code{dagri_graph}.
 #' @export
 dagri_recompute_state <- function(graph) {
@@ -92,8 +90,6 @@ dagri_blocked <- function(graph) {
 
 #' Get terminal nodes
 #'
-#' @details O(V+E).
-#'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Optional target nodes.
 #' @export
@@ -182,8 +178,6 @@ dagri_validate_node_ids <- function(graph, node_ids, arg = "node_ids") {
 
 #' Get the structural closure of target nodes
 #'
-#' @details O(V+E).
-#'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Optional target nodes.
 #' @param index Optional pre-built adjacency index from [dagri_adjacency()].
@@ -271,8 +265,6 @@ dagri_validate_external_holds <- function(graph, external_holds) {
 #' Propagates external holds through the topological order, marking downstream
 #' nodes as blocked by the nearest upstream hold.
 #'
-#' @details O(V+E).
-#'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Target node IDs.
 #' @param topo_order Topological ordering of nodes.
@@ -320,8 +312,6 @@ dagri_external_blocked <- function(graph, targets, topo_order, external_holds, i
 }
 
 #' Get pending gates
-#'
-#' @details O(V+E).
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param targets Optional target nodes.
@@ -446,7 +436,7 @@ dagri_node_status_impl <- function(graph, topo_order, external_blocked, index) {
 
 #' Create a structural plan
 #'
-#' @details O(V+E). State is derived internally, so the plan is always current
+#' @details State is derived internally, so the plan is always current
 #'   even if the input graph was never passed through
 #'   [dagri_recompute_state()]; the input graph value itself is not mutated.
 #'

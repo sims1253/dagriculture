@@ -12,6 +12,3 @@ dagri_recompute_state(graph)
 \description{
 Recompute graph state
 }
-\details{
-O(V+E).
-}

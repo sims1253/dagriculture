@@ -72,7 +72,7 @@ dagri_gates <- function(graph) {
 
 #' Get upstream nodes
 #'
-#' Returns the unique node ids with an edge into `node_id`. O(E).
+#' Returns the unique node ids with an edge into `node_id`.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
@@ -87,7 +87,7 @@ dagri_upstream <- function(graph, node_id) {
 
 #' Get downstream nodes
 #'
-#' Returns the unique node ids with an edge out of `node_id`. O(E).
+#' Returns the unique node ids with an edge out of `node_id`.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
@@ -103,8 +103,8 @@ dagri_downstream <- function(graph, node_id) {
 #' Depth-first traversal over a dagriculture graph
 #'
 #' Internal helper. Callers must validate the graph and pass a pre-built
-#' adjacency `index`. Neighbors are read from `index` (O(1) per lookup), so the
-#' walk is O(V+E).
+#' adjacency `index`. Neighbors are read from `index` instead of scanning the
+#' edge list.
 #'
 #' @param start Starting node ID.
 #' @param direction One of `"forward"` (downstream, via `index$forward`) or
@@ -133,8 +133,6 @@ dagri_dfs <- function(start, direction = c("forward", "reverse"), index) {
 #'
 #' Returns all node ids reachable from `node_id` by following edges upstream.
 #'
-#' @details O(V+E).
-#'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
 #' @export
@@ -149,8 +147,6 @@ dagri_ancestors <- function(graph, node_id) {
 #'
 #' Returns all node ids reachable from `node_id` by following edges downstream.
 #'
-#' @details O(V+E).
-#'
 #' @param graph A \code{dagri_graph}.
 #' @param node_id Node ID.
 #' @export
@@ -162,8 +158,6 @@ dagri_descendants <- function(graph, node_id) {
 }
 
 #' Check path existence
-#'
-#' @details O(V+E).
 #'
 #' @param graph A \code{dagri_graph}.
 #' @param from Source Node ID.
@@ -210,9 +204,7 @@ dagri_leaves <- function(graph) {
 
 #' Get topological order
 #'
-#' @details O(V+E).
-#'
-#'   Cycles are detected here: after the Kahn loop, any node that was not
+#' @details Cycles are detected here: after the Kahn loop, any node that was not
 #'   emitted (i.e. still has non-zero in-degree) lies on a cycle or downstream
 #'   of one, and the function aborts with class `dagri_error_cycle`, naming
 #'   the nodes that lie on a cycle in `details$cycle_nodes`. [dagri_add_edge()]
@@ -253,7 +245,7 @@ dagri_topo_order_impl <- function(graph, subset = NULL, index) {
   in_degree <- stats::setNames(integer(length(nodes_to_consider)), nodes_to_consider)
   scope <- nodes_to_consider
   # Count, per node, the incoming edges whose source is also in scope.
-  # Build a from-of map once so this stays O(V+E).
+  # Build a from-of map once instead of looking up each edge's source.
   from_of <- vapply(graph$edges, function(e) e$from, character(1))
   for (nid in scope) {
     rev_edges <- index$reverse_edges[[nid]]

@@ -23,9 +23,9 @@ class \code{dagri_error_cycle}.
 }
 \details{
 This is the load-time / entry-point validator: it guards every public
-boundary, so it is kept cheap and structural (O(V+E) referential checks). It
-does NOT detect cycles longer than a self-loop, because cycle detection is
-O(V+E) and only needed for topological operations; \code{\link[=dagri_topo_order]{dagri_topo_order()}}
-performs that check explicitly.
+boundary, so it is kept to structural checks of each record. It does NOT
+detect cycles longer than a self-loop, because that needs a traversal of
+the graph and is only needed for topological operations;
+\code{\link[=dagri_topo_order]{dagri_topo_order()}} performs that check explicitly.
 }
 \keyword{internal}

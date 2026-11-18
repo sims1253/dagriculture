@@ -70,7 +70,7 @@ a non-\code{NULL} \code{external_hold}.}
 Create a structural plan
 }
 \details{
-O(V+E). State is derived internally, so the plan is always current
+State is derived internally, so the plan is always current
 even if the input graph was never passed through
 \code{\link[=dagri_recompute_state]{dagri_recompute_state()}}; the input graph value itself is not mutated.
 

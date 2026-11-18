@@ -19,7 +19,7 @@ Character vector of visited node ids (excluding \code{start}).
 }
 \description{
 Internal helper. Callers must validate the graph and pass a pre-built
-adjacency \code{index}. Neighbors are read from \code{index} (O(1) per lookup), so the
-walk is O(V+E).
+adjacency \code{index}. Neighbors are read from \code{index} instead of scanning the
+edge list.
 }
 \keyword{internal}

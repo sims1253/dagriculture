@@ -19,10 +19,10 @@ abort_dagri <- function(class, message, details = list()) {
 #' class \code{dagri_error_cycle}.
 #'
 #' This is the load-time / entry-point validator: it guards every public
-#' boundary, so it is kept cheap and structural (O(V+E) referential checks). It
-#' does NOT detect cycles longer than a self-loop, because cycle detection is
-#' O(V+E) and only needed for topological operations; [dagri_topo_order()]
-#' performs that check explicitly.
+#' boundary, so it is kept to structural checks of each record. It does NOT
+#' detect cycles longer than a self-loop, because that needs a traversal of
+#' the graph and is only needed for topological operations;
+#' [dagri_topo_order()] performs that check explicitly.
 #'
 #' @param graph A \code{dagri_graph}.
 #' @return The graph, invisibly, if valid.
@@ -68,7 +68,7 @@ dagri_validate_graph <- function(graph) {
     )
   }
 
-  # Referential integrity (edge -> node). O(E). The editing API prevents
+  # Referential integrity (edge -> node). The editing API prevents
   # dangling edges, but graphs deserialized from JSON bypass it, so this guards
   # the same threat model as the cycle check in dagri_topo_order().
   node_ids <- names(graph$nodes)
@@ -94,7 +94,7 @@ dagri_validate_graph <- function(graph) {
     dagri_validate_not_self_loop(e)
   }
 
-  # Referential integrity (gate -> edge). O(G).
+  # Referential integrity (gate -> edge).
   edge_ids <- names(graph$edges)
   for (g in graph$gates) {
     if (!is.list(g) || is.null(g$edge_id)) {

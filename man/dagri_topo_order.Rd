@@ -15,8 +15,6 @@ dagri_topo_order(graph, subset = NULL)
 Get topological order
 }
 \details{
-O(V+E).
-
 Cycles are detected here: after the Kahn loop, any node that was not
 emitted (i.e. still has non-zero in-degree) lies on a cycle or downstream
 of one, and the function aborts with class \code{dagri_error_cycle}, naming

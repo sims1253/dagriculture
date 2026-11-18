@@ -174,6 +174,13 @@ released; its changes are listed here.
   caching, and artifact storage stay out of dagriculture (see
   `design/boundary-contract.md`).
 - **Real package Title** in DESCRIPTION.
+- **Complexity notes removed:** the help pages no longer claim O(V+E) for
+  traversals, topological ordering, state recomputation and planning, or O(E)
+  for `dagri_upstream()` and `dagri_downstream()`. The code does not meet
+  those bounds: every call validates the graph first, and the validation and
+  the traversals use `%in%`, `setdiff()` and lookups by name in named lists,
+  each of which takes time proportional to the length of the vector or list
+  it searches.
 
 # dagriculture 0.1.6
 

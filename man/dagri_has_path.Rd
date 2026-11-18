@@ -16,6 +16,3 @@ dagri_has_path(graph, from, to)
 \description{
 Check path existence
 }
-\details{
-O(V+E).
-}

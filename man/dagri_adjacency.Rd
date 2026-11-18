@@ -15,7 +15,7 @@ A named list with components \code{forward}, \code{reverse},
 and \code{pending_gate_ids_by_edge} (a named list keyed by edge id).
 }
 \description{
-Performs a single O(V+E+G) pass over \code{graph$edges} and \code{graph$gates} and
+Performs one pass over \code{graph$edges} and one over \code{graph$gates} and
 returns five named lists (each initialized to \code{character(0)} entries so no
 NULL-guarding is needed):
 }

@@ -14,6 +14,3 @@ dagri_ancestors(graph, node_id)
 \description{
 Returns all node ids reachable from \code{node_id} by following edges upstream.
 }
-\details{
-O(V+E).
-}

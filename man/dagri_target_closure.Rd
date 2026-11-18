@@ -16,7 +16,4 @@ dagri_target_closure(graph, targets = NULL, index = NULL)
 \description{
 Get the structural closure of target nodes
 }
-\details{
-O(V+E).
-}
 \keyword{internal}
